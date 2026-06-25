@@ -16,8 +16,9 @@ The design documentation system is available via Claude Code skills and agents.
 
 Architecture lives in `.claude/design/rolldown-pnpm-config/`. Load these when the task touches the area they cover; do not load them by default.
 
-- Phase 1 overall design → `@.claude/design/rolldown-pnpm-config/phase1-design.md`. Load when: working across milestones or needing the overall plugin architecture.
+- Phase 1 overall design (complete) → `@.claude/design/rolldown-pnpm-config/phase1-design.md`. Load when: working across milestones or needing the overall plugin architecture.
 - Strategy engine (M2, shipped) → `@.claude/design/rolldown-pnpm-config/phase1-m2-design.md`. Load when: changing `package/src/runtime/` strategies, the engine contract, the field registry, or `freeze`/`serialize`. §4 is the authoritative strategy contract.
+- Silk parity battery (M3, shipped) → `@.claude/design/rolldown-pnpm-config/phase1-m3-design.md`. Load when: working on the parity harness in `package/__test__/parity/` (`silk.config.ts`, `oracle.ts`, `inputs.ts`, the `*-parity.int.test.ts` suites) or reconciling Silk equivalence. §2 defines what parity means; §4 reconciles the M2 §2.4 divergences.
 
 ## Getting Started (After Cloning This Template)
 
