@@ -1,5 +1,3 @@
-import type { FrozenConfig } from "../runtime/index.js";
-
 /** Recursively sort object keys for deterministic output; arrays keep order. */
 export function sortKeys(value: unknown): unknown {
 	if (Array.isArray(value)) {
@@ -29,12 +27,13 @@ export function emitCatalogsModule(catalogs: Record<string, Record<string, strin
 	return `export const catalogs = new Map([${outer}]);\n`;
 }
 
-/** Source for the `pnpmfile` virtual module: createHooks over the frozen data. */
-export function emitPnpmfileModule(frozen: FrozenConfig): string {
-	const data = JSON.stringify(sortKeys(frozen));
+/** Source for the `pnpmfile` virtual module: createHooks over base + manifest. */
+export function emitPnpmfileModule(base: Record<string, unknown>, manifest: Record<string, unknown>): string {
+	const b = JSON.stringify(sortKeys(base));
+	const m = JSON.stringify(sortKeys(manifest));
 	return [
 		'import { createHooks } from "rolldown-pnpm-config/runtime";',
-		`export const hooks = createHooks(${data});`,
+		`export const hooks = createHooks(${b}, ${m});`,
 		"",
 	].join("\n");
 }

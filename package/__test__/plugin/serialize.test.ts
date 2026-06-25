@@ -18,10 +18,15 @@ describe("emitCatalogsModule", () => {
 });
 
 describe("emitPnpmfileModule", () => {
-	it("emits createHooks wiring over the frozen data (plain-JS branch)", () => {
-		const src = emitPnpmfileModule({ catalogs: { silk: { a: "1" } } });
+	it("emits createHooks wiring over base + manifest (plain-JS branch)", () => {
+		const src = emitPnpmfileModule(
+			{ catalogs: { silk: { a: "1" } } },
+			{ catalogs: { strategy: "catalogs", enforcement: "warn" } },
+		);
 		expect(src).toContain('import { createHooks } from "rolldown-pnpm-config/runtime";');
 		expect(src).not.toContain("import type");
-		expect(src).toContain('export const hooks = createHooks({"catalogs":{"silk":{"a":"1"}}});');
+		expect(src).toContain(
+			'export const hooks = createHooks({"catalogs":{"silk":{"a":"1"}}}, {"catalogs":{"enforcement":"warn","strategy":"catalogs"}});',
+		);
 	});
 });

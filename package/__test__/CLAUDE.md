@@ -1,7 +1,6 @@
 # Test Directory
 
-This project uses `@savvy-web/vitest` for test discovery. Tests live here in
-`__test__/`, not co-located in `src/`.
+This project uses `@vitest-agent/plugin` for test discovery. Tests live here in `__test__/`, not co-located in `src/`.
 
 ## Directory Structure
 

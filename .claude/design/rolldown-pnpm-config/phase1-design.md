@@ -290,6 +290,8 @@ generated ref and bundled as functions.
 
 ## 5. Strategy engine (subsystem 2)
 
+> **As-built note (M2 shipped):** the sketch below predates implementation. The shipped strategy signature is `{ merged, divergences }` (a single `Divergence[]` carrying a `kind: "override" | "security"`), not `{ merged, warnings, security }`, and the install-time-conditional logic is a **data-driven `excludeByRepo` refine**, not an arbitrary `refine` callback (arbitrary code injection is deferred). The authoritative as-built contract is `phase1-m2-design.md §4` and supersedes §5.1–§5.4 here.
+
 A **strategy** is a pure, named function with one signature:
 
 ```ts

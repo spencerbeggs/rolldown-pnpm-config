@@ -16,10 +16,15 @@ const readCatalogsEntry = (): string => {
 };
 
 describe("example build artifacts", () => {
-	it("emits a self-contained pnpmfile.mjs with createHooks and no effect import", () => {
+	it("emits a self-contained pnpmfile.mjs with createHooks(base, manifest) and no effect import", () => {
 		const src = readFileSync(join(pkgDir, "pnpmfile.mjs"), "utf8");
 		expect(src).toContain("createHooks");
 		expect(src).not.toContain('from "effect"');
+		// base + manifest are both serialized into the call; the manifest carries
+		// the strategy entries for the configured fields.
+		expect(src).toContain("strictDepBuilds");
+		expect(src).toContain('"strategy"');
+		expect(src).toMatch(/createHooks\(\s*\{/);
 	});
 
 	it("emits a pnpmfile.cjs", () => {

@@ -9,3 +9,8 @@
 
 // This file exists to be referenced in vitest.config.ts but doesn't need
 // to do anything - the Logger module handles test mode detection automatically.
+import { AgentPlugin } from "@vitest-agent/plugin";
+
+export function setup() {
+	AgentPlugin.runScript("pnpm turbo run build:dev");
+}
