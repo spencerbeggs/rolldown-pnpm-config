@@ -29,9 +29,9 @@ export function formatOverrideWarning(divergences: readonly Divergence[]): strin
 		const silkLine = `    Silk version:   ${divergence.silkValue}`;
 		const localLine = `    Local override: ${divergence.childValue}`;
 
-		lines.push(`│  ${catalogPath}${" ".repeat(WARNING_BOX_WIDTH - catalogPath.length - 4)}│`);
-		lines.push(`│${silkLine}${" ".repeat(WARNING_BOX_WIDTH - silkLine.length - 2)}│`);
-		lines.push(`│${localLine}${" ".repeat(WARNING_BOX_WIDTH - localLine.length - 2)}│`);
+		lines.push(`│  ${catalogPath}${" ".repeat(Math.max(0, WARNING_BOX_WIDTH - catalogPath.length - 4))}│`);
+		lines.push(`│${silkLine}${" ".repeat(Math.max(0, WARNING_BOX_WIDTH - silkLine.length - 2))}│`);
+		lines.push(`│${localLine}${" ".repeat(Math.max(0, WARNING_BOX_WIDTH - localLine.length - 2))}│`);
 		lines.push(`│${" ".repeat(WARNING_BOX_WIDTH - 2)}│`);
 	}
 

@@ -49,8 +49,20 @@ interface FieldDecl {
 	readonly options?: Record<string, unknown>;
 }
 
+/** Keys recognized by the wrapped `{ value, enforcement?, excludeByRepo? }` form. */
+const WRAPPED_KEYS = new Set(["value", "enforcement", "excludeByRepo"]);
+
+/** True only when `input` is the wrapped form: a `value` key and no foreign keys.
+ *  This disambiguates from a record-valued field that happens to contain a
+ *  `value` key (e.g. `overrides: { value: ">=1", lodash: ">=4" }`), which has
+ *  keys outside the recognized set and is therefore treated as a bare value. */
+function isWrappedField(input: object): boolean {
+	const keys = Object.keys(input);
+	return keys.includes("value") && keys.every((k) => WRAPPED_KEYS.has(k));
+}
+
 function normalizeField(input: unknown): FieldDecl {
-	if (input !== null && typeof input === "object" && "value" in (input as object)) {
+	if (input !== null && typeof input === "object" && isWrappedField(input)) {
 		const o = input as { value: unknown; enforcement?: Enforcement; excludeByRepo?: unknown };
 		return {
 			value: o.value,
@@ -93,9 +105,8 @@ export function freeze(config: PluginConfig): Effect.Effect<{ base: Base; manife
 				...(decl.options ? { options: decl.options } : {}),
 			};
 		}
-		if (base.catalogs === undefined) {
-			return yield* new ConfigError({ message: "catalogs is required" });
-		}
+		// `base.catalogs` is unconditionally decoded above; a missing/invalid
+		// catalogs map already fails as `Invalid catalogs: …`, so no further guard.
 		return { base, manifest };
 	});
 }

@@ -47,6 +47,16 @@ describe("freeze", () => {
 		});
 	});
 
+	it("treats a record field containing a `value` key as data, not the wrapped form", async () => {
+		const config = definePlugin({
+			catalogs: defineCatalogs([{ name: "silk", packages: { a: "1.0.0" } }]),
+			overrides: { value: ">=1", lodash: ">=4" },
+		});
+		const out = await Effect.runPromise(freeze(config));
+		expect(out.base.overrides).toEqual({ value: ">=1", lodash: ">=4" });
+		expect(out.manifest.overrides).toEqual({ strategy: "overrides", enforcement: "warn" });
+	});
+
 	it("fails with ConfigError naming the field when a field's value shape is wrong", async () => {
 		const bad = definePlugin({
 			catalogs: defineCatalogs([{ name: "silk", packages: { a: "1.0.0" } }]),

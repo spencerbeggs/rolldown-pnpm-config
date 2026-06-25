@@ -14,4 +14,14 @@ describe("formatOverrideWarning", () => {
 		expect(box).toContain("1.0.0");
 		expect(box).toContain("2.0.0");
 	});
+
+	it("does not throw on a setting path longer than the box width", () => {
+		const longPath = `catalogs.production.@some-long-org/${"x".repeat(60)}`;
+		expect(longPath.length).toBeGreaterThan(71);
+		expect(() =>
+			formatOverrideWarning([
+				{ setting: longPath, silkValue: "1.0.0", childValue: "2.0.0", detail: "", kind: "override" },
+			]),
+		).not.toThrow();
+	});
 });
