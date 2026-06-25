@@ -1,12 +1,12 @@
 {
-	"name": "pnpm-plugin-example",
+	"name": "@example/rolldown",
 	"version": "0.0.0",
 	"private": true,
-	"description": "A dogfooding example of our plugin",
+	"description": "Vanilla rolldown example: the documented setup, as a runnable test",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/spencerbeggs/rolldown-pnpm-config.git",
-		"directory": "example"
+		"directory": "examples/rolldown"
 	},
 	"license": "MIT",
 	"author": {
@@ -16,31 +16,22 @@
 	},
 	"type": "module",
 	"exports": {
-		".": "./src/index.ts",
+		".": "./src/pnpmfile.ts",
 		"./package.json": "./package.json"
 	},
 	"scripts": {
-		"build:dev": "node savvy.build.ts --target dev",
-		"build:prod": "node savvy.build.ts --target prod",
+		"build:dev": "rolldown -c",
 		"prepare": "turbo run build:dev",
 		"types:check": "tsgo --noEmit"
 	},
 	"devDependencies": {
-		"@savvy-web/bundler": "^0.11.0",
 		"@types/node": "catalog:silk",
 		"@typescript/native-preview": "catalog:silk",
+		"rolldown": "^1.1.2",
 		"rolldown-pnpm-config": "workspace:*",
 		"typescript": "catalog:silk"
 	},
 	"engines": {
 		"node": ">=24.11.0"
-	},
-	"publishConfig": {
-		"access": "public",
-		"directory": "dist/dev/pkg",
-		"linkDirectory": true,
-		"targets": {
-			"npm": true
-		}
 	}
 }

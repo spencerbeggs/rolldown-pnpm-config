@@ -57,7 +57,25 @@ importers:
         version: 1.0.0(3cd99b307b534f76dca849ab03ba45ab)
     publishDirectory: dist/dev/pkg
 
-  example:
+  examples/rolldown:
+    devDependencies:
+      '@types/node':
+        specifier: ^26.0.0
+        version: 26.0.0
+      '@typescript/native-preview':
+        specifier: catalog:silk
+        version: 7.0.0-dev.20260624.1
+      rolldown:
+        specifier: ^1.1.2
+        version: 1.1.2
+      rolldown-pnpm-config:
+        specifier: workspace:*
+        version: link:../../package/dist/dev/pkg
+      typescript:
+        specifier: catalog:silk
+        version: 6.0.3
+
+  examples/savvy:
     devDependencies:
       '@savvy-web/bundler':
         specifier: ^0.11.0
@@ -70,7 +88,7 @@ importers:
         version: 7.0.0-dev.20260624.1
       rolldown-pnpm-config:
         specifier: workspace:*
-        version: link:../package/dist/dev/pkg
+        version: link:../../package/dist/dev/pkg
       typescript:
         specifier: catalog:silk
         version: 6.0.3
@@ -1894,6 +1912,7 @@ packages:
   git-raw-commits@5.0.1:
     resolution: {integrity: sha512-Y+csSm2GD/PCSh6Isd/WiMjNAydu0VBiG9J7EdQsNA5P9uXvLayqjmTsNlK5Gs9IhblFZqOU0yid5Il5JPoLiQ==}
     engines: {node: '>=18'}
+    deprecated: Deprecated and no longer maintained. Use @conventional-changelog/git-client instead.
     hasBin: true
 
   github-from-package@0.0.0:

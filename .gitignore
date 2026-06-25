@@ -37,3 +37,5 @@ docs/superpowers/
 .claude/plugins-debug.log
 .playwright-mcp
 .mcp.json
+# vanilla rolldown example build artifact (emitted to project root per docs)
+examples/rolldown/pnpmfile.mjs

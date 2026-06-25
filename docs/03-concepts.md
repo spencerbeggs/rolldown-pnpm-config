@@ -1,0 +1,35 @@
+# Concepts
+
+This package has two layers. At build time you author a config and the plugin emits a pnpmfile. At install time that emitted pnpmfile runs inside the consuming repo. Knowing which layer you are in explains every other behavior below.
+
+## The two layers
+
+The build layer is where you and the plugin work: `definePlugin` declares the managed config, `PnpmConfigPlugin` validates it and serializes it into a virtual pnpmfile module, and your bundler writes that module out as `pnpmfile.mjs`. Everything heavy lives here.
+
+The runtime layer is the emitted `pnpmfile.mjs`. It carries a small zero-dependency runtime and nothing else — no build tooling, no external imports. That constraint exists because a pnpm config dependency cannot bring its own `node_modules`, so the shipped file has to be self-contained.
+
+## Config-dependency pnpmfiles and updateConfig
+
+A pnpm config dependency is a package pnpm fetches before it resolves the rest of the install. It can contribute a `pnpmfile`, which pnpm loads and whose hooks run during install. The hook this package emits is `updateConfig`: pnpm hands it the consuming repo's local pnpm config, and the hook returns a merged config with your centrally-managed settings folded in.
+
+This is how one published package can govern pnpm settings across many repos. Update the config once, republish and every consumer picks up the change on its next install. See pnpm's [config dependencies](https://pnpm.io/config-dependencies) and [pnpmfile](https://pnpm.io/pnpmfile) docs for the loading mechanics.
+
+## Catalogs
+
+A catalog is a named set of version specifiers managed in one place. `defineCatalogs` declares them in your config, and each consuming repo references a catalog entry instead of pinning a version itself. Bumping a version in the catalog updates every repo that points at it. This is the version-management half of what the emitted pnpmfile carries. The pnpm settings are the other half.
+
+## Enforcement: absent, warn, error
+
+When the hook merges your config into a consuming repo, the repo may already declare a value that diverges from yours. Each managed field decides what happens when it does, through one of three enforcement levels:
+
+- `absent` — merge silently. The divergence is allowed and nothing is printed.
+- `warn` — merge but print a warning box describing the divergence.
+- `error` — fail the install. The divergence is rejected and pnpm stops.
+
+The base rule is that the child config wins: a consuming repo can override a managed value. Enforcement governs how loud that override is. A repo on `warn` keeps its own value and sees a notice; a repo on `error` cannot diverge at all.
+
+Divergences come in two kinds, which drive two separate warning boxes. An override divergence is a plain value mismatch — the repo set something different from the managed default. A security divergence is a value mismatch on a security-relevant field, such as a weakened `minimumReleaseAge` or a loosened build allowlist; it gets its own box so it stands out from routine overrides.
+
+## Where to go deeper
+
+For the internals — the strategy engine, the field registry, the build-time `freeze` step and the build-to-runtime emit pipeline — see the architecture design doc at `.claude/design/rolldown-pnpm-config/architecture.md`.

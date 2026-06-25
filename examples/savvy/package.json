@@ -1,12 +1,12 @@
 {
-	"name": "rolldown-pnpm-config",
+	"name": "@example/savvy",
 	"version": "0.0.0",
 	"private": true,
 	"description": "A dogfooding example of our plugin",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/spencerbeggs/rolldown-pnpm-config.git",
-		"directory": "package"
+		"directory": "examples/savvy"
 	},
 	"license": "MIT",
 	"author": {
@@ -17,14 +17,7 @@
 	"type": "module",
 	"exports": {
 		".": "./src/index.ts",
-		"./runtime": "./src/runtime/index.ts",
-		"./virtual": {
-			"types": "./src/virtual.d.ts"
-		},
 		"./package.json": "./package.json"
-	},
-	"bin": {
-		"rolldown-pnpm-config": "./src/cli/index.ts"
 	},
 	"scripts": {
 		"build:dev": "node savvy.build.ts --target dev",
@@ -32,18 +25,12 @@
 		"prepare": "turbo run build:dev",
 		"types:check": "tsgo --noEmit"
 	},
-	"dependencies": {
-		"effect": "^3.21.4"
-	},
 	"devDependencies": {
 		"@savvy-web/bundler": "^0.11.0",
 		"@types/node": "catalog:silk",
 		"@typescript/native-preview": "catalog:silk",
-		"rolldown": "^1.1.2",
+		"rolldown-pnpm-config": "workspace:*",
 		"typescript": "catalog:silk"
-	},
-	"peerDependencies": {
-		"rolldown": "^1.1.2"
 	},
 	"engines": {
 		"node": ">=24.11.0"
