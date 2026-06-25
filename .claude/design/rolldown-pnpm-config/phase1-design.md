@@ -1,7 +1,7 @@
 # rolldown-pnpm-config — Phase 1 Design
 
-- **Status:** Approved (brainstorming complete), ready for planning
-- **Date:** 2026-06-24
+- **Status:** **Phase 1 COMPLETE** (2026-06-25). Subsystems 1+2+3 shipped across M1 (catalogs skeleton), M2 (full strategy engine), M3 (Silk parity proven). The library is a faithful Silk replacement: differential merge-parity against Silk's own pnpmfile passes for all Silk-real inputs (see `phase1-m3-design.md`). Next: Phase 2 (CLI resolver) / Phase 3 (full schema) — separate cycles.
+- **Date:** 2026-06-24 (Phase 1 closed 2026-06-25)
 - **Author repo (this package):** `/Users/spencer/workspaces/spencerbeggs/rolldown-pnpm-config`
 - **Extraction source / proof target (Silk):** `/Users/spencer/workspaces/savvy-web/pnpm-plugin-silk`
 - **Implementation note:** This spec is written to be executed by an agent in a
@@ -68,6 +68,8 @@ Effect and the codegen/validation layer.
 
 The full vision is five independent subsystems. **This spec covers Phase 1
 only.** The other phases get their own spec → plan → implementation cycles.
+
+> **Phase 1 status (COMPLETE, 2026-06-25):** subsystems 1+2+3 (below) are shipped and proven. M1 stood up the catalogs-only skeleton; M2 generalized it into the full strategy engine (all ~13 Silk fields, per-field enforcement, override/security detection); M3 transcribed Silk's entire managed config as a `silk.config.ts` and proved the engine's merged output deep-equals Silk's own pnpmfile across a differential battery (the dogfood proof). Subsystems 4 (Phase 2) and 5 (Phase 3) remain.
 
 1. **Authoring API** — `definePlugin` / `defineCatalogs` + type modeling *(Phase 1, scoped)*
 2. **Strategy engine** — hybrid merge model (known fields + escape hatch) + warning/security detection *(Phase 1)*
