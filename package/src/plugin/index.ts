@@ -1,10 +1,15 @@
 import { Effect } from "effect";
 import type { Plugin } from "rolldown";
 import type { PluginConfig } from "../define-plugin.js";
-import type { FrozenConfig } from "../runtime/index.js";
+import type { Base, Manifest } from "../runtime/types.js";
 import type { ConfigError } from "./freeze.js";
 import { freeze } from "./freeze.js";
 import { emitCatalogsModule, emitPnpmfileModule } from "./serialize.js";
+
+interface Frozen {
+	readonly base: Base;
+	readonly manifest: Manifest;
+}
 
 const PNPMFILE_SPEC = "rolldown-pnpm-config/virtual/pnpmfile";
 const CATALOGS_SPEC = "rolldown-pnpm-config/virtual/catalogs";
@@ -16,7 +21,7 @@ const CATALOGS_SPEC = "rolldown-pnpm-config/virtual/catalogs";
  */
 export interface PluginDeps {
 	/** Injectable freeze function; defaults to the real Effect implementation. */
-	readonly freeze: (config: PluginConfig) => Effect.Effect<FrozenConfig, ConfigError>;
+	readonly freeze: (config: PluginConfig) => Effect.Effect<Frozen, ConfigError>;
 }
 
 /**
@@ -27,8 +32,8 @@ export interface PluginDeps {
  * @internal
  */
 export function createPnpmConfigPlugin(config: PluginConfig, deps: PluginDeps = { freeze }): Plugin {
-	let frozen: Promise<FrozenConfig> | undefined;
-	const getFrozen = (): Promise<FrozenConfig> => (frozen ??= Effect.runPromise(deps.freeze(config)));
+	let frozen: Promise<Frozen> | undefined;
+	const getFrozen = (): Promise<Frozen> => (frozen ??= Effect.runPromise(deps.freeze(config)));
 
 	return {
 		name: "rolldown-pnpm-config",
@@ -40,10 +45,12 @@ export function createPnpmConfigPlugin(config: PluginConfig, deps: PluginDeps = 
 		},
 		async load(id) {
 			if (id === `\0${PNPMFILE_SPEC}`) {
-				return emitPnpmfileModule(await getFrozen());
+				const { base, manifest } = await getFrozen();
+				return emitPnpmfileModule(base, manifest);
 			}
 			if (id === `\0${CATALOGS_SPEC}`) {
-				return emitCatalogsModule((await getFrozen()).catalogs);
+				const { base } = await getFrozen();
+				return emitCatalogsModule((base.catalogs ?? {}) as Record<string, Record<string, string>>);
 			}
 			return null;
 		},

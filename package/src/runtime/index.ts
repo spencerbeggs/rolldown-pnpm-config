@@ -1,50 +1,61 @@
-/**
- * Minimal pnpm config shape — only the fields this plugin reads/writes.
- *
- * @public
- */
-export interface PnpmConfig {
-	/** Named catalogs injected into pnpm's workspace configuration. */
-	catalogs?: Record<string, Record<string, string>>;
-	[key: string]: unknown;
-}
+import { excludeByRepo, resolveRootName } from "./ctx.js";
+import { applyEnforcement } from "./enforcement.js";
+import { STRATEGY_TABLE } from "./strategies/table.js";
+import type { Base, Divergence, Manifest, PnpmConfig, PnpmHooks, RuntimeCtx } from "./types.js";
+import { formatOverrideWarning, formatSecurityWarning } from "./warnings.js";
+
+export * from "./types.js";
 
 /**
- * The frozen, build-time-resolved plugin data shipped into the pnpmfile.
+ * Build the pnpm hooks from frozen base data + a field→strategy manifest.
+ * Zero dependencies — bundled verbatim into the shipped pnpmfile.
+ *
+ * @remarks
+ * `updateConfig` deliberately has no catch-and-fall-back-to-local guard: an
+ * `error`-enforced divergence throws `EnforcementError`, which is meant to
+ * propagate and fail the install. If a swallow-guard is ever added here, it MUST
+ * rethrow `EnforcementError` (check `err instanceof EnforcementError` /
+ * `err.name === "EnforcementError"`) rather than fall back to the local config.
  *
  * @public
  */
-export interface FrozenConfig {
-	/** The resolved catalog map to merge into pnpm config at install time. */
-	catalogs: Record<string, Record<string, string>>;
-}
-
-/**
- * The pnpm pnpmfile hooks object.
- *
- * @public
- */
-export interface PnpmHooks {
-	/** Merges frozen catalogs into the pnpm workspace config. */
-	updateConfig(config: PnpmConfig): PnpmConfig;
-}
-
-/**
- * Build the pnpm hooks from frozen plugin data. Zero dependencies — bundled
- * verbatim into the shipped pnpmfile. Merges each frozen catalog into the
- * consumer's config; a local entry for the same package wins.
- *
- * @public
- */
-export function createHooks(frozen: FrozenConfig): PnpmHooks {
+export function createHooks(base: Base, manifest: Manifest): PnpmHooks {
 	return {
 		updateConfig(config) {
-			const existing = config.catalogs ?? {};
-			const merged: Record<string, Record<string, string>> = { ...existing };
-			for (const [name, entries] of Object.entries(frozen.catalogs)) {
-				merged[name] = { ...entries, ...(existing[name] ?? {}) };
+			const ctx: RuntimeCtx = { rootName: resolveRootName(config) };
+			const out: PnpmConfig = { ...config };
+			const allOverrides: Divergence[] = [];
+			const allSecurity: Divergence[] = [];
+			for (const [field, entry] of Object.entries(manifest)) {
+				const strategy = STRATEGY_TABLE[entry.strategy];
+				if (!strategy) continue;
+				const result = strategy(base[field], config[field], ctx);
+				// Apply any data-driven refine (e.g. excludeByRepo on publicHoistPattern)
+				// to the merged value before enforcement.
+				let merged = result.merged;
+				const byRepo = entry.options?.excludeByRepo as Record<string, string[]> | undefined;
+				if (byRepo && Array.isArray(merged)) {
+					merged = excludeByRepo(merged as string[], ctx, byRepo);
+				}
+				// Field-agnostic strategies (securityFlag/securityMin) emit setting:"";
+				// fill it with the field name here, where the name is known.
+				const named = result.divergences.map((d) => (d.setting === "" ? { ...d, setting: field } : d));
+				const { value, overrides, security } = applyEnforcement(
+					field,
+					{ merged, divergences: named },
+					entry.enforcement,
+				);
+				allOverrides.push(...overrides);
+				allSecurity.push(...security);
+				if (value !== undefined && !(typeof value === "object" && value !== null && Object.keys(value).length === 0)) {
+					out[field] = value;
+				}
 			}
-			return { ...config, catalogs: merged };
+			const ob = formatOverrideWarning(allOverrides);
+			if (ob) console.warn(ob);
+			const sb = formatSecurityWarning(allSecurity);
+			if (sb) console.warn(sb);
+			return out;
 		},
 	};
 }

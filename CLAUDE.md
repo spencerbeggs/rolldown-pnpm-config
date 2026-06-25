@@ -10,8 +10,14 @@ modules to npm and GitHub Packages. It is not a working library — it contains
 placeholder source code in `src/` that should be replaced when starting a new
 project.
 
-The design documentation system is available via Claude Code skills and agents
-but no design docs exist yet in this template.
+The design documentation system is available via Claude Code skills and agents.
+
+### Design Docs
+
+Architecture lives in `.claude/design/rolldown-pnpm-config/`. Load these when the task touches the area they cover; do not load them by default.
+
+- Phase 1 overall design → `@.claude/design/rolldown-pnpm-config/phase1-design.md`. Load when: working across milestones or needing the overall plugin architecture.
+- Strategy engine (M2, shipped) → `@.claude/design/rolldown-pnpm-config/phase1-m2-design.md`. Load when: changing `package/src/runtime/` strategies, the engine contract, the field registry, or `freeze`/`serialize`. §4 is the authoritative strategy contract.
 
 ## Getting Started (After Cloning This Template)
 
@@ -85,7 +91,6 @@ installed source.
 | commitlint | Conventional commit + DCO enforcement | [savvy-web/commitlint](https://github.com/savvy-web/commitlint) | `node_modules/@savvy-web/commitlint/` |
 | changesets | Versioning, changelogs, release management | [savvy-web/changesets](https://github.com/savvy-web/changesets) | `node_modules/@savvy-web/changesets/` |
 | lint-staged | Pre-commit file linting via Biome | [savvy-web/lint-staged](https://github.com/savvy-web/lint-staged) | `node_modules/@savvy-web/lint-staged/` |
-| vitest | Vitest config factory with project support | [savvy-web/vitest](https://github.com/savvy-web/vitest) | `node_modules/@savvy-web/vitest/` |
 
 TypeScript configuration extends from rslib-builder:
 `@savvy-web/rslib-builder/tsconfig/ecma/lib.json`
@@ -174,8 +179,7 @@ workflow. The GitHub Action is at
 
 - **Framework**: [Vitest](https://vitest.dev/) with v8 coverage provider
 - **Pool**: Uses `forks` (not threads) for broader compatibility
-- **Config**: `vitest.config.ts` uses the `VitestConfig.create()` factory from
-  `@savvy-web/vitest`, which supports project-based filtering via `--project`
+- **Config**: `vitest.config.ts` wires `AgentPlugin` from `@vitest-agent/plugin` into `defineConfig` from `vitest/config`; `AgentPlugin.discover()` supplies workspace `projects` and `tags`
 - **CI**: `pnpm run ci:test` sets `CI=true` and enables coverage
 
 ### Test Directory

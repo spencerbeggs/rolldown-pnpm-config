@@ -32,7 +32,12 @@ describe("PnpmConfigPlugin", () => {
 	});
 
 	it("runs freeze exactly once across multiple load calls (memoized across passes)", async () => {
-		const freezeSpy = vi.fn((c: typeof config) => Effect.succeed({ catalogs: c.catalogs.catalogs }));
+		const freezeSpy = vi.fn((c: typeof config) =>
+			Effect.succeed({
+				base: { catalogs: c.catalogs.catalogs },
+				manifest: { catalogs: { strategy: "catalogs", enforcement: "warn" as const } },
+			}),
+		);
 		const plugin = createPnpmConfigPlugin(config, { freeze: freezeSpy });
 		await callHook<Promise<string | null>>(plugin.load, "\0rolldown-pnpm-config/virtual/pnpmfile");
 		await callHook<Promise<string | null>>(plugin.load, "\0rolldown-pnpm-config/virtual/catalogs");
