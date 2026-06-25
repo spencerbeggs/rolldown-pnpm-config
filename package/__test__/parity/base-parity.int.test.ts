@@ -4,10 +4,14 @@ import { freeze } from "../../src/plugin/freeze.js";
 import { loadSilkCatalogs } from "./oracle.js";
 import { silkConfig } from "./silk.config.js";
 
-const { silkCatalogs, silkPeerDependencyRules } = loadSilkCatalogs();
+const oracle = loadSilkCatalogs();
 
-describe("silk.config base parity", () => {
+// Skips cleanly when Silk's built artifacts are absent (e.g. CI). The
+// `oracle is present` guard in parity.int.test.ts flags a forgotten local build.
+describe.skipIf(oracle === null)("silk.config base parity", () => {
 	it("freeze(silkConfig).base reproduces Silk's silk-managed values", async () => {
+		if (!oracle) return; // narrows type for TS; skipIf already gates execution
+		const { silkCatalogs, silkPeerDependencyRules } = oracle;
 		const { base } = await Effect.runPromise(freeze(silkConfig));
 
 		// Catalogs

@@ -25,7 +25,10 @@ describe("Silk merge parity (differential)", () => {
 		expect(ours).toEqual(theirs);
 	});
 
-	it("oracle is present (build Silk if this fails)", () => {
+	// Local safety net: a local run with Silk unbuilt would silently skip every
+	// differential case above, so fail loudly if the oracle is missing. Skipped in
+	// CI, where the sibling Silk repo is intentionally absent.
+	it.skipIf(Boolean(process.env.CI))("oracle is present (build Silk if this fails)", () => {
 		expect(silk, "Silk oracle pnpmfile not found — run `pnpm -C <silk> run build`").not.toBeNull();
 	});
 });
