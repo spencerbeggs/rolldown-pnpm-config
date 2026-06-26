@@ -3,10 +3,12 @@ status: current
 module: rolldown-pnpm-config
 category: architecture
 created: 2026-06-25
-updated: 2026-06-25
-last-synced: 2026-06-25
-completeness: 90
-related: []
+updated: 2026-06-26
+last-synced: 2026-06-26
+completeness: 92
+related:
+  - settings-coverage.md
+  - specs/2026-06-26-pnpm-settings-coverage-design.md
 dependencies: []
 ---
 
@@ -33,17 +35,19 @@ It was extracted from the one working plugin `@savvy-web/pnpm-plugin-silk` and g
 
 The cardinal architectural decision is the build-time / runtime split. Config dependencies cannot carry runtime dependencies — everything must bundle into the shipped pnpmfile — so Effect is confined entirely to the build step and the bundled artifact is a tiny pure-JS runtime. This keeps consumer installs light and is the constraint that shapes every other boundary below.
 
-Reference this document when changing the engine contract, the field registry, the build-to-runtime emit pipeline or the public authoring surface.
+The managed field surface is defined once in a declarative descriptor table (`package/src/descriptors/`) — the single source of truth from which the validation schemas and the strategy/enforcement registry are derived. See the [settings coverage matrix](settings-coverage.md) for the full enumerated field set.
+
+Reference this document when changing the engine contract, the descriptor table, the build-to-runtime emit pipeline or the public authoring surface.
 
 ## Current state
 
-Phase 1 is complete and shipped (merged to `main` via PR #3). The authoring API, the strategy engine and the build-to-runtime emit pipeline are implemented, scoped to the fields Silk uses, and proven Silk-equivalent by differential parity. The package is intentionally still `private` (pre-publish).
+Phase 1 (the engine) shipped via PR #3 and Phase 3 (full field coverage) has since landed on `feat/complete-schema`. The authoring API, the strategy engine and the build-to-runtime emit pipeline are implemented, the managed field surface now spans the full workspace-appropriate pnpm setting set (121 fields, up from Silk's 14), and the original 14 stay proven Silk-equivalent by differential parity. The package is intentionally still `private` (pre-publish).
 
 The pipeline has three stages, each on one side of the build / runtime boundary.
 
-Authoring API (`@public`, build time): authors call `definePlugin` to declare catalogs plus the Silk-managed pnpm fields, and `defineCatalogs` to normalize named catalog declarations. See `package/src/define-plugin.ts` for the `PluginConfig` shape and the full managed field set, and `package/src/define-catalogs.ts` for catalog normalization.
+Authoring API (`@public`, build time): authors call `definePlugin` to declare catalogs plus the managed pnpm fields, and `defineCatalogs` to normalize named catalog declarations. The `PluginConfig` shape is a hand-authored interface (one `FieldInput<T>` per field, for rich per-field JSDoc and DX), kept in lockstep with the descriptor table by the compile-time drift guard described below. See `package/src/define-plugin.ts` and `package/src/define-catalogs.ts`.
 
-Build step (`freeze`, the only place Effect runs, `@internal`): `freeze` validates each declared field against a per-field Schema and emits two plain-data structures — `base` (field to frozen value) and `manifest` (field to `{ strategy, enforcement, options? }`). Invalid config surfaces as a typed `ConfigError`. See `package/src/plugin/freeze.ts`.
+Build step (`freeze`, the only place Effect runs, `@internal`): `freeze` validates each declared field against its descriptor-derived Schema and emits two plain-data structures — `base` (field to frozen value) and `manifest` (field to `{ strategy, enforcement, options? }`). Invalid config surfaces as a typed `ConfigError`. The schema map (`FIELD_SCHEMAS`) is derived from `DESCRIPTORS`; `catalogs` remains special-cased (its value is `config.catalogs.catalogs`). See `package/src/plugin/freeze.ts`.
 
 Runtime (`createHooks`, zero-dependency, `@public`): `createHooks(base, manifest)` returns `{ updateConfig }`. It builds the strategy table, runs each field's strategy, applies the field's enforcement, prints the warning boxes and returns the merged config. See `package/src/runtime/index.ts`.
 
@@ -55,7 +59,7 @@ Runtime (`createHooks`, zero-dependency, `@public`): `createHooks(base, manifest
 
 ### Public API boundary
 
-The build-time authoring surface plus the runtime entry are `@public`; everything else — the strategies, the field registry, `freeze`, `ConfigError`, the warning-box formatters and the ctx helpers — is `@internal`. The exact `@public` set is the export list of `package/src/index.ts` and the runtime types in `package/src/runtime/types.ts`; treat changes to either as API-surface changes.
+The build-time authoring surface plus the runtime entry are `@public`; everything else — the strategies, the descriptor table, the derived field registry, `freeze`, `ConfigError`, the warning-box formatters and the ctx helpers — is `@internal`. The exact `@public` set is the export list of `package/src/index.ts` and the runtime types in `package/src/runtime/types.ts`; treat changes to either as API-surface changes.
 
 ## Rationale
 
@@ -71,11 +75,17 @@ A strategy is a pure `(base, local, ctx) => { merged, divergences }`. Strategies
 
 The runtime deliberately has no catch-and-fall-back-to-local guard: an `error`-enforced divergence must propagate and fail the install. If a swallow-guard is ever added it must rethrow `EnforcementError` rather than fall back. The rationale is recorded inline at the top of `package/src/runtime/index.ts`.
 
-### Field registry as the extension point
+### Descriptor table as the single source of truth
 
-A built-in field registry maps each known pnpm field to its strategy and its Silk-matching default enforcement. See `package/src/registry.ts`. Adding a known field later is purely additive — a registry entry plus, where needed, a value-shape Schema in `freeze`. This is the artifact Phase 3 grows.
+Each managed pnpm field is one entry in a declarative descriptor table under `package/src/descriptors/`, carrying its validation `schema`, `kind`, merge `strategy`, default `enforcement`, doc string and optional refine `options`. The table is split across category modules (resolution, hoisting, lockfile, build, runtime-cfg, workspace, misc, network) merged with `satisfies` into one `DESCRIPTORS` object in `package/src/descriptors/index.ts`. The `satisfies` (never a `: FieldDescriptors` annotation) is load-bearing: it preserves each entry's narrow schema type so the drift guard can read per-field value types. See `package/src/descriptors/types.ts` for the `FieldDescriptor<A>` shape.
 
-Strategies are grouped by kind under `package/src/runtime/strategies/` and keyed by name in `package/src/runtime/strategies/table.ts`; the manifest references a strategy by that name, so the build emits no strategy code — the runtime owns the implementations.
+What code consumes is **derived** from the table, not hand-listed: `deriveSchemas(DESCRIPTORS)` produces `FIELD_SCHEMAS` (consumed by `freeze`) and `deriveRegistry(DESCRIPTORS)` produces `FIELD_REGISTRY` (`package/src/registry.ts` is now three lines). Adding a field is a single descriptor entry plus its matching `PluginConfig` line — the schema, registry and table-driven tests all follow from it.
+
+The hand-authored `PluginConfig` interface is kept honest by a value-level drift guard at `package/__test__/types/plugin-config.test-d.ts`: a compile-time assertion that each authored field's type and its descriptor-derived type are mutually assignable, so widening an authored field (e.g. `string` against a `Schema.Literal(...)` union) or dropping one breaks `typecheck`. Two keys are key-checked only — `catalogs` (authored as `CatalogsResult`) and `publicHoistPattern` (carries the `excludeByRepo` refine the schema does not model). Every descriptor is also exercised by the table-driven suite at `package/__test__/descriptors/table.test.ts` (strategy exists in `STRATEGY_TABLE`; schema accepts/rejects samples).
+
+The 14 original Silk fields were migrated into the table **parity-locked** — strategy and enforcement preserved verbatim — and the parity suite still proves byte-identical `{ base, manifest }` output, so the descriptor refactor changed no behavior. The strategy table itself was untouched: this is purely a front-of-pipeline (authoring → freeze) change.
+
+Strategies are grouped by kind under `package/src/runtime/strategies/` and keyed by name in `package/src/runtime/strategies/table.ts`; the manifest references a strategy by that name, so the build emits no strategy code — the runtime owns the implementations. The descriptor table reuses the existing strategies; no new merge engine was added for the expanded field set.
 
 ### Data-driven refines, not injected code
 
@@ -113,17 +123,20 @@ Three divergences from Silk are accepted and proven parity-neutral — each affe
 
 ## Roadmap
 
-Phase 1 (complete, shipped): the authoring API, the strategy engine and the build-to-runtime emit pipeline, scoped to the fields Silk uses and proven Silk-equivalent. This is the current state.
+Phase 1 (complete, shipped): the authoring API, the strategy engine and the build-to-runtime emit pipeline, scoped to the fields Silk uses and proven Silk-equivalent.
+
+Phase 3 (complete, on `feat/complete-schema`): the managed field surface grew from Silk's 14 to the full workspace-appropriate pnpm setting set (121 fields) via the descriptor table, reusing the existing strategies with no runtime-engine change. Field-by-field coverage and the classification of excluded keys live in [settings-coverage.md](settings-coverage.md). The descriptor-table design is recorded in [the coverage design spec](specs/2026-06-26-pnpm-settings-coverage-design.md). This is part of the current state.
 
 Phase 2 (next, not built): a CLI version resolver that queries the registry and resolves latest compatible versions honoring peer constraints, rewriting the `defineCatalogs` source. The bin scaffold exists at `package/src/cli/`. Check the `effect-catalog-resolver` skill first — it may already cover much of the registry-query and peer-constraint logic.
-
-Phase 3 (later, additive): grow the field registry from Silk's set toward full pnpm-workspace coverage. Each new field is a registry entry plus a strategy, mostly reusing the existing built-ins.
 
 Pre-publish hardening (cross-cutting, before any release): ship library-owned ambient virtual-module types for external consumers, add real publish metadata and drop `private`, and widen peer ranges. The package is currently `private` and intentionally pre-publish.
 
 ## Related documentation
 
-- `package/src/define-plugin.ts` and `package/src/define-catalogs.ts` — the authoring API and the managed field set.
-- `package/src/registry.ts` and `package/src/runtime/strategies/table.ts` — the field-to-strategy registry and the strategy table.
+- [settings-coverage.md](settings-coverage.md) — the full enumerated 121-field coverage matrix (key, kind, strategy, enforcement, anchor) and the excluded-key classification.
+- [the coverage design spec](specs/2026-06-26-pnpm-settings-coverage-design.md) — the rationale for the descriptor-table-as-single-source-of-truth design.
+- `package/src/descriptors/` — the descriptor table (single source of truth) and the `deriveSchemas`/`deriveRegistry` helpers.
+- `package/src/define-plugin.ts` and `package/src/define-catalogs.ts` — the authoring API and the hand-authored `PluginConfig`.
+- `package/src/registry.ts` and `package/src/runtime/strategies/table.ts` — the derived field-to-strategy registry and the strategy table.
 - `package/src/runtime/index.ts` and `package/src/runtime/enforcement.ts` — the install-time merge and the enforcement contract.
 - pnpm config dependencies: <https://pnpm.io/config-dependencies> and pnpmfile hooks: <https://pnpm.io/pnpmfile>.

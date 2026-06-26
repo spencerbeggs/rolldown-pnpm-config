@@ -1,0 +1,95 @@
+// package/src/descriptors/network.ts
+import { Bool, Num, Str, StringArray } from "./schemas.js";
+import type { FieldDescriptors } from "./types.js";
+
+/** The 11 network tuning + publish fields. @internal */
+export const network = {
+	networkConcurrency: {
+		schema: Num,
+		kind: "number",
+		strategy: "scalar",
+		enforcement: "absent",
+		doc: "Maximum number of concurrent network requests pnpm is allowed to make.",
+		anchor: "networkconcurrency",
+	},
+	fetchRetries: {
+		schema: Num,
+		kind: "number",
+		strategy: "scalar",
+		enforcement: "absent",
+		doc: "Number of times pnpm retries fetching a package from the registry on failure.",
+		anchor: "fetchretries",
+	},
+	fetchRetryFactor: {
+		schema: Num,
+		kind: "number",
+		strategy: "scalar",
+		enforcement: "absent",
+		doc: "Exponential factor used when calculating retry delays for failed fetches.",
+		anchor: "fetchretryfactor",
+	},
+	fetchRetryMintimeout: {
+		schema: Num,
+		kind: "number",
+		strategy: "scalar",
+		enforcement: "absent",
+		doc: "Minimum timeout (ms) for a single fetch retry attempt.",
+		anchor: "fetchretrymintimeout",
+	},
+	fetchRetryMaxtimeout: {
+		schema: Num,
+		kind: "number",
+		strategy: "scalar",
+		enforcement: "absent",
+		doc: "Maximum timeout (ms) for a single fetch retry attempt.",
+		anchor: "fetchretrymaxtimeout",
+	},
+	fetchTimeout: {
+		schema: Num,
+		kind: "number",
+		strategy: "scalar",
+		enforcement: "absent",
+		doc: "Maximum amount of time (ms) to wait for an HTTP response from the registry.",
+		anchor: "fetchtimeout",
+	},
+	gitShallowHosts: {
+		schema: StringArray,
+		kind: "stringArray",
+		strategy: "arrayUnion",
+		enforcement: "absent",
+		doc: "Hosts from which git-protocol dependencies are cloned using a shallow fetch.",
+		anchor: "gitshallowhosts",
+	},
+	provenance: {
+		schema: Bool,
+		kind: "boolean",
+		strategy: "scalar",
+		enforcement: "absent",
+		doc: "Whether packages are published with provenance attestation when supported by the registry.",
+		anchor: "provenance",
+	},
+	gitChecks: {
+		schema: Bool,
+		kind: "boolean",
+		strategy: "scalar",
+		enforcement: "absent",
+		doc: "Whether pnpm checks that the repository is clean before publishing.",
+		anchor: "gitchecks",
+	},
+	embedReadme: {
+		schema: Bool,
+		kind: "boolean",
+		strategy: "scalar",
+		enforcement: "absent",
+		doc: "Whether the README file is embedded in the package tarball on publish.",
+		anchor: "embedreadme",
+	},
+	publishBranch: {
+		schema: Str,
+		kind: "string",
+		strategy: "scalar",
+		enforcement: "absent",
+		doc: "Branch that is allowed to publish packages; publishing from other branches is blocked.",
+		anchor: "publishbranch",
+	},
+} satisfies FieldDescriptors;

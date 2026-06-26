@@ -1,5 +1,6 @@
 import { Data, Effect, Schema } from "effect";
 import type { PluginConfig } from "../define-plugin.js";
+import { DESCRIPTORS, deriveSchemas } from "../descriptors/index.js";
 import { FIELD_REGISTRY } from "../registry.js";
 import type { Base, Enforcement, Manifest } from "../runtime/types.js";
 
@@ -10,38 +11,9 @@ import type { Base, Enforcement, Manifest } from "../runtime/types.js";
  */
 export class ConfigError extends Data.TaggedError("ConfigError")<{ readonly message: string }> {}
 
-const CatalogsSchema = Schema.Record({
-	key: Schema.String,
-	value: Schema.Record({ key: Schema.String, value: Schema.String }),
-});
-
-const StringRecord = Schema.Record({ key: Schema.String, value: Schema.String });
-const BooleanRecord = Schema.Record({ key: Schema.String, value: Schema.Boolean });
-const StringArray = Schema.Array(Schema.String);
-const StringArrayRecord = Schema.Record({ key: Schema.String, value: StringArray });
-const UnknownRecord = Schema.Record({ key: Schema.String, value: Schema.Unknown });
-const PeerRulesSchema = Schema.Struct({
-	allowedVersions: Schema.optional(StringRecord),
-	ignoreMissing: Schema.optional(StringArray),
-	allowAny: Schema.optional(StringArray),
-});
-
 /** Per-field value-shape schemas; only declared fields are validated. */
-const FIELD_SCHEMAS: Record<string, Schema.Schema<unknown, unknown>> = {
-	confirmModulesPurge: Schema.Boolean,
-	strictDepBuilds: Schema.Boolean,
-	blockExoticSubdeps: Schema.Boolean,
-	minimumReleaseAge: Schema.Number,
-	packageExtensions: UnknownRecord,
-	allowedDeprecatedVersions: StringRecord,
-	publicHoistPattern: StringArray,
-	minimumReleaseAgeExclude: StringArray,
-	supportedArchitectures: StringArrayRecord,
-	auditConfig: StringArrayRecord,
-	overrides: StringRecord,
-	allowBuilds: BooleanRecord,
-	peerDependencyRules: PeerRulesSchema,
-} as Record<string, Schema.Schema<unknown, unknown>>;
+const FIELD_SCHEMAS = deriveSchemas(DESCRIPTORS);
+const CatalogsSchema = FIELD_SCHEMAS.catalogs;
 
 interface FieldDecl {
 	readonly value: unknown;

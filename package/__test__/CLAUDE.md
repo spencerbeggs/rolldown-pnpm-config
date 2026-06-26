@@ -8,7 +8,8 @@ This project uses `@vitest-agent/plugin` for test discovery. Tests live here in 
 __test__/
   utils/              # Shared mocks, helpers, and type utilities for unit tests
   fixtures/           # Static test data and fixture files for unit tests
-  *.test.ts           # Unit tests
+  *.test.ts           # Unit tests (may be grouped in topic subdirs, e.g. descriptors/, plugin/, runtime/)
+  *.test-d.ts         # Compile-time type tests (typecheck only, e.g. types/plugin-config.test-d.ts)
 
   e2e/
     utils/            # Shared mocks, helpers, and type utilities for e2e tests
@@ -25,6 +26,11 @@ __test__/
 
 - **Classification is by filename, not location.** `*.e2e.test.ts` is always
   e2e regardless of which directory it sits in. Same for `*.int.test.ts`.
+  Unit tests (`*.test.ts`) may be grouped into topic subdirectories such as
+  `descriptors/`, `plugin/`, or `runtime/`.
+- **`*.test-d.ts` are compile-time type tests.** They assert types (e.g. the
+  `PluginConfig` ↔ descriptor-table drift guard) and run under the typecheck
+  pass, not the runtime test pass.
 - **`utils/` and `fixtures/` are excluded from test discovery.** Put shared
   mocks, test helpers, builder functions, and type utilities in `utils/`. Put
   static data (JSON, fixtures, sample files) in `fixtures/`.

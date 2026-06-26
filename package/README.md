@@ -72,6 +72,7 @@ The output pulls in only Node's own builtins, so pnpm can load it without any `n
 - [Getting started](https://github.com/spencerbeggs/rolldown-pnpm-config/blob/main/docs/01-getting-started.md) — Wire the plugin into a vanilla rolldown build and emit a pnpmfile.
 - [Using @savvy-web/bundler](https://github.com/spencerbeggs/rolldown-pnpm-config/blob/main/docs/02-savvy-bundler.md) — The same plugin with the build wiring done for you, emitting both `.mjs` and `.cjs`.
 - [Concepts](https://github.com/spencerbeggs/rolldown-pnpm-config/blob/main/docs/03-concepts.md) — What the emitted pnpmfile does: config dependencies, catalogs and the enforcement model.
+- [pnpm settings coverage](https://github.com/spencerbeggs/rolldown-pnpm-config/blob/main/docs/04-pnpm-settings-coverage.md) — Every pnpm-workspace.yaml setting the plugin manages and the ones it leaves to each consumer.
 
 ## License
 

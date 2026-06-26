@@ -4,23 +4,22 @@
 
 ## Features
 
-### Full pnpm field support in `definePlugin`
+### 121 managed pnpm-workspace.yaml fields in `definePlugin`
 
-`definePlugin` now accepts the complete set of pnpm fields that Silk manages, well beyond the M1 `catalogs`-only surface. Newly supported fields on `PluginConfig`:
+`PluginConfig` now covers the complete published pnpm settings surface: 121 fields across 8 categories, up from 14 in the initial release. All 107 new fields are optional and additive — the 14 M1 fields (`catalogs`, `overrides`, `confirmModulesPurge`, `packageExtensions`, `allowedDeprecatedVersions`, `publicHoistPattern`, `minimumReleaseAgeExclude`, `supportedArchitectures`, `auditConfig`, `peerDependencyRules`, `strictDepBuilds`, `blockExoticSubdeps`, `minimumReleaseAge`, `allowBuilds`) behave identically to before.
 
-- `confirmModulesPurge` — whether pnpm prompts before purging `node_modules`
-- `packageExtensions` — per-package manifest overrides merged into the dependency graph
-- `allowedDeprecatedVersions` — deprecated versions explicitly allowed, keyed by package
-- `publicHoistPattern` — glob patterns hoisted to the root `node_modules`; accepts an optional `excludeByRepo` map to drop specific patterns when installed inside a named consuming repo
-- `minimumReleaseAgeExclude` — packages excluded from the minimum-release-age quarantine
-- `supportedArchitectures` — supported architectures keyed by axis (`os` / `cpu` / `libc`)
-- `auditConfig` — audit exclusions keyed by axis (`ignoreGhsas` / `ignoreCves`)
-- `overrides` — security version overrides keyed by package selector
-- `peerDependencyRules` — peer dependency rules: `allowedVersions`, `ignoreMissing`, `allowAny`
-- `strictDepBuilds` — whether dependency build scripts are blocked unless explicitly allowed
-- `blockExoticSubdeps` — whether exotic (non-registry) subdependencies are blocked
-- `minimumReleaseAge` — minimum age in minutes a release must reach before it is installable
-- `allowBuilds` — packages whose build scripts are explicitly allowed to run
+New fields by category:
+
+- **Dependency resolution and supply-chain / trust** (9): `ignoredOptionalDependencies`, `updateConfig`, `catalog`, `minimumReleaseAgeStrict`, `minimumReleaseAgeIgnoreMissingTime`, `trustPolicy`, `trustPolicyExclude`, `trustPolicyIgnoreAfter`, `trustLockfile`
+- **Hoisting and node-modules** (17): `hoist`, `hoistWorkspacePackages`, `hoistPattern`, `shamefullyHoist`, `hoistingLimits`, `modulesDir`, `nodeLinker`, `symlink`, `enableModulesDir`, `virtualStoreDir`, `virtualStoreDirMaxLength`, `virtualStoreOnly`, `packageImportMethod`, `modulesCacheMaxAge`, `dlxCacheMaxAge`, `verifyStoreIntegrity`, `strictStorePkgContentCheck`
+- **Lockfile and peers** (12): `lockfile`, `preferFrozenLockfile`, `lockfileIncludeTarballUrl`, `gitBranchLockfile`, `mergeGitBranchLockfilesBranchPattern`, `peersSuffixMaxLength`, `sharedWorkspaceLockfile`, `autoInstallPeers`, `dedupePeerDependents`, `dedupePeers`, `strictPeerDependencies`, `resolvePeersFromWorkspaceRoot`
+- **Build, scripts, patches, and injection** (26): `onlyBuiltDependencies`, `onlyBuiltDependenciesFile`, `neverBuiltDependencies`, `ignoredBuiltDependencies`, `dangerouslyAllowAllBuilds`, `ignoreScripts`, `ignoreDepScripts`, `childConcurrency`, `sideEffectsCache`, `sideEffectsCacheReadonly`, `nodeOptions`, `verifyDepsBeforeRun`, `enablePrePostScripts`, `scriptShell`, `shellEmulator`, `requiredScripts`, `patchedDependencies`, `allowUnusedPatches`, `allowNonAppliedPatches`, `ignorePatchFailures`, `patchesDir`, `configDependencies`, `executionEnv`, `injectWorkspacePackages`, `syncInjectedDepsAfterScripts`, `dedupeInjectedDeps`
+- **Package-manager and node-version policy** (8): `packageManagerStrict`, `packageManagerStrictVersion`, `managePackageManagerVersions`, `pmOnFail`, `runtimeOnFail`, `nodeVersion`, `useNodeVersion`, `nodeDownloadMirrors`
+- **Catalog and workspace** (10): `catalogMode`, `cleanupUnusedCatalogs`, `linkWorkspacePackages`, `preferWorkspacePackages`, `saveWorkspaceProtocol`, `includeWorkspaceRoot`, `ignoreWorkspaceCycles`, `disallowWorkspaceCycles`, `workspaceConcurrency`, `auditLevel`
+- **Resolution and misc preferences** (14): `resolutionMode`, `savePrefix`, `saveExact`, `tag`, `preferOffline`, `dedupeDirectDeps`, `deployAllFiles`, `forceLegacyDeploy`, `extendNodePath`, `preferSymlinkedExecutables`, `ignoreCompatibilityDb`, `optimisticRepeatInstall`, `recursiveInstall`, `engineStrict`
+- **Network tuning and publish** (11): `networkConcurrency`, `fetchRetries`, `fetchRetryFactor`, `fetchRetryMintimeout`, `fetchRetryMaxtimeout`, `fetchTimeout`, `gitShallowHosts`, `provenance`, `gitChecks`, `embedReadme`, `publishBranch`
+
+Security and supply-chain fields (`overrides`, `strictDepBuilds`, `blockExoticSubdeps`, `minimumReleaseAge`, `trustPolicy`, `trustLockfile`, and related) default to `enforcement: "warn"`. All others default to `enforcement: "absent"`. Authors can override per field using the `FieldInput<T>` wrapper (see below).
 
 ### `FieldInput<T>` and per-field enforcement
 

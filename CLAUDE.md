@@ -16,7 +16,8 @@ The design documentation system is available via Claude Code skills and agents.
 
 Architecture lives in `.claude/design/rolldown-pnpm-config/`. Load these when the task touches the area they cover; do not load them by default.
 
-- Current-state architecture → `@.claude/design/rolldown-pnpm-config/architecture.md`. Load when: working on the engine in `package/src/**`, the strategies/registry/freeze/createHooks contract, or the Silk parity harness in `package/__test__/parity/`.
+- Current-state architecture → `@./.claude/design/rolldown-pnpm-config/architecture.md`. Load when: working on the engine in `package/src/**`, the descriptor table in `package/src/descriptors/` as the single source of truth, the derived strategies/registry/freeze/createHooks contract, the compile-time `PluginConfig` drift guard, or the Silk parity harness in `package/__test__/parity/`.
+- pnpm settings coverage matrix → `@./.claude/design/rolldown-pnpm-config/settings-coverage.md`. Load when: adding or auditing managed pnpm fields, editing the descriptor table in `package/src/descriptors/`, or checking which of the 121 fields (and the not-covered ones) the plugin handles.
 
 ## Getting Started (After Cloning This Template)
 
