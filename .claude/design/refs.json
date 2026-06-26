@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"refs": [
+		{
+			"source": "CLAUDE.md",
+			"target": ".claude/design/rolldown-pnpm-config/architecture.md",
+			"hash": "6c6ff55037bc2ac7fd717e5a107d6fad722d03a9d4e56966bfb73fe9ea133038",
+			"recordedAt": "2026-06-26"
+		},
+		{
+			"source": "CLAUDE.md",
+			"target": ".claude/design/rolldown-pnpm-config/settings-coverage.md",
+			"hash": "aaca2f9ba25844ae4e138cd83050165144779173209655c00907c46bc1486ec2",
+			"recordedAt": "2026-06-26"
+		}
+	]
+}

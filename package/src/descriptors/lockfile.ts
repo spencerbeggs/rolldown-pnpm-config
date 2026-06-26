@@ -1,0 +1,103 @@
+// package/src/descriptors/lockfile.ts
+import { Bool, Num, StringArray } from "./schemas.js";
+import type { FieldDescriptors } from "./types.js";
+
+/** The 12 lockfile + peers fields. @internal */
+export const lockfile = {
+	lockfile: {
+		schema: Bool,
+		kind: "boolean",
+		strategy: "scalar",
+		enforcement: "absent",
+		doc: "Whether a lockfile is used and generated when running commands that install packages.",
+		anchor: "lockfile",
+	},
+	preferFrozenLockfile: {
+		schema: Bool,
+		kind: "boolean",
+		strategy: "scalar",
+		enforcement: "absent",
+		doc: "If true, pnpm does not generate a lockfile and fails if the lockfile is out of date.",
+		anchor: "preferfrozenlockfile",
+	},
+	lockfileIncludeTarballUrl: {
+		schema: Bool,
+		kind: "boolean",
+		strategy: "scalar",
+		enforcement: "absent",
+		doc: "Whether the lockfile includes the full tarball URL for each resolved dependency.",
+		anchor: "lockfileincludetarballurl",
+	},
+	gitBranchLockfile: {
+		schema: Bool,
+		kind: "boolean",
+		strategy: "scalar",
+		enforcement: "absent",
+		doc: "When enabled, the generated lockfile name is based on the current branch name.",
+		anchor: "gitbranchlockfile",
+	},
+	mergeGitBranchLockfilesBranchPattern: {
+		schema: StringArray,
+		kind: "stringArray",
+		strategy: "arrayUnion",
+		enforcement: "absent",
+		doc: "Branch name patterns whose lockfiles are merged into the main lockfile on install.",
+		anchor: "mergegitbranchlockfilesbranchpattern",
+	},
+	peersSuffixMaxLength: {
+		schema: Num,
+		kind: "number",
+		strategy: "scalar",
+		enforcement: "absent",
+		doc: "Maximum length of the peers suffix appended to dependency directory names in the virtual store.",
+		anchor: "peerssuffixmaxlength",
+	},
+	sharedWorkspaceLockfile: {
+		schema: Bool,
+		kind: "boolean",
+		strategy: "scalar",
+		enforcement: "absent",
+		doc: "Whether a single shared lockfile is used for all projects in the workspace.",
+		anchor: "sharedworkspacelockfile",
+	},
+	autoInstallPeers: {
+		schema: Bool,
+		kind: "boolean",
+		strategy: "scalar",
+		enforcement: "absent",
+		doc: "Whether missing peer dependencies are installed automatically.",
+		anchor: "autoinstallpeers",
+	},
+	dedupePeerDependents: {
+		schema: Bool,
+		kind: "boolean",
+		strategy: "scalar",
+		enforcement: "absent",
+		doc: "Whether packages with peer dependencies are deduplicated after peers are resolved.",
+		anchor: "dedupepeerdependents",
+	},
+	dedupePeers: {
+		schema: Bool,
+		kind: "boolean",
+		strategy: "scalar",
+		enforcement: "absent",
+		doc: "Whether peer dependencies are deduplicated during resolution.",
+		anchor: "dedupepeers",
+	},
+	strictPeerDependencies: {
+		schema: Bool,
+		kind: "boolean",
+		strategy: "scalar",
+		enforcement: "absent",
+		doc: "If true, commands fail when there are missing or invalid peer dependencies.",
+		anchor: "strictpeerdependencies",
+	},
+	resolvePeersFromWorkspaceRoot: {
+		schema: Bool,
+		kind: "boolean",
+		strategy: "scalar",
+		enforcement: "absent",
+		doc: "Whether peer dependencies are resolved using packages installed in the workspace root.",
+		anchor: "resolvepeersfromworkspaceroot",
+	},
+} satisfies FieldDescriptors;
