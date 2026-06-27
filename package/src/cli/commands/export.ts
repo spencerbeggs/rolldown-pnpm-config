@@ -53,7 +53,9 @@ export function runExport(opts: {
 			return yield* Effect.fail(new ExportError({ message: `Non-literal config values: ${errors.join("; ")}` }));
 		}
 		const effective = applyLocal(config);
-		const { base } = yield* freeze(effective as never).pipe(
+		// Cast through the freeze parameter type (not `as never`) so a future drift
+		// between the evaluated config shape and PluginConfig is caught at compile time.
+		const { base } = yield* freeze(effective as unknown as Parameters<typeof freeze>[0]).pipe(
 			Effect.mapError((e) => new ExportError({ message: e.message })),
 		);
 		const managed: Record<string, unknown> = {};
