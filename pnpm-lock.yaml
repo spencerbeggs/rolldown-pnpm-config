@@ -123,6 +123,9 @@ importers:
       semver-effect:
         specifier: ^0.2.1
         version: 0.2.1(effect@3.21.4)
+      yaml:
+        specifier: ^2.9.0
+        version: 2.9.0
     devDependencies:
       '@savvy-web/bundler':
         specifier: ^0.12.0
