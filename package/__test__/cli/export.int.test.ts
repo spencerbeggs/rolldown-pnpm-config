@@ -1,7 +1,7 @@
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Effect } from "effect";
+import { Effect, Exit } from "effect";
 import { describe, expect, it } from "vitest";
 import { parse } from "yaml";
 import { runExport } from "../../src/cli/commands/export.js";
@@ -58,5 +58,12 @@ describe("runExport", () => {
 		expect(res.written).toBe(false);
 		expect(res.rendered).toContain("publicHoistPattern");
 		expect(readFileSync(workspacePath, "utf8")).toBe(before);
+	});
+
+	it("fails cleanly on a malformed existing pnpm-workspace.yaml", async () => {
+		// Tab character mixed with spaces causes a yaml parse error
+		const { configFile, workspacePath } = setup("foo:\n  - a\n\t- b\n");
+		const exit = await Effect.runPromiseExit(runExport({ configFile, workspacePath, preview: false }));
+		expect(Exit.isFailure(exit)).toBe(true);
 	});
 });

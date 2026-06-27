@@ -1,4 +1,5 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { Args, Command, Options } from "@effect/cli";
 import { Data, Effect, Option } from "effect";
 import { DESCRIPTORS } from "../../descriptors/index.js";
@@ -63,8 +64,13 @@ export function runExport(opts: {
 			if (WORKSPACE_FIELDS.has(k)) managed[k] = v;
 		}
 
-		const path = opts.workspacePath ?? findWorkspaceFile(process.cwd()) ?? `${process.cwd()}/pnpm-workspace.yaml`;
-		const parsed = existsSync(path) ? parseWorkspace(readFileSync(path, "utf8")) : {};
+		const path = opts.workspacePath ?? findWorkspaceFile(process.cwd()) ?? join(process.cwd(), "pnpm-workspace.yaml");
+		const parsed = existsSync(path)
+			? yield* Effect.try({
+					try: () => parseWorkspace(readFileSync(path, "utf8")),
+					catch: (e) => new ExportError({ message: `Cannot read or parse ${path}: ${String(e)}` }),
+				})
+			: {};
 		const merged = overlayWorkspace(managed, parsed);
 		const rendered = renderWorkspace(merged);
 

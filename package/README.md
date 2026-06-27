@@ -83,6 +83,8 @@ The walk is interactive by default. `--yes` takes the latest in-range version wi
 
 For repos that develop the plugin itself and cannot consume it as a config dependency, use `rolldown-pnpm-config export` to materialize the managed config directly into `pnpm-workspace.yaml`. The command preserves unknown keys and local-only catalogs; the `local` key on `PnpmConfigPlugin` can override settings for this export. Pass `--preview` to print the result without writing to disk.
 
+The export command normalizes pnpm-workspace.yaml — it parses, sorts, and re-emits the whole file, so comments are not preserved. It is plugin-authoritative for the fields and catalogs the plugin manages: a catalog the plugin declares will be written as-is, and a catalog the plugin no longer declares is left alone (not deleted). Use `--preview` to review the output before committing the change.
+
 ## Documentation
 
 - [Getting started](https://github.com/spencerbeggs/rolldown-pnpm-config/blob/main/docs/01-getting-started.md) — Wire the plugin into a vanilla rolldown build and emit a pnpmfile.
