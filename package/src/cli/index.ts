@@ -1,2 +1,1 @@
-#!/usr/bin/env node
-console.log("Hello from pnpm-config-builder CLI!");
+export { runUpgrade, upgradeCommand } from "./commands/upgrade.js";

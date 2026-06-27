@@ -1,0 +1,14 @@
+import { PnpmConfigPlugin } from "rolldown-pnpm-config";
+
+export const plugin = PnpmConfigPlugin({
+ catalogs: {
+  silk: {
+   packages: {
+    typescript: "^5.9.0",
+    vitest: { range: "^4.0.0", peer: "^4.0.0", strategy: "lock-minor" },
+    effect: { range: ">=3 <4" },
+   },
+  },
+ },
+ strictDepBuilds: true,
+});

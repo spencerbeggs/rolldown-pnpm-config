@@ -1,4 +1,4 @@
-import type { CatalogsResult } from "./define-catalogs.js";
+import type { CatalogDeclaration } from "./catalogs.js";
 import type { Enforcement } from "./runtime/types.js";
 
 /**
@@ -14,8 +14,8 @@ export type FieldInput<T> = T | { readonly value: T; readonly enforcement?: Enfo
  * @public
  */
 export interface PluginConfig {
-	/** The resolved catalogs to inject into pnpm config. */
-	readonly catalogs: CatalogsResult;
+	/** The catalogs to inject into pnpm config, keyed by catalog name. */
+	readonly catalogs: Record<string, CatalogDeclaration>;
 	/** Whether pnpm prompts before purging `node_modules`. */
 	readonly confirmModulesPurge?: FieldInput<boolean>;
 	/** Per-package manifest overrides merged into the dependency graph. */
@@ -270,13 +270,4 @@ export interface PluginConfig {
 	readonly embedReadme?: FieldInput<boolean>;
 	/** Branch that is allowed to publish packages; publishing from other branches is blocked. */
 	readonly publishBranch?: FieldInput<string>;
-}
-
-/**
- * Identity-with-types builder for the plugin configuration.
- *
- * @public
- */
-export function definePlugin(input: PluginConfig): PluginConfig {
-	return input;
 }

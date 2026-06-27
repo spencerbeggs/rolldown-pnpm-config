@@ -16,17 +16,20 @@ Author the config exactly as in [getting started](./01-getting-started.md), then
 
 ```ts
 import { defineBuild, runBuild } from "@savvy-web/bundler";
-import { PnpmConfigPlugin, defineCatalogs, definePlugin } from "rolldown-pnpm-config";
+import type { PluginConfig } from "rolldown-pnpm-config";
+import { PnpmConfigPlugin } from "rolldown-pnpm-config";
 
-const plugin = definePlugin({
-  catalogs: defineCatalogs([{ name: "silk", peers: true, packages: { typescript: "^5.9.0", vitest: "^4.0.0" } }]),
+const plugin = {
+  catalogs: {
+    silk: { packages: { typescript: "^5.9.0", vitest: "^4.0.0" } },
+  },
   overrides: { "tar@<6.2.1": ">=6.2.1" },
   publicHoistPattern: ["@types/*"],
   allowBuilds: { esbuild: true },
   strictDepBuilds: true,
   minimumReleaseAge: { value: 1440, enforcement: "warn" },
   confirmModulesPurge: false,
-});
+} satisfies PluginConfig;
 
 const config = defineBuild({
   plugins: [PnpmConfigPlugin(plugin)],

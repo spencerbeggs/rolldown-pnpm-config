@@ -19,20 +19,22 @@ The build runs on Node.js. The emitted `pnpmfile.mjs` targets pnpm 11 in the con
 
 A vanilla rolldown setup is three files: the config you author, a build entry that re-exports the runtime hooks and a rolldown config that runs the plugin.
 
-Author your catalogs and pnpm settings with `definePlugin` and `defineCatalogs`:
+Author your catalogs and pnpm settings as a plain `PluginConfig` object:
 
 ```ts
-import { defineCatalogs, definePlugin } from "rolldown-pnpm-config";
+import type { PluginConfig } from "rolldown-pnpm-config";
 
-export const plugin = definePlugin({
-  catalogs: defineCatalogs([{ name: "default", packages: { typescript: "^5.9.0", vitest: "^4.0.0" } }]),
+export const plugin = {
+  catalogs: {
+    default: { packages: { typescript: "^5.9.0", vitest: "^4.0.0" } },
+  },
   overrides: { "tar@<6.2.1": ">=6.2.1" },
   publicHoistPattern: ["@types/*"],
   allowBuilds: { esbuild: true },
   strictDepBuilds: true,
   minimumReleaseAge: { value: 1440, enforcement: "warn" },
   confirmModulesPurge: false,
-});
+} satisfies PluginConfig;
 ```
 
 Add a build entry that re-exports the runtime `hooks` from the plugin's virtual pnpmfile module. The reference directive pulls in the package's shipped virtual-module types, so the import type-checks with no hand-written declaration. Save it as `src/pnpmfile.ts`:
@@ -67,12 +69,25 @@ npx rolldown -c
 
 The output pulls in only Node's own builtins, so pnpm can load it without any `node_modules` present. Ship it as a pnpm config dependency and pnpm 11 calls its `updateConfig` hook to merge your settings into the consuming repo.
 
+## Keeping catalogs current
+
+The bundled `rolldown-pnpm-config upgrade` command rewrites the version ranges in your config file in place. Run it with no arguments and it autodetects the config — the single top-level `.ts` file in the current directory that calls `PnpmConfigPlugin(...)`:
+
+```bash
+npx rolldown-pnpm-config upgrade
+# walks each catalog package, then:
+# Applied <n> change(s).
+```
+
+The walk is interactive by default. `--yes` takes the latest in-range version without prompting, `--dry-run` previews the changes and `--catalog <name>` restricts the walk to one catalog. For packages that declare a `strategy`, the command also resyncs their materialized peer range. See [upgrading catalogs](https://github.com/spencerbeggs/rolldown-pnpm-config/blob/main/docs/05-upgrading-catalogs.md) for the full surface.
+
 ## Documentation
 
 - [Getting started](https://github.com/spencerbeggs/rolldown-pnpm-config/blob/main/docs/01-getting-started.md) — Wire the plugin into a vanilla rolldown build and emit a pnpmfile.
 - [Using @savvy-web/bundler](https://github.com/spencerbeggs/rolldown-pnpm-config/blob/main/docs/02-savvy-bundler.md) — The same plugin with the build wiring done for you, emitting both `.mjs` and `.cjs`.
 - [Concepts](https://github.com/spencerbeggs/rolldown-pnpm-config/blob/main/docs/03-concepts.md) — What the emitted pnpmfile does: config dependencies, catalogs and the enforcement model.
 - [pnpm settings coverage](https://github.com/spencerbeggs/rolldown-pnpm-config/blob/main/docs/04-pnpm-settings-coverage.md) — Every pnpm-workspace.yaml setting the plugin manages and the ones it leaves to each consumer.
+- [Upgrading catalogs](https://github.com/spencerbeggs/rolldown-pnpm-config/blob/main/docs/05-upgrading-catalogs.md) — The `upgrade` CLI that rewrites catalog version ranges in place.
 
 ## License
 
