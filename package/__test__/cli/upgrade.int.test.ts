@@ -62,3 +62,28 @@ export const plugin = PnpmConfigPlugin({
 		expect(out.updated).toBe(0);
 	});
 });
+
+describe("runUpgrade (interop)", () => {
+	const SRC = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
+export const plugin = PnpmConfigPlugin({ catalogs: { effect: { packages: {
+ effect: { range: "^3.16.0", strategy: "interop" },
+ "@effect/cli": { range: "^0.70.0", strategy: "interop" },
+} } } });
+`;
+	it("downgrades a dependent and materializes caret peers", async () => {
+		const file = writeTmpConfig(SRC);
+		const resolver = makeStubResolver({
+			versions: { effect: ["3.16.0", "3.17.0"], "@effect/cli": ["0.70.0", "0.71.0"] },
+			peerDependencies: {
+				effect: { "3.16.0": {}, "3.17.0": {} },
+				"@effect/cli": { "0.70.0": { effect: "^3.16.0" }, "0.71.0": { effect: "^3.18.0" } },
+			},
+		});
+		const out = await Effect.runPromise(runUpgrade({ file, resolver }));
+		const result = readFileSync(file, "utf8");
+		expect(result).toContain('effect: { range: "^3.17.0"'); // effect bumped in-range
+		expect(result).toContain('"@effect/cli": { range: "^0.70.0"'); // cli held — 0.71 needs effect ^3.18
+		expect(result).toContain('peer: "^3.16.0"'); // effect peer floor from cli@0.70
+		expect(out.conflicts).toEqual([]);
+	});
+});

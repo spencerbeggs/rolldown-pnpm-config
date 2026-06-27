@@ -6,6 +6,8 @@ import { discoverCatalogEntries } from "../discover.js";
 import { detectPeerDrift } from "../drift.js";
 import { buildEdits } from "../edits.js";
 import { evaluatePluginConfig } from "../evaluate.js";
+import type { GroupMember, InteropConflict } from "../interop.js";
+import { runInterop } from "../interop.js";
 import { derivePeerRange } from "../peer-range.js";
 import { planEntry } from "../plan.js";
 import type { ReleaseAgeGate } from "../release-age.js";
@@ -30,6 +32,7 @@ interface Resolver {
 	readonly versions: (pkg: string) => Effect.Effect<string[], unknown>;
 	readonly times: (pkg: string) => Effect.Effect<Record<string, string>, unknown>;
 	readonly pnpmConfig: (key: string) => Effect.Effect<string | null, unknown>;
+	readonly peerDependencies: (pkg: string, version: string) => Effect.Effect<Record<string, string>, unknown>;
 }
 
 /** Combine the config-declared and pnpm-resolved release-age gates (strictest of both). @internal */
@@ -77,7 +80,7 @@ export function resolveGatedVersions(
 export function runUpgrade(opts: {
 	file: string;
 	resolver: Resolver;
-}): Effect.Effect<{ updated: number; skipped: string[] }, UpgradeError> {
+}): Effect.Effect<{ updated: number; skipped: string[]; conflicts: InteropConflict[] }, UpgradeError> {
 	return Effect.gen(function* () {
 		const source = yield* Effect.try({
 			try: () => readFileSync(opts.file, "utf8"),
@@ -93,6 +96,7 @@ export function runUpgrade(opts: {
 		const changedSpans = new Set<number>();
 
 		for (const entry of entries) {
+			if (entry.strategy === "interop") continue;
 			const versions = versionsByPkg.get(entry.pkg) ?? [];
 			if (versions.length === 0) {
 				skipped.push(`${entry.catalog}.${entry.pkg}`);
@@ -130,6 +134,48 @@ export function runUpgrade(opts: {
 			}
 		}
 
+		// group interop entries by catalog and reconcile each group
+		const interopEntries = entries.filter((e) => e.strategy === "interop");
+		const conflicts: InteropConflict[] = [];
+		const byCatalog = new Map<string, CatalogEntry[]>();
+		for (const e of interopEntries) {
+			const list = byCatalog.get(e.catalog) ?? [];
+			list.push(e);
+			byCatalog.set(e.catalog, list);
+		}
+		for (const [, group] of byCatalog) {
+			const members: GroupMember[] = [];
+			for (const e of group) {
+				const versions = versionsByPkg.get(e.pkg) ?? [];
+				const cands = yield* planEntry(e, versions).pipe(Effect.catchAll(() => Effect.succeed([])));
+				const inRange = cands.find((c) => c.kind === "in-range");
+				const ceiling = inRange ? inRange.version : e.currentRange.replace(/^[\^~]/, "");
+				members.push({ pkg: e.pkg, ceiling, candidates: versions });
+			}
+			const result = yield* runInterop(members, opts.resolver);
+			conflicts.push(...result.conflicts);
+			for (const e of group) {
+				const version = result.resolved.get(e.pkg);
+				const peer = result.peers.get(e.pkg);
+				if (version === undefined) continue;
+				const newRange = `${e.operator}${version}`;
+				if (newRange !== e.currentRange) {
+					edits.push({ span: e.rangeSpan, text: JSON.stringify(newRange) });
+					changedSpans.add(e.rangeSpan[0]);
+				}
+				const at = e.rangeSpan[1];
+				if (peer !== undefined) {
+					if (e.peer && peer !== e.peer.value) {
+						edits.push({ span: e.peer.span, text: JSON.stringify(peer) });
+						changedSpans.add(e.rangeSpan[0]);
+					} else if (!e.peer) {
+						edits.push({ span: [at, at], text: `, peer: ${JSON.stringify(peer)}` });
+						changedSpans.add(e.rangeSpan[0]);
+					}
+				}
+			}
+		}
+
 		if (edits.length > 0) {
 			const next = applyEdits(source, edits);
 			yield* Effect.try({
@@ -139,7 +185,7 @@ export function runUpgrade(opts: {
 		}
 
 		const updated = changedSpans.size;
-		return { updated, skipped };
+		return { updated, skipped, conflicts };
 	});
 }
 
@@ -212,6 +258,12 @@ export const upgradeCommand = Command.make(
 				yield* Effect.sync(() =>
 					process.stdout.write(`Updated ${result.updated} package(s); skipped ${result.skipped.length}.\n`),
 				);
+				if (result.conflicts.length > 0) {
+					const lines = result.conflicts
+						.map((c) => `  ${c.pkg} (kept ${c.ceiling}) blocked by ${c.blockedBy}`)
+						.join("\n");
+					yield* Effect.sync(() => process.stdout.write(`Interop conflicts (left at your pick):\n${lines}\n`));
+				}
 				return;
 			}
 			const source = yield* Effect.try({
