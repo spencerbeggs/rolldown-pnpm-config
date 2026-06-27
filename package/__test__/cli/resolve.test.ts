@@ -1,9 +1,11 @@
 import { Effect, Layer } from "effect";
 import { describe, expect, it } from "vitest";
-import { RegistryResolver, ResolveError, parseVersions } from "../../src/cli/resolve.js";
+import { RegistryResolver, ResolveError, parseTimes, parseVersions } from "../../src/cli/resolve.js";
 
 const StubOk = Layer.succeed(RegistryResolver, {
 	versions: (pkg) => Effect.succeed(pkg === "typescript" ? ["5.9.0", "5.9.3"] : []),
+	times: () => Effect.succeed({}),
+	pnpmConfig: () => Effect.succeed(null),
 });
 
 describe("RegistryResolver (contract)", () => {
@@ -46,5 +48,19 @@ describe("parseVersions", () => {
 	it("returns a ResolveError for an unexpected JSON shape (number)", async () => {
 		const result = await Effect.runPromise(Effect.either(parseVersions("num-pkg", "42")));
 		expect(result._tag).toBe("Left");
+	});
+});
+
+describe("parseTimes", () => {
+	it("parses the npm time object, ignoring created/modified keys", async () => {
+		const out = await Effect.runPromise(
+			parseTimes("p", JSON.stringify({ created: "x", modified: "y", "1.0.0": "2025-01-01T00:00:00Z" })),
+		);
+		expect(out).toEqual({ created: "x", modified: "y", "1.0.0": "2025-01-01T00:00:00Z" });
+	});
+
+	it("returns a ResolveError on malformed JSON", async () => {
+		const r = await Effect.runPromise(Effect.either(parseTimes("p", "nope")));
+		expect(r._tag).toBe("Left");
 	});
 });
