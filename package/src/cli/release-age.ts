@@ -50,3 +50,44 @@ export function filterByReleaseAge(
 		return Number.isFinite(published) && published <= cutoff;
 	});
 }
+
+/** Unwrap a managed field that may be a bare value or a `{ value, enforcement }` FieldInput. */
+function fieldValue(raw: unknown): unknown {
+	if (raw && typeof raw === "object" && !Array.isArray(raw) && "value" in raw) {
+		return (raw as { value: unknown }).value;
+	}
+	return raw;
+}
+
+/** Read the release-age gate declared in a statically-evaluated PnpmConfigPlugin config. @internal */
+export function readConfigReleaseAge(config: Record<string, unknown> | null): PartialGate | null {
+	if (!config) return null;
+	const age = fieldValue(config.minimumReleaseAge);
+	const exc = fieldValue(config.minimumReleaseAgeExclude);
+	const out: { ageMinutes?: number; exclude?: readonly string[] } = {};
+	if (typeof age === "number" && Number.isFinite(age)) out.ageMinutes = age;
+	if (Array.isArray(exc)) out.exclude = exc.filter((x): x is string => typeof x === "string");
+	return out.ageMinutes === undefined && out.exclude === undefined ? null : out;
+}
+
+/** Parse `pnpm config get minimumReleaseAge[Exclude]` stdout into a PartialGate. @internal */
+export function parsePnpmGate(age: string | null, exclude: string | null): PartialGate | null {
+	const out: { ageMinutes?: number; exclude?: readonly string[] } = {};
+	const trimmedAge = age?.trim();
+	if (trimmedAge && trimmedAge !== "undefined") {
+		const n = Number.parseInt(trimmedAge, 10);
+		if (Number.isFinite(n)) out.ageMinutes = n;
+	}
+	const trimmedExc = exclude?.trim();
+	if (trimmedExc && trimmedExc !== "undefined") {
+		let list: string[] = [];
+		try {
+			const json = JSON.parse(trimmedExc) as unknown;
+			list = Array.isArray(json) ? json.map(String) : [String(json)];
+		} catch {
+			list = trimmedExc.split(/[\s,]+/).filter(Boolean);
+		}
+		if (list.length) out.exclude = list;
+	}
+	return out.ageMinutes === undefined && out.exclude === undefined ? null : out;
+}
