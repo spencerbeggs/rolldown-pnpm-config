@@ -5,8 +5,11 @@ import { Data, Effect, Option } from "effect";
 import { discoverCatalogEntries } from "../discover.js";
 import { detectPeerDrift } from "../drift.js";
 import { buildEdits } from "../edits.js";
+import { evaluatePluginConfig } from "../evaluate.js";
 import { derivePeerRange } from "../peer-range.js";
 import { planEntry } from "../plan.js";
+import type { ReleaseAgeGate } from "../release-age.js";
+import { combineReleaseAge, filterByReleaseAge, parsePnpmGate, readConfigReleaseAge } from "../release-age.js";
 import { RegistryResolver, RegistryResolverLive } from "../resolve.js";
 import { applyEdits } from "../rewrite.js";
 import { filterEntriesByCatalog, findConfigFiles, pickConfigCandidate } from "../select-file.js";
@@ -25,6 +28,43 @@ export class UpgradeError extends Data.TaggedError("UpgradeError")<{ readonly me
 
 interface Resolver {
 	readonly versions: (pkg: string) => Effect.Effect<string[], unknown>;
+	readonly times: (pkg: string) => Effect.Effect<Record<string, string>, unknown>;
+	readonly pnpmConfig: (key: string) => Effect.Effect<string | null, unknown>;
+}
+
+/** Combine the config-declared and pnpm-resolved release-age gates (strictest of both). @internal */
+export function computeGate(source: string, file: string, resolver: Resolver): Effect.Effect<ReleaseAgeGate, never> {
+	return Effect.gen(function* () {
+		const { config } = evaluatePluginConfig(source, file);
+		const cfg = readConfigReleaseAge(config);
+		const age = yield* resolver.pnpmConfig("minimumReleaseAge").pipe(Effect.catchAll(() => Effect.succeed(null)));
+		const exc = yield* resolver
+			.pnpmConfig("minimumReleaseAgeExclude")
+			.pipe(Effect.catchAll(() => Effect.succeed(null)));
+		return combineReleaseAge(cfg, parsePnpmGate(age, exc));
+	});
+}
+
+/** Fetch and age-gate the version list for each unique package. @internal */
+export function resolveGatedVersions(
+	entries: readonly CatalogEntry[],
+	resolver: Resolver,
+	gate: ReleaseAgeGate,
+	now: number,
+): Effect.Effect<Map<string, string[]>, never> {
+	return Effect.gen(function* () {
+		const out = new Map<string, string[]>();
+		for (const pkg of new Set(entries.map((e) => e.pkg))) {
+			const vr = yield* resolver.versions(pkg).pipe(Effect.either);
+			if (vr._tag === "Left") {
+				out.set(pkg, []);
+				continue;
+			}
+			const times = yield* resolver.times(pkg).pipe(Effect.catchAll(() => Effect.succeed({})));
+			out.set(pkg, filterByReleaseAge(vr.right, times, gate, pkg, now));
+		}
+		return out;
+	});
 }
 
 /**
@@ -47,16 +87,17 @@ export function runUpgrade(opts: {
 			try: () => discoverCatalogEntries(source, opts.file),
 			catch: (e) => new UpgradeError({ message: String(e) }),
 		});
+		const gate = yield* computeGate(source, opts.file, opts.resolver);
+		const versionsByPkg = yield* resolveGatedVersions(entries, opts.resolver, gate, Date.now());
 		const edits: Edit[] = [];
 		const changedSpans = new Set<number>();
 
 		for (const entry of entries) {
-			const vr = yield* opts.resolver.versions(entry.pkg).pipe(Effect.either);
-			if (vr._tag === "Left") {
+			const versions = versionsByPkg.get(entry.pkg) ?? [];
+			if (versions.length === 0) {
 				skipped.push(`${entry.catalog}.${entry.pkg}`);
 				continue;
 			}
-			const versions = vr.right;
 			const candidates = yield* planEntry(entry, versions).pipe(Effect.catchAll(() => Effect.succeed([])));
 			const inRange = candidates.find((c) => c.kind === "in-range");
 			const at = entry.rangeSpan[1];
@@ -99,26 +140,6 @@ export function runUpgrade(opts: {
 
 		const updated = changedSpans.size;
 		return { updated, skipped };
-	});
-}
-
-/**
- * Resolve published versions per unique package, swallowing per-package
- * failures to []. Mirrors the skip behavior in runUpgrade.
- *
- * @internal
- */
-export function resolveVersions(
-	entries: readonly CatalogEntry[],
-	resolver: Resolver,
-): Effect.Effect<Map<string, string[]>, never> {
-	return Effect.gen(function* () {
-		const out = new Map<string, string[]>();
-		for (const pkg of new Set(entries.map((e) => e.pkg))) {
-			const vr = yield* resolver.versions(pkg).pipe(Effect.either);
-			out.set(pkg, vr._tag === "Right" ? vr.right : []);
-		}
-		return out;
 	});
 }
 
@@ -203,7 +224,8 @@ export const upgradeCommand = Command.make(
 			});
 			const catalogName = Option.getOrUndefined(catalog);
 			const entries = filterEntriesByCatalog(discovered.entries, catalogName);
-			const versions = yield* resolveVersions(entries, resolver);
+			const gate = yield* computeGate(source, file, resolver);
+			const versions = yield* resolveGatedVersions(entries, resolver, gate, Date.now());
 			const items = yield* buildWalkItems(entries, versions).pipe(
 				Effect.catchAll((e) => Effect.fail(new UpgradeError({ message: e.message }))),
 			);

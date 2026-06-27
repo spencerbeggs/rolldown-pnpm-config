@@ -3,10 +3,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Effect, Option } from "effect";
 import { describe, expect, it } from "vitest";
-import { applyDecisions, resolveTargetFile, resolveVersions, runUpgrade } from "../../src/cli/commands/upgrade.js";
+import { applyDecisions, resolveGatedVersions, resolveTargetFile, runUpgrade } from "../../src/cli/commands/upgrade.js";
 import { discoverCatalogEntries } from "../../src/cli/discover.js";
 import { buildWalkItems } from "../../src/cli/walk-plan.js";
 import type { Decision } from "../../src/cli/walk-types.js";
+import { makeStubResolver } from "./utils/stub-resolver.js";
 import { writeTmpConfig } from "./utils/tmp-config.js";
 
 const SOURCE = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
@@ -26,13 +27,13 @@ export const plugin = PnpmConfigPlugin({
 });
 `;
 
-const resolver = {
-	versions: (pkg: string) => Effect.succeed(pkg === "typescript" ? ["5.9.0", "5.9.3", "7.1.0"] : ["4.0.0", "4.2.3"]),
-};
+const resolver = makeStubResolver({
+	versions: { typescript: ["5.9.0", "5.9.3", "7.1.0"], vitest: ["4.0.0", "4.2.3"] },
+});
 
-const driftResolver = {
-	versions: (_pkg: string) => Effect.succeed(["4.2.3"]),
-};
+const driftResolver = makeStubResolver({ versions: { vitest: ["4.2.3"] } });
+
+const ZERO_GATE = { ageMinutes: 0, exclude: [] as string[] };
 
 describe("interactive apply (headless)", () => {
 	it("applies chosen decisions to the file, range + recomputed peer", async () => {
@@ -41,7 +42,7 @@ describe("interactive apply (headless)", () => {
 			Effect.gen(function* () {
 				const source = readFileSync(file, "utf8");
 				const { entries } = discoverCatalogEntries(source, file);
-				const versions = yield* resolveVersions(entries, resolver);
+				const versions = yield* resolveGatedVersions(entries, resolver, ZERO_GATE, Date.now());
 				const items = yield* buildWalkItems(entries, versions);
 				// Simulate: choose the in-range candidate for every actionable item.
 				const decisions: Decision[] = items
@@ -66,12 +67,12 @@ export const plugin = PnpmConfigPlugin({
 });
 `;
 		const file = writeTmpConfig(SOURCE);
-		const resolver = { versions: () => Effect.succeed(["5.9.0", "5.9.3"]) };
+		const resolver = makeStubResolver({ versions: { typescript: ["5.9.0", "5.9.3"] } });
 		const out = await Effect.runPromise(
 			Effect.gen(function* () {
 				const source = readFileSync(file, "utf8");
 				const { entries } = discoverCatalogEntries(source, file);
-				const versions = yield* resolveVersions(entries, resolver);
+				const versions = yield* resolveGatedVersions(entries, resolver, ZERO_GATE, Date.now());
 				const items = yield* buildWalkItems(entries, versions);
 				const decisions: Decision[] = items
 					.filter((i) => !i.upToDate)
@@ -91,7 +92,7 @@ export const plugin = PnpmConfigPlugin({
 			Effect.gen(function* () {
 				const source = readFileSync(file, "utf8");
 				const { entries } = discoverCatalogEntries(source, file);
-				const versions = yield* resolveVersions(entries, driftResolver);
+				const versions = yield* resolveGatedVersions(entries, driftResolver, ZERO_GATE, Date.now());
 				const items = yield* buildWalkItems(entries, versions);
 				// Drifted item must be actionable (not up-to-date) despite being newest.
 				const vitestItem = items.find((i) => i.entry.pkg === "vitest")!;
@@ -123,7 +124,7 @@ export const plugin = PnpmConfigPlugin({
 });
 `;
 		const file = writeTmpConfig(SOURCE);
-		const resolver = { versions: () => Effect.succeed(["4.2.3"]) }; // already newest, no upgrade
+		const resolver = makeStubResolver({ versions: { vitest: ["4.2.3"] } }); // already newest, no upgrade
 		const result = await Effect.runPromise(runUpgrade({ file, resolver }));
 		const out = readFileSync(file, "utf8");
 		expect(out).toContain('range: "^4.2.3"'); // range unchanged
@@ -140,7 +141,7 @@ export const plugin = PnpmConfigPlugin({
 });
 `;
 		const file = writeTmpConfig(SOURCE);
-		const resolver = { versions: () => Effect.succeed(["5.9.0"]) }; // already newest, no upgrade
+		const resolver = makeStubResolver({ versions: { typescript: ["5.9.0"] } }); // already newest, no upgrade
 		const result = await Effect.runPromise(runUpgrade({ file, resolver }));
 		const out = readFileSync(file, "utf8");
 		expect(out).toContain('range: "^5.9.0"'); // range unchanged
