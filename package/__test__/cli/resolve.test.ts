@@ -1,10 +1,11 @@
 import { Effect, Layer } from "effect";
 import { describe, expect, it } from "vitest";
-import { RegistryResolver, ResolveError, parseTimes, parseVersions } from "../../src/cli/resolve.js";
+import { RegistryResolver, ResolveError, parsePeerDeps, parseTimes, parseVersions } from "../../src/cli/resolve.js";
 
 const StubOk = Layer.succeed(RegistryResolver, {
 	versions: (pkg) => Effect.succeed(pkg === "typescript" ? ["5.9.0", "5.9.3"] : []),
 	times: () => Effect.succeed({}),
+	peerDependencies: () => Effect.succeed({}),
 	pnpmConfig: () => Effect.succeed(null),
 });
 
@@ -62,5 +63,17 @@ describe("parseTimes", () => {
 	it("returns a ResolveError on malformed JSON", async () => {
 		const r = await Effect.runPromise(Effect.either(parseTimes("p", "nope")));
 		expect(r._tag).toBe("Left");
+	});
+});
+
+describe("parsePeerDeps", () => {
+	it("parses a peerDependencies object", async () => {
+		const out = await Effect.runPromise(parsePeerDeps("p", '{"effect":"^3.17.0"}'));
+		expect(out).toEqual({ effect: "^3.17.0" });
+	});
+
+	it("treats empty stdout as no peer deps", async () => {
+		expect(await Effect.runPromise(parsePeerDeps("p", ""))).toEqual({});
+		expect(await Effect.runPromise(parsePeerDeps("p", "\n"))).toEqual({});
 	});
 });

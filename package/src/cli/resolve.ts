@@ -23,6 +23,7 @@ export class RegistryResolver extends Context.Tag("RegistryResolver")<
 	{
 		readonly versions: (pkg: string) => Effect.Effect<string[], ResolveError>;
 		readonly times: (pkg: string) => Effect.Effect<Record<string, string>, ResolveError>;
+		readonly peerDependencies: (pkg: string, version: string) => Effect.Effect<Record<string, string>, ResolveError>;
 		readonly pnpmConfig: (key: string) => Effect.Effect<string | null, ResolveError>;
 	}
 >() {}
@@ -56,6 +57,24 @@ export function parseTimes(pkg: string, stdout: string): Effect.Effect<Record<st
 	});
 }
 
+/** Parse `pnpm view <pkg>@<version> peerDependencies --json`; empty stdout → {}. @internal */
+export function parsePeerDeps(pkg: string, stdout: string): Effect.Effect<Record<string, string>, ResolveError> {
+	const trimmed = stdout.trim();
+	if (trimmed === "") return Effect.succeed({});
+	return Effect.try({
+		try: () => {
+			const json = JSON.parse(trimmed) as unknown;
+			if (json && typeof json === "object" && !Array.isArray(json)) {
+				const out: Record<string, string> = {};
+				for (const [k, v] of Object.entries(json as Record<string, unknown>)) out[k] = String(v);
+				return out;
+			}
+			throw new Error("unexpected shape");
+		},
+		catch: () => new ResolveError({ pkg, message: `Could not parse peerDependencies for ${pkg}` }),
+	});
+}
+
 /**
  * Live RegistryResolver backed by `pnpm view <pkg> versions --json`.
  *
@@ -81,6 +100,14 @@ export const RegistryResolverLive: Layer.Layer<RegistryResolver, never, CommandE
 						.string(cmd)
 						.pipe(Effect.mapError((e) => new ResolveError({ pkg, message: String(e) })));
 					return yield* parseTimes(pkg, stdout);
+				}),
+			peerDependencies: (pkg: string, version: string) =>
+				Effect.gen(function* () {
+					const cmd = Command.make("pnpm", "view", `${pkg}@${version}`, "peerDependencies", "--json");
+					const stdout = yield* executor
+						.string(cmd)
+						.pipe(Effect.mapError((e) => new ResolveError({ pkg, message: String(e) })));
+					return yield* parsePeerDeps(pkg, stdout);
 				}),
 			pnpmConfig: (key: string) =>
 				Effect.gen(function* () {
