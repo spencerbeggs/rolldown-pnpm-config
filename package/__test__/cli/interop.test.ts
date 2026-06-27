@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { describe, expect, it } from "vitest";
-import { deriveFloors, resolveGroup } from "../../src/cli/interop.js";
+import { deriveFloors, resolveGroup, runInterop } from "../../src/cli/interop.js";
 
 const run = <A>(e: Effect.Effect<A, never>) => Effect.runPromise(e);
 
@@ -87,5 +87,29 @@ describe("resolveGroup", () => {
 		expect(out.conflicts[0]?.blockedBy).toContain("effect");
 		expect(out.resolved.get("@effect/cli")).toBe("0.71.0"); // left at ceiling
 		expect(out.resolved.get("effect")).toBe("3.16.0");
+	});
+});
+
+describe("runInterop", () => {
+	it("resolves the group and derives caret peers, fetching peerDeps via the resolver", async () => {
+		const peers: Record<string, Record<string, Record<string, string>>> = {
+			effect: { "3.17.0": {} },
+			"@effect/cli": { "0.70.0": { effect: "^3.16.0" }, "0.71.0": { effect: "^3.18.0" } },
+		};
+		const resolver = {
+			peerDependencies: (pkg: string, v: string) => Effect.succeed(peers[pkg]?.[v] ?? {}),
+		};
+		const out = await run(
+			runInterop(
+				[
+					{ pkg: "effect", ceiling: "3.17.0", candidates: ["3.17.0"] },
+					{ pkg: "@effect/cli", ceiling: "0.71.0", candidates: ["0.70.0", "0.71.0"] },
+				],
+				resolver,
+			),
+		);
+		expect(out.resolved.get("@effect/cli")).toBe("0.70.0"); // downgraded
+		expect(out.peers.get("effect")).toBe("^3.16.0"); // cli@0.70 declares effect ^3.16.0
+		expect(out.conflicts).toEqual([]);
 	});
 });

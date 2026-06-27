@@ -174,3 +174,40 @@ function sortDesc(versions: readonly string[]): Effect.Effect<string[], never> {
 		return parsed.map((p) => p.v);
 	});
 }
+
+export interface InteropResolver {
+	readonly peerDependencies: (pkg: string, version: string) => Effect.Effect<Record<string, string>, unknown>;
+}
+export interface InteropResult {
+	readonly resolved: ReadonlyMap<string, string>;
+	readonly peers: ReadonlyMap<string, string>;
+	readonly conflicts: readonly InteropConflict[];
+}
+
+/**
+ * Fetch the peerDependencies needed to reconcile one catalog interop group,
+ * then run the pure resolve + floor derivation. Failures degrade to empty
+ * peerDeps (the member resolves at its ceiling).
+ *
+ * @internal
+ */
+export function runInterop(
+	members: readonly GroupMember[],
+	resolver: InteropResolver,
+): Effect.Effect<InteropResult, never> {
+	return Effect.gen(function* () {
+		const cache = new Map<string, Record<string, string>>();
+		const key = (pkg: string, v: string) => `${pkg}@${v}`;
+		for (const m of members) {
+			const wanted = new Set<string>([m.ceiling, ...m.candidates]);
+			for (const v of wanted) {
+				const deps = yield* resolver.peerDependencies(m.pkg, v).pipe(Effect.catchAll(() => Effect.succeed({})));
+				cache.set(key(m.pkg, v), deps as Record<string, string>);
+			}
+		}
+		const peerDepsOf: PeerDepsOf = (pkg, v) => cache.get(key(pkg, v)) ?? {};
+		const { resolved, conflicts } = yield* resolveGroup(members, peerDepsOf);
+		const peers = yield* deriveFloors(resolved, peerDepsOf);
+		return { resolved, peers, conflicts };
+	});
+}
