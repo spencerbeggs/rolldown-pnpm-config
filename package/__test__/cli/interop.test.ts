@@ -86,5 +86,6 @@ describe("resolveGroup", () => {
 		expect(out.conflicts.map((c) => c.pkg)).toEqual(["@effect/cli"]);
 		expect(out.conflicts[0]?.blockedBy).toContain("effect");
 		expect(out.resolved.get("@effect/cli")).toBe("0.71.0"); // left at ceiling
+		expect(out.resolved.get("effect")).toBe("3.16.0");
 	});
 });

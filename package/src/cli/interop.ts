@@ -112,7 +112,6 @@ export function resolveGroup(
 		const memberSet = new Set(members.map((m) => m.pkg));
 		const resolved = new Map<string, string>(members.map((m) => [m.pkg, m.ceiling]));
 		const ceilingOf = new Map(members.map((m) => [m.pkg, m.ceiling]));
-		const byPkg = new Map(members.map((m) => [m.pkg, m]));
 
 		const leq = (a: string, b: string): Effect.Effect<boolean, never> =>
 			Effect.gen(function* () {
@@ -121,7 +120,7 @@ export function resolveGroup(
 				return av && bv ? av.compare(bv) <= 0 : false;
 			});
 
-		const maxIter = members.length + 1;
+		const maxIter = members.reduce((n, m) => n + m.candidates.length, 0) + members.length + 1;
 		for (let i = 0; i < maxIter; i++) {
 			let changed = false;
 			for (const m of members) {
@@ -152,8 +151,11 @@ export function resolveGroup(
 			const cur = resolved.get(m.pkg) as string;
 			const v = yield* violations(m.pkg, cur, resolved, memberSet, peerDepsOf);
 			if (v.length > 0) {
-				conflicts.push({ pkg: m.pkg, ceiling: (byPkg.get(m.pkg) as GroupMember).ceiling, blockedBy: v.join(", ") });
+				conflicts.push({ pkg: m.pkg, ceiling: m.ceiling, blockedBy: v.join(", ") });
 			}
+		}
+		for (const c of conflicts) {
+			resolved.set(c.pkg, ceilingOf.get(c.pkg) as string);
 		}
 		return { resolved, conflicts };
 	});
