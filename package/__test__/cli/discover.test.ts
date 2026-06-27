@@ -49,4 +49,13 @@ describe("discoverCatalogEntries", () => {
 		);
 		expect(entries).toEqual([]);
 	});
+
+	it("recognizes the interop strategy", () => {
+		const src = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
+PnpmConfigPlugin({ catalogs: { effect: { packages: {
+ effect: { range: "^3.17.0", strategy: "interop" },
+} } } });`;
+		const { entries } = discoverCatalogEntries(src, "c.ts");
+		expect(entries[0]?.strategy).toBe("interop");
+	});
 });

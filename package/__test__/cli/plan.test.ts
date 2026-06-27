@@ -45,4 +45,17 @@ describe("planEntry", () => {
 		const keep = c.find((x) => x.kind === "keep");
 		expect(keep?.peerRange).toBeUndefined();
 	});
+
+	it("does not attach a peerRange to interop candidates (deferred to the group pass)", async () => {
+		const entry = {
+			catalog: "effect",
+			pkg: "effect",
+			currentRange: "^3.16.0",
+			operator: "^" as const,
+			rangeSpan: [0, 8] as [number, number],
+			strategy: "interop" as const,
+		};
+		const candidates = await Effect.runPromise(planEntry(entry, ["3.16.0", "3.17.0"]));
+		expect(candidates.every((c) => c.peerRange === undefined)).toBe(true);
+	});
 });
