@@ -4,7 +4,7 @@ This package has two layers. At build time you author a config and the plugin em
 
 ## The two layers
 
-The build layer is where you and the plugin work: `definePlugin` declares the managed config, `PnpmConfigPlugin` validates it and serializes it into a virtual pnpmfile module, and your bundler writes that module out as `pnpmfile.mjs`. Everything heavy lives here.
+The build layer is where you and the plugin work: you declare the managed config as a `PluginConfig` object, `PnpmConfigPlugin` validates it and serializes it into a virtual pnpmfile module, and your bundler writes that module out as `pnpmfile.mjs`. Everything heavy lives here.
 
 The runtime layer is the emitted `pnpmfile.mjs`. It carries a small zero-dependency runtime and nothing else — no build tooling, no external imports. That constraint exists because a pnpm config dependency cannot bring its own `node_modules`, so the shipped file has to be self-contained.
 
@@ -16,7 +16,9 @@ This is how one published package can govern pnpm settings across many repos. Up
 
 ## Catalogs
 
-A catalog is a named set of version specifiers managed in one place. `defineCatalogs` declares them in your config, and each consuming repo references a catalog entry instead of pinning a version itself. Bumping a version in the catalog updates every repo that points at it. This is the version-management half of what the emitted pnpmfile carries. The pnpm settings are the other half.
+A catalog is a named set of version specifiers managed in one place. The `catalogs` field of your `PnpmConfigPlugin` config declares them, and each consuming repo references a catalog entry instead of pinning a version itself. Bumping a version in the catalog updates every repo that points at it. This is the version-management half of what the emitted pnpmfile carries. The pnpm settings are the other half.
+
+Each package is a bare range or the object form `{ range, peer?, strategy? }`. The optional `peer` is a materialized range the runtime emits as a separate `<name>Peers` catalog, and `strategy` tells the [`upgrade` CLI](./05-upgrading-catalogs.md) how to recompute that peer when the range moves. Bumping these ranges over time is the job of that command.
 
 ## Enforcement: absent, warn, error
 

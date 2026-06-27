@@ -39,9 +39,10 @@ type DeepMutable<T> =
 type Mutual<A, B> = MutualExact<DeepMutable<A>, DeepMutable<B>>;
 type MutualExact<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 
-// 1) Key coverage: PluginConfig's keys (minus catalogs) exactly equal the
-//    value-checked descriptor keys plus publicHoistPattern.
-type AuthoredKeys = Exclude<keyof PluginConfig, "catalogs">;
+// 1) Key coverage: PluginConfig's keys (minus catalogs and the export-only
+//    `local` key) exactly equal the value-checked descriptor keys plus
+//    publicHoistPattern.
+type AuthoredKeys = Exclude<keyof PluginConfig, "catalogs" | "local">;
 type DerivedKeys = keyof DerivedPluginConfig | "publicHoistPattern";
 type _AssertKeyCoverage = Expect<Mutual<AuthoredKeys, DerivedKeys>>;
 
@@ -61,3 +62,11 @@ type ValueDrift = {
 // `never` is absorbed by unions and `never extends true` is `true`, so such a
 // guard can never bite.)
 type _AssertNoValueDrift = Expect<ValueDrift[keyof ValueDrift] extends true ? true : false>;
+
+// 3) The export-only `local` key accepts a Partial<PluginConfig> and is optional.
+//    This `satisfies` fails to compile if `local` is removed from the type.
+const _localAccepted = {
+	catalogs: {},
+	local: { strictDepBuilds: false, publicHoistPattern: ["@override/*"] },
+} satisfies PluginConfig;
+void _localAccepted;

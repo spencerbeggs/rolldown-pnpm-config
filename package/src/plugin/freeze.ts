@@ -1,4 +1,5 @@
 import { Data, Effect, Schema } from "effect";
+import { normalizeCatalogs } from "../catalogs.js";
 import type { PluginConfig } from "../define-plugin.js";
 import { DESCRIPTORS, deriveSchemas } from "../descriptors/index.js";
 import { FIELD_REGISTRY } from "../registry.js";
@@ -55,8 +56,9 @@ export function freeze(config: PluginConfig): Effect.Effect<{ base: Base; manife
 	return Effect.gen(function* () {
 		const base: Base = {};
 		const manifest: Manifest = {};
-		// catalogs is always present and special: its value is the resolved map.
-		base.catalogs = yield* Schema.decodeUnknown(CatalogsSchema)(config.catalogs.catalogs).pipe(
+		// catalogs is always present and special: normalize the inline declarations into
+		// the resolved map (incl. materialized peer catalogs), then validate the shape.
+		base.catalogs = yield* Schema.decodeUnknown(CatalogsSchema)(normalizeCatalogs(config.catalogs)).pipe(
 			Effect.mapError((error) => new ConfigError({ message: `Invalid catalogs: ${String(error)}` })),
 		);
 		manifest.catalogs = { strategy: "catalogs", enforcement: "warn" };

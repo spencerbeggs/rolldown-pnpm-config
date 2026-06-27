@@ -59,7 +59,7 @@ export function createPnpmConfigPlugin(config: PluginConfig, deps: PluginDeps = 
 
 /**
  * Rolldown plugin that serves the two virtual pnpm-config modules. Pass a
- * `PluginConfig` (built with `definePlugin`) and the plugin handles the rest.
+ * `PluginConfig` object and the plugin handles the rest.
  *
  * @public
  */

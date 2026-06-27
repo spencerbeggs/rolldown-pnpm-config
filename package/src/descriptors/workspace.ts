@@ -11,6 +11,7 @@ export const workspace = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Controls how dependencies are resolved against entries defined in the catalogs field.",
+		workspaceYaml: true,
 		anchor: "catalogmode",
 		samples: { valid: ["manual"], invalid: ["x"] },
 	},
@@ -20,6 +21,7 @@ export const workspace = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether pnpm removes catalog entries that are not used by any project in the workspace.",
+		workspaceYaml: true,
 		anchor: "cleanupunusedcatalogs",
 	},
 	linkWorkspacePackages: {
@@ -28,6 +30,7 @@ export const workspace = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether workspace packages are linked from the workspace, not downloaded from the registry.",
+		workspaceYaml: true,
 		anchor: "linkworkspacepackages",
 		samples: { valid: [true, "deep"], invalid: ["x"] },
 	},
@@ -37,6 +40,7 @@ export const workspace = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether versions of packages from the workspace are preferred over versions from the registry.",
+		workspaceYaml: true,
 		anchor: "preferworkspacepackages",
 	},
 	saveWorkspaceProtocol: {
@@ -45,6 +49,7 @@ export const workspace = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Controls whether the workspace: range protocol is used when saving workspace package versions.",
+		workspaceYaml: true,
 		anchor: "saveworkspaceprotocol",
 		samples: { valid: [false, "rolling"], invalid: ["x"] },
 	},
@@ -54,6 +59,7 @@ export const workspace = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether tasks of the root workspace project are included when executing commands recursively.",
+		workspaceYaml: true,
 		anchor: "includeworkspaceroot",
 	},
 	ignoreWorkspaceCycles: {
@@ -62,6 +68,7 @@ export const workspace = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether workspace dependency cycles are silently ignored.",
+		workspaceYaml: true,
 		anchor: "ignoreworkspacecycles",
 	},
 	disallowWorkspaceCycles: {
@@ -70,6 +77,7 @@ export const workspace = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether an error is thrown when a workspace dependency cycle is detected.",
+		workspaceYaml: true,
 		anchor: "disallowworkspacecycles",
 	},
 	workspaceConcurrency: {
@@ -78,6 +86,7 @@ export const workspace = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Number of projects built in parallel when running commands recursively.",
+		workspaceYaml: true,
 		anchor: "workspaceconcurrency",
 	},
 	auditLevel: {
@@ -86,6 +95,7 @@ export const workspace = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Minimum severity level for audit reports (low, moderate, high, critical).",
+		workspaceYaml: true,
 		anchor: "auditlevel",
 		samples: { valid: ["low"], invalid: ["x"] },
 	},

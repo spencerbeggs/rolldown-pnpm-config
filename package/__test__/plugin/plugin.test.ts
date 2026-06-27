@@ -1,10 +1,11 @@
 import { Effect } from "effect";
 import { describe, expect, it, vi } from "vitest";
-import { defineCatalogs } from "../../src/define-catalogs.js";
-import { definePlugin } from "../../src/define-plugin.js";
+import type { PluginConfig } from "../../src/index.js";
 import { PnpmConfigPlugin, createPnpmConfigPlugin } from "../../src/plugin/index.js";
 
-const config = definePlugin({ catalogs: defineCatalogs([{ name: "silk", peers: true, packages: { a: "^1.0.0" } }]) });
+const config = {
+	catalogs: { silk: { packages: { a: { range: "^1.0.0", peer: "^1.0.0" } } } },
+} satisfies PluginConfig;
 
 // rolldown hooks can be a function or an object { handler }; normalize for tests.
 const callHook = <T>(hook: unknown, ...args: unknown[]): T => {
@@ -32,9 +33,10 @@ describe("PnpmConfigPlugin", () => {
 	});
 
 	it("runs freeze exactly once across multiple load calls (memoized across passes)", async () => {
-		const freezeSpy = vi.fn((c: typeof config) =>
+		// Spy returns a fixed frozen value regardless of which config is passed.
+		const freezeSpy = vi.fn((_c: PluginConfig) =>
 			Effect.succeed({
-				base: { catalogs: c.catalogs.catalogs },
+				base: { catalogs: { silk: { a: "^1.0.0" }, silkPeers: { a: "^1.0.0" } } },
 				manifest: { catalogs: { strategy: "catalogs", enforcement: "warn" as const } },
 			}),
 		);

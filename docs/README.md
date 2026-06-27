@@ -16,3 +16,4 @@ pnpm add -D rolldown-pnpm-config rolldown
 - [Using @savvy-web/bundler](./02-savvy-bundler.md) — The same plugin with the build wiring done for you, emitting both `.mjs` and `.cjs`.
 - [Concepts](./03-concepts.md) — What the emitted pnpmfile does: config dependencies, catalogs and the enforcement model.
 - [pnpm settings coverage](./04-pnpm-settings-coverage.md) — Every pnpm-workspace.yaml setting the plugin manages and the ones it leaves to each consumer.
+- [Upgrading catalogs](./05-upgrading-catalogs.md) — The `upgrade` CLI that rewrites catalog version ranges in place.

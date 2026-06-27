@@ -18,20 +18,22 @@ A vanilla setup is three files: the config you author, a build entry that re-exp
 
 ### 1. Author the config
 
-Declare your catalogs and pnpm settings with `definePlugin` and `defineCatalogs`.
+Declare your catalogs and pnpm settings as a plain `PluginConfig` object.
 
 ```ts
-import { defineCatalogs, definePlugin } from "rolldown-pnpm-config";
+import type { PluginConfig } from "rolldown-pnpm-config";
 
-export const plugin = definePlugin({
-  catalogs: defineCatalogs([{ name: "default", packages: { typescript: "^5.9.0", vitest: "^4.0.0" } }]),
+export const plugin = {
+  catalogs: {
+    default: { packages: { typescript: "^5.9.0", vitest: "^4.0.0" } },
+  },
   overrides: { "tar@<6.2.1": ">=6.2.1" },
   publicHoistPattern: ["@types/*"],
   allowBuilds: { esbuild: true },
   strictDepBuilds: true,
   minimumReleaseAge: { value: 1440, enforcement: "warn" },
   confirmModulesPurge: false,
-});
+} satisfies PluginConfig;
 ```
 
 Each key is a pnpm field the plugin knows how to manage. A field can be a bare value or a `{ value, enforcement }` pair when you want to override the default enforcement for that one field — `minimumReleaseAge` above warns rather than failing on divergence. See [concepts](./03-concepts.md) for the catalog and enforcement model.

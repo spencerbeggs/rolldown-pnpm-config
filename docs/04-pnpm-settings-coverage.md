@@ -1,6 +1,6 @@
 # pnpm settings coverage
 
-This page lists every `pnpm-workspace.yaml` setting this plugin manages and the settings it deliberately does not manage. The plugin covers a curated set of settings that make sense to centralize across repos; everything else is left to each consumer. Every supported setting can be overridden per-consumer by passing a `{ value, enforcement }` pair in `definePlugin` — see [concepts](./03-concepts.md) for the full enforcement model. The complete pnpm settings reference is at [pnpm.io/settings](https://pnpm.io/settings).
+This page lists every `pnpm-workspace.yaml` setting this plugin manages and the settings it deliberately does not manage. The plugin covers a curated set of settings that make sense to centralize across repos; everything else is left to each consumer. Every supported setting can be overridden per-consumer by passing a `{ value, enforcement }` pair in the `PluginConfig` object — see [concepts](./03-concepts.md) for the full enforcement model. The complete pnpm settings reference is at [pnpm.io/settings](https://pnpm.io/settings).
 
 ## Supported settings
 

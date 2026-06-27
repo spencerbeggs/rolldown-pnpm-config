@@ -10,6 +10,7 @@ export const network = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Maximum number of concurrent network requests pnpm is allowed to make.",
+		workspaceYaml: true,
 		anchor: "networkconcurrency",
 	},
 	fetchRetries: {
@@ -18,6 +19,7 @@ export const network = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Number of times pnpm retries fetching a package from the registry on failure.",
+		workspaceYaml: true,
 		anchor: "fetchretries",
 	},
 	fetchRetryFactor: {
@@ -26,6 +28,7 @@ export const network = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Exponential factor used when calculating retry delays for failed fetches.",
+		workspaceYaml: true,
 		anchor: "fetchretryfactor",
 	},
 	fetchRetryMintimeout: {
@@ -34,6 +37,7 @@ export const network = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Minimum timeout (ms) for a single fetch retry attempt.",
+		workspaceYaml: true,
 		anchor: "fetchretrymintimeout",
 	},
 	fetchRetryMaxtimeout: {
@@ -42,6 +46,7 @@ export const network = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Maximum timeout (ms) for a single fetch retry attempt.",
+		workspaceYaml: true,
 		anchor: "fetchretrymaxtimeout",
 	},
 	fetchTimeout: {
@@ -50,6 +55,7 @@ export const network = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Maximum amount of time (ms) to wait for an HTTP response from the registry.",
+		workspaceYaml: true,
 		anchor: "fetchtimeout",
 	},
 	gitShallowHosts: {
@@ -58,6 +64,7 @@ export const network = {
 		strategy: "arrayUnion",
 		enforcement: "absent",
 		doc: "Hosts from which git-protocol dependencies are cloned using a shallow fetch.",
+		workspaceYaml: true,
 		anchor: "gitshallowhosts",
 	},
 	provenance: {
@@ -66,6 +73,7 @@ export const network = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether packages are published with provenance attestation when supported by the registry.",
+		workspaceYaml: true,
 		anchor: "provenance",
 	},
 	gitChecks: {
@@ -74,6 +82,7 @@ export const network = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether pnpm checks that the repository is clean before publishing.",
+		workspaceYaml: true,
 		anchor: "gitchecks",
 	},
 	embedReadme: {
@@ -82,6 +91,7 @@ export const network = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether the README file is embedded in the package tarball on publish.",
+		workspaceYaml: true,
 		anchor: "embedreadme",
 	},
 	publishBranch: {
@@ -90,6 +100,7 @@ export const network = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Branch that is allowed to publish packages; publishing from other branches is blocked.",
+		workspaceYaml: true,
 		anchor: "publishbranch",
 	},
 } satisfies FieldDescriptors;

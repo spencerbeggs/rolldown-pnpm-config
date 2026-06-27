@@ -1,14 +1,16 @@
 import { defineBuild, runBuild } from "@savvy-web/bundler";
-import { PnpmConfigPlugin, defineCatalogs, definePlugin } from "rolldown-pnpm-config";
+import type { PluginConfig } from "rolldown-pnpm-config";
+import { PnpmConfigPlugin } from "rolldown-pnpm-config";
 
-const plugin = definePlugin({
-	catalogs: defineCatalogs([
-		{
-			name: "silk",
-			peers: true,
-			packages: { typescript: "^5.9.0", vitest: "^4.0.0" },
+const plugin: PluginConfig = {
+	catalogs: {
+		silk: {
+			packages: {
+				typescript: { range: "^5.9.0", peer: "^5.9.0", strategy: "lock-minor" },
+				vitest: { range: "^4.0.0", peer: "^4.0.0", strategy: "lock-minor" },
+			},
 		},
-	]),
+	},
 	overrides: {
 		"tar@<6.2.1": ">=6.2.1",
 	},
@@ -22,11 +24,10 @@ const plugin = definePlugin({
 		enforcement: "warn",
 	},
 	confirmModulesPurge: false,
-});
+};
 
 const config = defineBuild({
 	plugins: [PnpmConfigPlugin(plugin)],
-	meta: false,
 	bundleNodeModules: true,
 	looseFiles: {
 		"pnpmfile.mjs": "./src/pnpmfile.ts",

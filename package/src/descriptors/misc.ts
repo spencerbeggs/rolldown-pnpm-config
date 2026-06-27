@@ -11,6 +11,7 @@ export const misc = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Algorithm used to resolve dependencies from the registry.",
+		workspaceYaml: true,
 		anchor: "resolutionmode",
 		samples: { valid: ["highest"], invalid: ["x"] },
 	},
@@ -20,6 +21,7 @@ export const misc = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Version prefix prepended to package versions saved in package.json.",
+		workspaceYaml: true,
 		anchor: "saveprefix",
 		samples: { valid: ["^"], invalid: ["x"] },
 	},
@@ -29,6 +31,7 @@ export const misc = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether packages are saved with an exact version instead of a semver range.",
+		workspaceYaml: true,
 		anchor: "saveexact",
 	},
 	tag: {
@@ -37,6 +40,7 @@ export const misc = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "The default tag used when adding packages without a specified version.",
+		workspaceYaml: true,
 		anchor: "tag",
 	},
 	preferOffline: {
@@ -45,6 +49,7 @@ export const misc = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether cached data is used without network requests, failing only if data is missing.",
+		workspaceYaml: true,
 		anchor: "preferoffline",
 	},
 	dedupeDirectDeps: {
@@ -53,6 +58,7 @@ export const misc = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether direct dependencies are deduplicated when they can be satisfied by an existing dependency.",
+		workspaceYaml: true,
 		anchor: "dedupedirectdeps",
 	},
 	deployAllFiles: {
@@ -61,6 +67,7 @@ export const misc = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether all files of a deployed package are copied including those in node_modules.",
+		workspaceYaml: true,
 		anchor: "deployallfiles",
 	},
 	forceLegacyDeploy: {
@@ -69,6 +76,7 @@ export const misc = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether the legacy deployment algorithm (copying files) is used instead of the default.",
+		workspaceYaml: true,
 		anchor: "forcelegacydeploy",
 	},
 	extendNodePath: {
@@ -77,6 +85,7 @@ export const misc = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether the NODE_PATH environment variable is set when running scripts.",
+		workspaceYaml: true,
 		anchor: "extendnodepath",
 	},
 	preferSymlinkedExecutables: {
@@ -85,6 +94,7 @@ export const misc = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether symlinks to executables are created instead of shell shims on non-Windows systems.",
+		workspaceYaml: true,
 		anchor: "prefersymlinkedexecutables",
 	},
 	ignoreCompatibilityDb: {
@@ -93,6 +103,7 @@ export const misc = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether the built-in compatibility database of lifecycle script overrides is ignored.",
+		workspaceYaml: true,
 		anchor: "ignorecompatibilitydb",
 	},
 	optimisticRepeatInstall: {
@@ -101,6 +112,7 @@ export const misc = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether pnpm skips integrity checks when the lockfile is up to date to speed up repeat installs.",
+		workspaceYaml: true,
 		anchor: "optimisticrepeatinstall",
 	},
 	recursiveInstall: {
@@ -109,6 +121,7 @@ export const misc = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether pnpm installs all projects in the workspace when running install in a workspace.",
+		workspaceYaml: true,
 		anchor: "recursiveinstall",
 	},
 	engineStrict: {
@@ -117,6 +130,7 @@ export const misc = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether pnpm fails if a dependency's engines field is incompatible with the current Node.js version.",
+		workspaceYaml: true,
 		anchor: "enginestrict",
 	},
 } satisfies FieldDescriptors;

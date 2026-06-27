@@ -11,6 +11,7 @@ export const build = {
 		strategy: "arrayUnion",
 		enforcement: "warn",
 		doc: "Packages whose build scripts are allowed to run; others are blocked.",
+		workspaceYaml: true,
 		anchor: "onlybuiltdependencies",
 	},
 	onlyBuiltDependenciesFile: {
@@ -19,6 +20,7 @@ export const build = {
 		strategy: "scalar",
 		enforcement: "warn",
 		doc: "Path to a JSON file listing packages whose build scripts are allowed.",
+		workspaceYaml: true,
 		anchor: "onlybuiltdependenciesfile",
 	},
 	neverBuiltDependencies: {
@@ -27,6 +29,7 @@ export const build = {
 		strategy: "arrayUnion",
 		enforcement: "absent",
 		doc: "Packages whose build scripts are never executed.",
+		workspaceYaml: true,
 		anchor: "neverbuiltdependencies",
 	},
 	ignoredBuiltDependencies: {
@@ -35,6 +38,7 @@ export const build = {
 		strategy: "arrayUnion",
 		enforcement: "absent",
 		doc: "Packages excluded from the list of dependencies to build.",
+		workspaceYaml: true,
 		anchor: "ignoredbuiltdependencies",
 	},
 	dangerouslyAllowAllBuilds: {
@@ -43,6 +47,7 @@ export const build = {
 		strategy: "scalar",
 		enforcement: "warn",
 		doc: "When true, all build scripts are allowed to run without restriction.",
+		workspaceYaml: true,
 		anchor: "dangerouslyallowallbuilds",
 	},
 	ignoreScripts: {
@@ -51,6 +56,7 @@ export const build = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether lifecycle scripts of packages in node_modules are not executed.",
+		workspaceYaml: true,
 		anchor: "ignorescripts",
 	},
 	ignoreDepScripts: {
@@ -59,6 +65,7 @@ export const build = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether lifecycle scripts of dependencies are ignored during install.",
+		workspaceYaml: true,
 		anchor: "ignoredepscripts",
 	},
 	childConcurrency: {
@@ -67,6 +74,7 @@ export const build = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Maximum number of child processes that build scripts can spawn concurrently.",
+		workspaceYaml: true,
 		anchor: "childconcurrency",
 	},
 	sideEffectsCache: {
@@ -75,6 +83,7 @@ export const build = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether the results of running install scripts are cached.",
+		workspaceYaml: true,
 		anchor: "sideeffectscache",
 	},
 	sideEffectsCacheReadonly: {
@@ -83,6 +92,7 @@ export const build = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether the side effects cache is used but never updated.",
+		workspaceYaml: true,
 		anchor: "sideeffectscachereadonly",
 	},
 	nodeOptions: {
@@ -91,6 +101,7 @@ export const build = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Options passed to Node.js via NODE_OPTIONS when running scripts.",
+		workspaceYaml: true,
 		anchor: "nodeoptions",
 	},
 	verifyDepsBeforeRun: {
@@ -99,6 +110,7 @@ export const build = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether pnpm verifies that the install is up to date before running scripts.",
+		workspaceYaml: true,
 		anchor: "verifydepsbeforerun",
 		samples: { valid: ["install", false], invalid: ["x"] },
 	},
@@ -108,6 +120,7 @@ export const build = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether pre/post lifecycle scripts are run automatically alongside the main script.",
+		workspaceYaml: true,
 		anchor: "enableprepostscripts",
 	},
 	scriptShell: {
@@ -116,6 +129,7 @@ export const build = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "The shell used to execute scripts.",
+		workspaceYaml: true,
 		anchor: "scriptshell",
 	},
 	shellEmulator: {
@@ -124,6 +138,7 @@ export const build = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether a POSIX shell emulator is used when running scripts on Windows.",
+		workspaceYaml: true,
 		anchor: "shellemulator",
 	},
 	requiredScripts: {
@@ -132,6 +147,7 @@ export const build = {
 		strategy: "arrayUnion",
 		enforcement: "absent",
 		doc: "Scripts that must exist in every project matching the current filter.",
+		workspaceYaml: true,
 		anchor: "requiredscripts",
 	},
 	patchedDependencies: {
@@ -140,6 +156,7 @@ export const build = {
 		strategy: "mapChildWins",
 		enforcement: "warn",
 		doc: "Patches applied to dependencies, keyed by package identifier.",
+		workspaceYaml: true,
 		anchor: "patcheddependencies",
 	},
 	allowUnusedPatches: {
@@ -148,6 +165,7 @@ export const build = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether unused patches (patches that apply to no installed package) are allowed.",
+		workspaceYaml: true,
 		anchor: "allowunusedpatches",
 	},
 	allowNonAppliedPatches: {
@@ -156,6 +174,7 @@ export const build = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether non-applied patches (patches that fail to apply) are allowed.",
+		workspaceYaml: true,
 		anchor: "allownonappliedpatches",
 	},
 	ignorePatchFailures: {
@@ -164,6 +183,7 @@ export const build = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether patch failures are silently ignored during installation.",
+		workspaceYaml: true,
 		anchor: "ignorepatchfailures",
 	},
 	patchesDir: {
@@ -172,6 +192,7 @@ export const build = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Directory where patch files are stored (default: patches).",
+		workspaceYaml: true,
 		anchor: "patchesdir",
 	},
 	configDependencies: {
@@ -180,6 +201,7 @@ export const build = {
 		strategy: "mapChildWins",
 		enforcement: "absent",
 		doc: "Packages installed before other packages so their config scripts can run first.",
+		workspaceYaml: true,
 		anchor: "configdependencies",
 	},
 	executionEnv: {
@@ -188,6 +210,7 @@ export const build = {
 		strategy: "mapChildWins",
 		enforcement: "absent",
 		doc: "Environment variables applied when running scripts.",
+		workspaceYaml: true,
 		anchor: "executionenv",
 	},
 	injectWorkspacePackages: {
@@ -196,6 +219,7 @@ export const build = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether local workspace packages are injected instead of symlinked.",
+		workspaceYaml: true,
 		anchor: "injectworkspacepackages",
 	},
 	syncInjectedDepsAfterScripts: {
@@ -204,6 +228,7 @@ export const build = {
 		strategy: "arrayUnion",
 		enforcement: "absent",
 		doc: "Scripts after which injected dependencies are re-synced.",
+		workspaceYaml: true,
 		anchor: "syncinjecteddepsafterscripts",
 	},
 	dedupeInjectedDeps: {
@@ -212,6 +237,7 @@ export const build = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether injected workspace packages are deduplicated.",
+		workspaceYaml: true,
 		anchor: "dedupeinjecteddeps",
 	},
 } satisfies FieldDescriptors;

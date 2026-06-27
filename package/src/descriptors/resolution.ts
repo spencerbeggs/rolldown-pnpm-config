@@ -35,6 +35,7 @@ export const resolution = {
 		strategy: "catalogs",
 		enforcement: "warn",
 		doc: "Named version catalogs injected into pnpm config.",
+		workspaceYaml: true,
 		anchor: "catalogs",
 		samples: { valid: [{ default: { lodash: "^4" } }], invalid: ["x"] },
 	},
@@ -44,6 +45,7 @@ export const resolution = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether pnpm prompts before purging node_modules (undocumented upstream).",
+		workspaceYaml: false,
 	},
 	packageExtensions: {
 		schema: UnknownRecord,
@@ -51,6 +53,7 @@ export const resolution = {
 		strategy: "mapChildWins",
 		enforcement: "absent",
 		doc: "Per-package manifest overrides merged into the dependency graph.",
+		workspaceYaml: true,
 		anchor: "packageextensions",
 	},
 	allowedDeprecatedVersions: {
@@ -59,6 +62,7 @@ export const resolution = {
 		strategy: "mapChildWins",
 		enforcement: "absent",
 		doc: "Deprecated versions explicitly allowed, keyed by package.",
+		workspaceYaml: true,
 		anchor: "alloweddeprecatedversions",
 	},
 	publicHoistPattern: {
@@ -67,6 +71,7 @@ export const resolution = {
 		strategy: "arrayUnion",
 		enforcement: "absent",
 		doc: "Glob patterns hoisted to the root node_modules.",
+		workspaceYaml: true,
 		anchor: "publichoistpattern",
 		options: { excludeByRepo: true },
 	},
@@ -76,6 +81,7 @@ export const resolution = {
 		strategy: "arrayUnion",
 		enforcement: "absent",
 		doc: "Packages excluded from the minimum-release-age quarantine.",
+		workspaceYaml: true,
 		anchor: "minimumreleaseageexclude",
 	},
 	supportedArchitectures: {
@@ -84,6 +90,7 @@ export const resolution = {
 		strategy: "arrayRecordUnion",
 		enforcement: "absent",
 		doc: "Supported architectures, keyed by axis (os/cpu/libc).",
+		workspaceYaml: true,
 		anchor: "supportedarchitectures",
 	},
 	auditConfig: {
@@ -92,6 +99,7 @@ export const resolution = {
 		strategy: "arrayRecordUnion",
 		enforcement: "absent",
 		doc: "Audit config exclusions, keyed by axis.",
+		workspaceYaml: true,
 		anchor: "auditconfig",
 	},
 	overrides: {
@@ -100,6 +108,7 @@ export const resolution = {
 		strategy: "overrides",
 		enforcement: "warn",
 		doc: "Security version overrides, keyed by package selector.",
+		workspaceYaml: true,
 		anchor: "overrides",
 	},
 	peerDependencyRules: {
@@ -108,6 +117,7 @@ export const resolution = {
 		strategy: "peerDependencyRules",
 		enforcement: "warn",
 		doc: "Peer dependency rules: allowed versions plus ignore/allow-any lists.",
+		workspaceYaml: true,
 		anchor: "peerdependencyrules",
 		samples: { valid: [{ allowedVersions: { react: "18" } }, {}], invalid: ["x"] },
 	},
@@ -117,6 +127,7 @@ export const resolution = {
 		strategy: "securityFlag",
 		enforcement: "warn",
 		doc: "Whether dependency build scripts are blocked unless explicitly allowed.",
+		workspaceYaml: true,
 		anchor: "strictdepbuilds",
 	},
 	blockExoticSubdeps: {
@@ -125,6 +136,7 @@ export const resolution = {
 		strategy: "securityFlag",
 		enforcement: "warn",
 		doc: "Whether exotic (non-registry) subdependencies are blocked.",
+		workspaceYaml: true,
 		anchor: "blockexoticsubdeps",
 	},
 	minimumReleaseAge: {
@@ -133,6 +145,7 @@ export const resolution = {
 		strategy: "securityMin",
 		enforcement: "warn",
 		doc: "Minimum age (minutes) a release must reach before it is installable.",
+		workspaceYaml: true,
 		anchor: "minimumreleaseage",
 	},
 	allowBuilds: {
@@ -141,6 +154,7 @@ export const resolution = {
 		strategy: "allowBuilds",
 		enforcement: "warn",
 		doc: "Packages whose build scripts are explicitly allowed to run.",
+		workspaceYaml: true,
 		anchor: "allowbuilds",
 	},
 	ignoredOptionalDependencies: {
@@ -149,6 +163,7 @@ export const resolution = {
 		strategy: "arrayUnion",
 		enforcement: "absent",
 		doc: "Optional dependencies excluded from installation entirely.",
+		workspaceYaml: true,
 		anchor: "ignoredoptionaldependencies",
 	},
 	updateConfig: {
@@ -157,6 +172,7 @@ export const resolution = {
 		strategy: "mapChildWins",
 		enforcement: "absent",
 		doc: "Per-dependency update behavior: which packages to ignore during updates.",
+		workspaceYaml: true,
 		anchor: "updateconfig",
 		samples: { valid: [{}, { ignoreDependencies: ["a"] }], invalid: ["x"] },
 	},
@@ -166,6 +182,7 @@ export const resolution = {
 		strategy: "mapChildWins",
 		enforcement: "warn",
 		doc: "Default version catalog entries merged as a single `default` catalog.",
+		workspaceYaml: true,
 		anchor: "catalog",
 	},
 	minimumReleaseAgeStrict: {
@@ -174,6 +191,7 @@ export const resolution = {
 		strategy: "scalar",
 		enforcement: "warn",
 		doc: "Whether any resolution fails when a package violates minimum-release-age.",
+		workspaceYaml: true,
 		anchor: "minimumreleaseagestrict",
 	},
 	minimumReleaseAgeIgnoreMissingTime: {
@@ -182,6 +200,7 @@ export const resolution = {
 		strategy: "scalar",
 		enforcement: "warn",
 		doc: "Whether to skip the release-age check when publish-time metadata is absent.",
+		workspaceYaml: true,
 		anchor: "minimumreleaseageignoremissingtime",
 	},
 	trustPolicy: {
@@ -190,6 +209,7 @@ export const resolution = {
 		strategy: "scalar",
 		enforcement: "warn",
 		doc: "Defines what package integrity verification is enforced on installs.",
+		workspaceYaml: true,
 		anchor: "trustpolicy",
 		samples: { valid: ["off"], invalid: ["x"] },
 	},
@@ -199,6 +219,7 @@ export const resolution = {
 		strategy: "arrayUnion",
 		enforcement: "warn",
 		doc: "Packages excluded from trust-policy enforcement.",
+		workspaceYaml: true,
 		anchor: "trustpolicyexclude",
 	},
 	trustPolicyIgnoreAfter: {
@@ -207,6 +228,7 @@ export const resolution = {
 		strategy: "scalar",
 		enforcement: "warn",
 		doc: "Minutes after installation after which the trust check is skipped.",
+		workspaceYaml: true,
 		anchor: "trustpolicyignoreafter",
 	},
 	trustLockfile: {
@@ -215,6 +237,7 @@ export const resolution = {
 		strategy: "scalar",
 		enforcement: "warn",
 		doc: "Whether the lockfile alone is trusted without re-verifying each package's integrity.",
+		workspaceYaml: true,
 		anchor: "trustlockfile",
 	},
 } satisfies FieldDescriptors;

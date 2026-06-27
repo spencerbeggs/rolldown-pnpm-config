@@ -22,6 +22,16 @@ describe("descriptor table integrity", () => {
 					await expect(Effect.runPromise(Schema.decodeUnknown(desc.schema)(v))).rejects.toBeTruthy();
 				}
 			});
+			it("declares workspaceYaml as a boolean", () => {
+				expect(typeof desc.workspaceYaml).toBe("boolean");
+			});
 		});
 	}
+
+	it("classifies known fields correctly", () => {
+		expect(DESCRIPTORS.confirmModulesPurge.workspaceYaml).toBe(false);
+		expect(DESCRIPTORS.catalogs.workspaceYaml).toBe(true);
+		expect(DESCRIPTORS.publicHoistPattern.workspaceYaml).toBe(true);
+		expect(DESCRIPTORS.overrides.workspaceYaml).toBe(true);
+	});
 });

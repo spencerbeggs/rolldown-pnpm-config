@@ -11,6 +11,7 @@ export const hoisting = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether packages are hoisted to the virtual store root node_modules.",
+		workspaceYaml: true,
 		anchor: "hoist",
 	},
 	hoistWorkspacePackages: {
@@ -19,6 +20,7 @@ export const hoisting = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether workspace packages are hoisted to the root node_modules.",
+		workspaceYaml: true,
 		anchor: "hoistworkspacepackages",
 	},
 	hoistPattern: {
@@ -27,6 +29,7 @@ export const hoisting = {
 		strategy: "arrayUnion",
 		enforcement: "absent",
 		doc: "Glob patterns describing which packages are hoisted to the virtual store root.",
+		workspaceYaml: true,
 		anchor: "hoistpattern",
 	},
 	shamefullyHoist: {
@@ -35,6 +38,7 @@ export const hoisting = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether all packages are hoisted to the root node_modules (shameful flat layout).",
+		workspaceYaml: true,
 		anchor: "shamefullyhoist",
 	},
 	hoistingLimits: {
@@ -43,6 +47,7 @@ export const hoisting = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Defines the scope to which dependencies are hoisted.",
+		workspaceYaml: true,
 		anchor: "hoistinglimits",
 		samples: { valid: ["none"], invalid: ["x"] },
 	},
@@ -52,6 +57,7 @@ export const hoisting = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "The directory in which node_modules will be created.",
+		workspaceYaml: true,
 		anchor: "modulesdir",
 	},
 	nodeLinker: {
@@ -60,6 +66,7 @@ export const hoisting = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Defines which linker is used for installing Node.js packages.",
+		workspaceYaml: true,
 		anchor: "nodelinker",
 		samples: { valid: ["isolated"], invalid: ["x"] },
 	},
@@ -69,6 +76,7 @@ export const hoisting = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether symlinks are created when linking packages from the store.",
+		workspaceYaml: true,
 		anchor: "symlink",
 	},
 	enableModulesDir: {
@@ -77,6 +85,7 @@ export const hoisting = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether the local node_modules directory should be created during install.",
+		workspaceYaml: true,
 		anchor: "enablemodulesdir",
 	},
 	virtualStoreDir: {
@@ -85,6 +94,7 @@ export const hoisting = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "The directory with links to the store (default: node_modules/.pnpm).",
+		workspaceYaml: true,
 		anchor: "virtualstoredir",
 	},
 	virtualStoreDirMaxLength: {
@@ -93,6 +103,7 @@ export const hoisting = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Maximum allowed length of directory names inside the virtual store.",
+		workspaceYaml: true,
 		anchor: "virtualstoredirmaxlength",
 	},
 	virtualStoreOnly: {
@@ -101,6 +112,7 @@ export const hoisting = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether packages are written only to the virtual store without a local modules dir.",
+		workspaceYaml: true,
 		anchor: "virtualstoreonly",
 	},
 	packageImportMethod: {
@@ -109,6 +121,7 @@ export const hoisting = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Controls how packages are imported from the content-addressable store.",
+		workspaceYaml: true,
 		anchor: "packageimportmethod",
 		samples: { valid: ["auto"], invalid: ["x"] },
 	},
@@ -118,6 +131,7 @@ export const hoisting = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Maximum age (minutes) of unused modules directories before they are pruned.",
+		workspaceYaml: true,
 		anchor: "modulescachemaxage",
 	},
 	dlxCacheMaxAge: {
@@ -126,6 +140,7 @@ export const hoisting = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Maximum age (minutes) of cached dlx command results before re-fetch.",
+		workspaceYaml: true,
 		anchor: "dlxcachemaxage",
 	},
 	verifyStoreIntegrity: {
@@ -134,6 +149,7 @@ export const hoisting = {
 		strategy: "scalar",
 		enforcement: "warn",
 		doc: "Whether integrity checksums in the store are verified before using a package.",
+		workspaceYaml: true,
 		anchor: "verifystoreintegrity",
 	},
 	strictStorePkgContentCheck: {
@@ -142,6 +158,7 @@ export const hoisting = {
 		strategy: "scalar",
 		enforcement: "warn",
 		doc: "Whether store package content checksums are verified strictly on each access.",
+		workspaceYaml: true,
 		anchor: "strictstorepkgcontentcheck",
 	},
 } satisfies FieldDescriptors;
