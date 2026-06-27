@@ -42,4 +42,19 @@ export const p = PnpmConfigPlugin({ catalogs: {}, publicHoistPattern: x });`;
 		const { config } = evaluatePluginConfig("export const x = 1;", "x.ts");
 		expect(config).toBeNull();
 	});
+
+	it("omits a non-literal array element and reports it", () => {
+		const src = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
+const x = "@types/*";
+export const p = PnpmConfigPlugin({ catalogs: {}, publicHoistPattern: [x] });`;
+		const { config, errors } = evaluatePluginConfig(src, "x.ts");
+		expect((config as Record<string, unknown>).publicHoistPattern).toEqual([]);
+		expect(errors.some((e) => e.includes("publicHoistPattern[0]"))).toBe(true);
+	});
+
+	it("returns a null config and the oxc errors on a parse failure", () => {
+		const { config, errors } = evaluatePluginConfig("const x = = = ;", "bad.ts");
+		expect(config).toBeNull();
+		expect(errors.length).toBeGreaterThan(0);
+	});
 });

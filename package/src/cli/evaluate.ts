@@ -42,7 +42,8 @@ function evalNode(node: Node, path: string, errors: string[]): unknown {
 					errors.push(`${path}[${i}]: holes are not supported`);
 					continue;
 				}
-				out.push(evalNode(el, `${path}[${i}]`, errors));
+				const val = evalNode(el, `${path}[${i}]`, errors);
+				if (val !== undefined) out.push(val);
 			}
 			return out;
 		}
