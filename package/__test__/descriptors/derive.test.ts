@@ -6,13 +6,14 @@ import { Bool } from "../../src/descriptors/schemas.js";
 import type { FieldDescriptors } from "../../src/descriptors/types.js";
 
 const FAKE: FieldDescriptors = {
-	hoist: { schema: Bool, kind: "boolean", strategy: "scalar", enforcement: "absent", doc: "x" },
+	hoist: { schema: Bool, kind: "boolean", strategy: "scalar", enforcement: "absent", doc: "x", workspaceYaml: true },
 	nodeLinker: {
 		schema: Schema.Literal("isolated", "hoisted", "pnp"),
 		kind: "enum",
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "y",
+		workspaceYaml: true,
 		samples: { valid: ["isolated"], invalid: ["nope"] },
 	},
 };

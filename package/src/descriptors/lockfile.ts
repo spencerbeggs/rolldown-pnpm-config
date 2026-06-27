@@ -10,6 +10,7 @@ export const lockfile = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether a lockfile is used and generated when running commands that install packages.",
+		workspaceYaml: true,
 		anchor: "lockfile",
 	},
 	preferFrozenLockfile: {
@@ -18,6 +19,7 @@ export const lockfile = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "If true, pnpm does not generate a lockfile and fails if the lockfile is out of date.",
+		workspaceYaml: true,
 		anchor: "preferfrozenlockfile",
 	},
 	lockfileIncludeTarballUrl: {
@@ -26,6 +28,7 @@ export const lockfile = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether the lockfile includes the full tarball URL for each resolved dependency.",
+		workspaceYaml: true,
 		anchor: "lockfileincludetarballurl",
 	},
 	gitBranchLockfile: {
@@ -34,6 +37,7 @@ export const lockfile = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "When enabled, the generated lockfile name is based on the current branch name.",
+		workspaceYaml: true,
 		anchor: "gitbranchlockfile",
 	},
 	mergeGitBranchLockfilesBranchPattern: {
@@ -42,6 +46,7 @@ export const lockfile = {
 		strategy: "arrayUnion",
 		enforcement: "absent",
 		doc: "Branch name patterns whose lockfiles are merged into the main lockfile on install.",
+		workspaceYaml: true,
 		anchor: "mergegitbranchlockfilesbranchpattern",
 	},
 	peersSuffixMaxLength: {
@@ -50,6 +55,7 @@ export const lockfile = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Maximum length of the peers suffix appended to dependency directory names in the virtual store.",
+		workspaceYaml: true,
 		anchor: "peerssuffixmaxlength",
 	},
 	sharedWorkspaceLockfile: {
@@ -58,6 +64,7 @@ export const lockfile = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether a single shared lockfile is used for all projects in the workspace.",
+		workspaceYaml: true,
 		anchor: "sharedworkspacelockfile",
 	},
 	autoInstallPeers: {
@@ -66,6 +73,7 @@ export const lockfile = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether missing peer dependencies are installed automatically.",
+		workspaceYaml: true,
 		anchor: "autoinstallpeers",
 	},
 	dedupePeerDependents: {
@@ -74,6 +82,7 @@ export const lockfile = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether packages with peer dependencies are deduplicated after peers are resolved.",
+		workspaceYaml: true,
 		anchor: "dedupepeerdependents",
 	},
 	dedupePeers: {
@@ -82,6 +91,7 @@ export const lockfile = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether peer dependencies are deduplicated during resolution.",
+		workspaceYaml: true,
 		anchor: "dedupepeers",
 	},
 	strictPeerDependencies: {
@@ -90,6 +100,7 @@ export const lockfile = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "If true, commands fail when there are missing or invalid peer dependencies.",
+		workspaceYaml: true,
 		anchor: "strictpeerdependencies",
 	},
 	resolvePeersFromWorkspaceRoot: {
@@ -98,6 +109,7 @@ export const lockfile = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether peer dependencies are resolved using packages installed in the workspace root.",
+		workspaceYaml: true,
 		anchor: "resolvepeersfromworkspaceroot",
 	},
 } satisfies FieldDescriptors;

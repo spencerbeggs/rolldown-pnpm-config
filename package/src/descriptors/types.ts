@@ -28,6 +28,8 @@ export interface FieldDescriptor<A = unknown> {
 	readonly strategy: string;
 	readonly enforcement: Enforcement;
 	readonly doc: string;
+	/** Whether this field is valid in pnpm-workspace.yaml (and thus exportable). */
+	readonly workspaceYaml: boolean;
 	readonly anchor?: string;
 	readonly options?: FieldOptions;
 	/** Required for kind "enum"/"union"/"object"; synthesized otherwise. */

@@ -11,6 +11,7 @@ export const runtimeCfg = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether pnpm enforces use of the package manager specified in packageManager.",
+		workspaceYaml: true,
 		anchor: "packagemanagerstrict",
 	},
 	packageManagerStrictVersion: {
@@ -19,6 +20,7 @@ export const runtimeCfg = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether pnpm enforces the exact version of the package manager specified in packageManager.",
+		workspaceYaml: true,
 		anchor: "packagemanagerstrictversion",
 	},
 	managePackageManagerVersions: {
@@ -27,6 +29,7 @@ export const runtimeCfg = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Whether pnpm automatically downloads and uses the version of pnpm specified in packageManager.",
+		workspaceYaml: true,
 		anchor: "managepackagemanagerversions",
 	},
 	pmOnFail: {
@@ -35,6 +38,7 @@ export const runtimeCfg = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Action taken when the package manager version does not match the packageManager field.",
+		workspaceYaml: true,
 		anchor: "pmonfail",
 		samples: { valid: ["download"], invalid: ["x"] },
 	},
@@ -44,6 +48,7 @@ export const runtimeCfg = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "Action taken when the Node.js version does not match the engines.node field.",
+		workspaceYaml: true,
 		anchor: "runtimeonfail",
 		samples: { valid: ["error"], invalid: ["x"] },
 	},
@@ -53,6 +58,7 @@ export const runtimeCfg = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "The Node.js version to use when checking packages' engines field.",
+		workspaceYaml: true,
 		anchor: "nodeversion",
 	},
 	useNodeVersion: {
@@ -61,6 +67,7 @@ export const runtimeCfg = {
 		strategy: "scalar",
 		enforcement: "absent",
 		doc: "The exact Node.js version that pnpm should use for running scripts.",
+		workspaceYaml: true,
 		anchor: "usenodeversion",
 	},
 	nodeDownloadMirrors: {
@@ -69,6 +76,7 @@ export const runtimeCfg = {
 		strategy: "mapChildWins",
 		enforcement: "absent",
 		doc: "Mirror URLs for downloading Node.js, keyed by distribution name.",
+		workspaceYaml: true,
 		anchor: "nodedownloadmirrors",
 	},
 } satisfies FieldDescriptors;
