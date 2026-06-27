@@ -16,6 +16,12 @@ export type FieldInput<T> = T | { readonly value: T; readonly enforcement?: Enfo
 export interface PluginConfig {
 	/** The catalogs to inject into pnpm config, keyed by catalog name. */
 	readonly catalogs: Record<string, CatalogDeclaration>;
+	/**
+	 * Export-only overrides. Each field set here replaces the corresponding
+	 * generated field when running `rolldown-pnpm-config export`. Ignored by the
+	 * build and the shipped pnpmfile.
+	 */
+	readonly local?: Partial<PluginConfig>;
 	/** Whether pnpm prompts before purging `node_modules`. */
 	readonly confirmModulesPurge?: FieldInput<boolean>;
 	/** Per-package manifest overrides merged into the dependency graph. */
