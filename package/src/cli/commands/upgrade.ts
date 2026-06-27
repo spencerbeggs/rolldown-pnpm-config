@@ -3,6 +3,7 @@ import { Args, Command, Options } from "@effect/cli";
 import { NodeContext } from "@effect/platform-node";
 import { Data, Effect, Option } from "effect";
 import { discoverCatalogEntries } from "../discover.js";
+import { detectPeerDrift } from "../drift.js";
 import { buildEdits } from "../edits.js";
 import { derivePeerRange } from "../peer-range.js";
 import { planEntry } from "../plan.js";
@@ -75,6 +76,14 @@ export function runUpgrade(opts: {
 				);
 				if (peerRange !== null) {
 					edits.push({ span: [at, at], text: `, peer: ${JSON.stringify(peerRange)}` });
+					changedSpans.add(entry.rangeSpan[0]);
+				}
+			} else if (entry.peer && entry.strategy) {
+				// Already at newest, but an existing peer literal may have drifted from
+				// the strategy: resync it (parity with the interactive walk).
+				const expected = yield* detectPeerDrift(entry).pipe(Effect.catchAll(() => Effect.succeed(null)));
+				if (expected !== null) {
+					edits.push({ span: entry.peer.span, text: JSON.stringify(expected) });
 					changedSpans.add(entry.rangeSpan[0]);
 				}
 			}
@@ -164,8 +173,8 @@ const dryRunFlag = Options.boolean("dry-run").pipe(Options.withDefault(false));
 const catalogOption = Options.text("catalog").pipe(Options.optional);
 
 /**
- * The "upgrade" command (alias "up"). The default path runs the interactive
- * walk; --yes applies latest-in-range non-interactively; --dry-run prints the
+ * The "upgrade" command. The default path runs the interactive walk;
+ * --yes applies latest-in-range non-interactively; --dry-run prints the
  * summary without writing; --catalog restricts to a single catalog by name.
  *
  * @internal
@@ -198,11 +207,20 @@ export const upgradeCommand = Command.make(
 			const items = yield* buildWalkItems(entries, versions).pipe(
 				Effect.catchAll((e) => Effect.fail(new UpgradeError({ message: e.message }))),
 			);
-			// --dry-run: preview only — in-range candidates, no write.
+			// --dry-run: preview what the non-interactive apply would do — in-range bumps,
+			// plus peer-only resyncs/materializations (rendered via a keep decision).
 			const decisions: readonly Decision[] = dryRun
 				? items
-						.map((i) => ({ item: i, chosen: i.candidates.find((c) => c.kind === "in-range") }))
-						.filter((d): d is Decision => d.chosen !== undefined)
+						.map((i): Decision | null => {
+							const inRange = i.candidates.find((c) => c.kind === "in-range");
+							if (inRange) return { item: i, chosen: inRange };
+							if (i.driftPeer !== null || i.materializePeer !== null) {
+								const keep = i.candidates.find((c) => c.kind === "keep");
+								if (keep) return { item: i, chosen: keep };
+							}
+							return null;
+						})
+						.filter((d): d is Decision => d !== null)
 				: yield* runWalk(items);
 			yield* Effect.sync(() => process.stdout.write(`${renderSummary(decisions)}\n`));
 			if (dryRun) return;

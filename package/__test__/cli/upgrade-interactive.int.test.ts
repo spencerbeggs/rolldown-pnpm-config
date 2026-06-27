@@ -114,6 +114,23 @@ export const plugin = PnpmConfigPlugin({
 });
 
 describe("runUpgrade --yes path", () => {
+	it("resyncs a drifted existing peer under --yes when already at newest", async () => {
+		const SOURCE = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
+export const plugin = PnpmConfigPlugin({
+	catalogs: { silk: { packages: {
+		vitest: { range: "^4.2.3", peer: "^4.1.0", strategy: "lock-minor" },
+	} } },
+});
+`;
+		const file = writeTmpConfig(SOURCE);
+		const resolver = { versions: () => Effect.succeed(["4.2.3"]) }; // already newest, no upgrade
+		const result = await Effect.runPromise(runUpgrade({ file, resolver }));
+		const out = readFileSync(file, "utf8");
+		expect(out).toContain('range: "^4.2.3"'); // range unchanged
+		expect(out).toContain('peer: "^4.2.0"'); // drifted peer ^4.1.0 resynced to lock-minor of 4.2.3
+		expect(result.updated).toBe(1);
+	});
+
 	it("materializes a peer under --yes even when the package is already at its newest version", async () => {
 		const SOURCE = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
 export const plugin = PnpmConfigPlugin({
