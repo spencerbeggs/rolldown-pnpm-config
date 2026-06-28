@@ -202,7 +202,11 @@ export function runInterop(
 		const cache = new Map<string, Record<string, string>>();
 		const key = (pkg: string, v: string) => `${pkg}@${v}`;
 		for (const m of members) {
-			const wanted = new Set<string>([m.ceiling, ...m.candidates]);
+			// Only versions ≤ ceiling are ever consulted downstream (resolveGroup's
+			// eligible search, deriveFloors' resolved reads, reentryCandidates' ceiling
+			// read), so prefetching candidates above the ceiling is wasted `pnpm view`
+			// work — cap the set to the ceiling plus the in-range candidates.
+			const wanted = new Set<string>([m.ceiling, ...(yield* capVersions(m.candidates, m.ceiling))]);
 			for (const v of wanted) {
 				const deps = yield* resolver.peerDependencies(m.pkg, v).pipe(Effect.catchAll(() => Effect.succeed({})));
 				cache.set(key(m.pkg, v), deps as Record<string, string>);

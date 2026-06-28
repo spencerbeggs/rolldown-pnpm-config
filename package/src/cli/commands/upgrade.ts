@@ -68,6 +68,10 @@ export function resolveGatedVersions(
 				out.set(pkg, []);
 				continue;
 			}
+			// Fail-closed: if the publish-times fetch fails, an empty map makes
+			// filterByReleaseAge drop every version (all timestamps unknown). This is a
+			// safe skip, consistent with the version-fetch Left→[] path above, honoring
+			// the contract of never proposing a version younger than the gate.
 			const times = yield* resolver.times(pkg).pipe(Effect.catchAll(() => Effect.succeed({})));
 			out.set(pkg, filterByReleaseAge(vr.right, times, gate, pkg, now));
 		}
