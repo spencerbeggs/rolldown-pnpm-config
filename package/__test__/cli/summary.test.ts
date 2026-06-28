@@ -68,4 +68,13 @@ describe("renderSummary", () => {
 		expect(out).toContain("^4.2.0");
 		expect(out).toContain("1 resync");
 	});
+
+	it("renders interop adjustments and conflicts", () => {
+		const text = renderSummary([], {
+			adjustments: [{ catalog: "effect", pkg: "@effect/cli", from: "^0.71.0", to: "^0.70.0", peer: "^3.16.0" }],
+			conflicts: [{ pkg: "@effect/foo", ceiling: "1.2.0", blockedBy: "effect@^4.0.0" }],
+		});
+		expect(text).toContain("↓ @effect/cli  ^0.71.0 → ^0.70.0");
+		expect(text).toContain("⚠ @effect/foo");
+	});
 });

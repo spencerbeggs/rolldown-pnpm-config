@@ -37,7 +37,9 @@ export function planEntry(
 		const overallMax = maxOf(parsed);
 
 		const withPeer = (version: string): Effect.Effect<string | undefined, PeerRangeError> =>
-			entry.strategy ? derivePeerRange(`${entry.operator}${version}`, entry.strategy) : Effect.succeed(undefined);
+			entry.strategy && entry.strategy !== "interop"
+				? derivePeerRange(`${entry.operator}${version}`, entry.strategy)
+				: Effect.succeed(undefined);
 
 		const candidates: Candidate[] = [];
 

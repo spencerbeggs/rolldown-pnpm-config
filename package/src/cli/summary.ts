@@ -1,12 +1,28 @@
 import type { Decision } from "./walk-types.js";
 
+/** One interop member pulled below the user's pick to satisfy the group. @internal */
+export interface InteropAdjustment {
+	readonly catalog: string;
+	readonly pkg: string;
+	readonly from: string;
+	readonly to: string;
+	readonly peer: string;
+}
+/** The interop section of an interactive summary: adjustments + unresolved conflicts. @internal */
+export interface InteropSummary {
+	readonly adjustments: readonly InteropAdjustment[];
+	readonly conflicts: readonly { readonly pkg: string; readonly ceiling: string; readonly blockedBy: string }[];
+}
+
 /**
  * Render a human-readable diff of the pending decisions: one line per real
  * change, peer changes indented, ending with an update/major/up-to-date tally.
+ * When an interop section is supplied, append `↓ adjusted` and `⚠ conflict`
+ * lines below the tally.
  *
  * @internal
  */
-export function renderSummary(decisions: readonly Decision[]): string {
+export function renderSummary(decisions: readonly Decision[], interop?: InteropSummary): string {
 	const lines: string[] = [];
 	let toUpdate = 0;
 	let major = 0;
@@ -40,5 +56,14 @@ export function renderSummary(decisions: readonly Decision[]): string {
 	lines.push(
 		`${toUpdate} to update · ${major} major · ${resync} resync · ${materialize} new peer · ${upToDate} up to date`,
 	);
+	if (interop) {
+		for (const a of interop.adjustments) {
+			lines.push(`  ↓ ${a.pkg}  ${a.from} → ${a.to}`);
+			lines.push(`    ↳ peer  → ${a.peer}`);
+		}
+		for (const c of interop.conflicts) {
+			lines.push(`  ⚠ ${c.pkg} (kept ${c.ceiling}) blocked by ${c.blockedBy}`);
+		}
+	}
 	return lines.join("\n");
 }

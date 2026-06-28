@@ -20,7 +20,12 @@ export class ResolveError extends Data.TaggedError("ResolveError")<{
  */
 export class RegistryResolver extends Context.Tag("RegistryResolver")<
 	RegistryResolver,
-	{ readonly versions: (pkg: string) => Effect.Effect<string[], ResolveError> }
+	{
+		readonly versions: (pkg: string) => Effect.Effect<string[], ResolveError>;
+		readonly times: (pkg: string) => Effect.Effect<Record<string, string>, ResolveError>;
+		readonly peerDependencies: (pkg: string, version: string) => Effect.Effect<Record<string, string>, ResolveError>;
+		readonly pnpmConfig: (key: string) => Effect.Effect<string | null, ResolveError>;
+	}
 >() {}
 
 /** Parse `pnpm view ... versions --json` stdout: a JSON array, or a single JSON string. */
@@ -33,6 +38,40 @@ export function parseVersions(pkg: string, stdout: string): Effect.Effect<string
 			throw new Error("unexpected shape");
 		},
 		catch: () => new ResolveError({ pkg, message: `Could not parse versions for ${pkg}` }),
+	});
+}
+
+/** Parse `pnpm view <pkg> time --json` stdout: an object of version → ISO date. @internal */
+export function parseTimes(pkg: string, stdout: string): Effect.Effect<Record<string, string>, ResolveError> {
+	return Effect.try({
+		try: () => {
+			const json = JSON.parse(stdout) as unknown;
+			if (json && typeof json === "object" && !Array.isArray(json)) {
+				const out: Record<string, string> = {};
+				for (const [k, v] of Object.entries(json as Record<string, unknown>)) out[k] = String(v);
+				return out;
+			}
+			throw new Error("unexpected shape");
+		},
+		catch: () => new ResolveError({ pkg, message: `Could not parse times for ${pkg}` }),
+	});
+}
+
+/** Parse `pnpm view <pkg>@<version> peerDependencies --json`; empty stdout → {}. @internal */
+export function parsePeerDeps(pkg: string, stdout: string): Effect.Effect<Record<string, string>, ResolveError> {
+	const trimmed = stdout.trim();
+	if (trimmed === "") return Effect.succeed({});
+	return Effect.try({
+		try: () => {
+			const json = JSON.parse(trimmed) as unknown;
+			if (json && typeof json === "object" && !Array.isArray(json)) {
+				const out: Record<string, string> = {};
+				for (const [k, v] of Object.entries(json as Record<string, unknown>)) out[k] = String(v);
+				return out;
+			}
+			throw new Error("unexpected shape");
+		},
+		catch: () => new ResolveError({ pkg, message: `Could not parse peerDependencies for ${pkg}` }),
 	});
 }
 
@@ -53,6 +92,30 @@ export const RegistryResolverLive: Layer.Layer<RegistryResolver, never, CommandE
 						.string(cmd)
 						.pipe(Effect.mapError((e) => new ResolveError({ pkg, message: String(e) })));
 					return yield* parseVersions(pkg, stdout);
+				}),
+			times: (pkg: string) =>
+				Effect.gen(function* () {
+					const cmd = Command.make("pnpm", "view", pkg, "time", "--json");
+					const stdout = yield* executor
+						.string(cmd)
+						.pipe(Effect.mapError((e) => new ResolveError({ pkg, message: String(e) })));
+					return yield* parseTimes(pkg, stdout);
+				}),
+			peerDependencies: (pkg: string, version: string) =>
+				Effect.gen(function* () {
+					const cmd = Command.make("pnpm", "view", `${pkg}@${version}`, "peerDependencies", "--json");
+					const stdout = yield* executor
+						.string(cmd)
+						.pipe(Effect.mapError((e) => new ResolveError({ pkg, message: String(e) })));
+					return yield* parsePeerDeps(pkg, stdout);
+				}),
+			pnpmConfig: (key: string) =>
+				Effect.gen(function* () {
+					const cmd = Command.make("pnpm", "config", "get", key);
+					return yield* executor.string(cmd).pipe(
+						Effect.map((s) => s.trim()),
+						Effect.catchAll(() => Effect.succeed<string | null>(null)),
+					);
 				}),
 		};
 	}),

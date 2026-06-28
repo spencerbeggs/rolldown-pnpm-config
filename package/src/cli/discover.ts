@@ -113,7 +113,7 @@ export function discoverCatalogEntries(
 			// Resolve the range literal node and any peer/strategy.
 			let rangeNode: Node | undefined;
 			let peerNode: Node | undefined;
-			let strategy: "lock" | "lock-minor" | undefined;
+			let strategy: "lock" | "lock-minor" | "interop" | undefined;
 
 			if (value.type === "Literal" && typeof value.value === "string") {
 				rangeNode = value;
@@ -123,8 +123,8 @@ export function discoverCatalogEntries(
 				const p = prop(value, "peer");
 				if (p?.type === "Literal" && typeof p.value === "string") peerNode = p;
 				const s = prop(value, "strategy");
-				if (s?.type === "Literal" && (s.value === "lock" || s.value === "lock-minor")) {
-					strategy = s.value as "lock" | "lock-minor";
+				if (s?.type === "Literal" && (s.value === "lock" || s.value === "lock-minor" || s.value === "interop")) {
+					strategy = s.value as "lock" | "lock-minor" | "interop";
 				}
 			}
 

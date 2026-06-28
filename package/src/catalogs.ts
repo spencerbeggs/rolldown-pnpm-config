@@ -4,7 +4,7 @@
  *
  * @public
  */
-export type PeerStrategy = "lock" | "lock-minor";
+export type PeerStrategy = "lock" | "lock-minor" | "interop";
 
 /**
  * A package's version: a bare range, or an object carrying a materialized peer

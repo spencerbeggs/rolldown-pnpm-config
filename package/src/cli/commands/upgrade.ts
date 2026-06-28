@@ -5,11 +5,17 @@ import { Data, Effect, Option } from "effect";
 import { discoverCatalogEntries } from "../discover.js";
 import { detectPeerDrift } from "../drift.js";
 import { buildEdits } from "../edits.js";
+import { evaluatePluginConfig } from "../evaluate.js";
+import type { GroupMember, InteropConflict } from "../interop.js";
+import { buildInteropEdits, capVersions, interopEntryChanged, reentryCandidates, runInterop } from "../interop.js";
 import { derivePeerRange } from "../peer-range.js";
 import { planEntry } from "../plan.js";
+import type { ReleaseAgeGate } from "../release-age.js";
+import { combineReleaseAge, filterByReleaseAge, parsePnpmGate, readConfigReleaseAge } from "../release-age.js";
 import { RegistryResolver, RegistryResolverLive } from "../resolve.js";
 import { applyEdits } from "../rewrite.js";
 import { filterEntriesByCatalog, findConfigFiles, pickConfigCandidate } from "../select-file.js";
+import type { InteropAdjustment } from "../summary.js";
 import { renderSummary } from "../summary.js";
 import type { CatalogEntry, Edit } from "../types.js";
 import { runWalk } from "../ui/run-walk.js";
@@ -25,6 +31,52 @@ export class UpgradeError extends Data.TaggedError("UpgradeError")<{ readonly me
 
 interface Resolver {
 	readonly versions: (pkg: string) => Effect.Effect<string[], unknown>;
+	readonly times: (pkg: string) => Effect.Effect<Record<string, string>, unknown>;
+	readonly pnpmConfig: (key: string) => Effect.Effect<string | null, unknown>;
+	readonly peerDependencies: (pkg: string, version: string) => Effect.Effect<Record<string, string>, unknown>;
+}
+
+/** Combine the config-declared and pnpm-resolved release-age gates (strictest of both). @internal */
+export function computeGate(source: string, file: string, resolver: Resolver): Effect.Effect<ReleaseAgeGate, never> {
+	return Effect.gen(function* () {
+		// Defensive: a thrown evaluation (malformed source/AST) degrades to a null
+		// config gate rather than escaping as an Effect defect.
+		const { config } = yield* Effect.try(() => evaluatePluginConfig(source, file)).pipe(
+			Effect.catchAll(() => Effect.succeed({ config: null })),
+		);
+		const cfg = readConfigReleaseAge(config);
+		const age = yield* resolver.pnpmConfig("minimumReleaseAge").pipe(Effect.catchAll(() => Effect.succeed(null)));
+		const exc = yield* resolver
+			.pnpmConfig("minimumReleaseAgeExclude")
+			.pipe(Effect.catchAll(() => Effect.succeed(null)));
+		return combineReleaseAge(cfg, parsePnpmGate(age, exc));
+	});
+}
+
+/** Fetch and age-gate the version list for each unique package. @internal */
+export function resolveGatedVersions(
+	entries: readonly CatalogEntry[],
+	resolver: Resolver,
+	gate: ReleaseAgeGate,
+	now: number,
+): Effect.Effect<Map<string, string[]>, never> {
+	return Effect.gen(function* () {
+		const out = new Map<string, string[]>();
+		for (const pkg of new Set(entries.map((e) => e.pkg))) {
+			const vr = yield* resolver.versions(pkg).pipe(Effect.either);
+			if (vr._tag === "Left") {
+				out.set(pkg, []);
+				continue;
+			}
+			// Fail-closed: if the publish-times fetch fails, an empty map makes
+			// filterByReleaseAge drop every version (all timestamps unknown). This is a
+			// safe skip, consistent with the version-fetch Left→[] path above, honoring
+			// the contract of never proposing a version younger than the gate.
+			const times = yield* resolver.times(pkg).pipe(Effect.catchAll(() => Effect.succeed({})));
+			out.set(pkg, filterByReleaseAge(vr.right, times, gate, pkg, now));
+		}
+		return out;
+	});
 }
 
 /**
@@ -32,12 +84,16 @@ interface Resolver {
  * resolve + plan each, build edits for the latest-IN-RANGE candidate (and its
  * recomputed peer literal), and write the file. Never selects a major bump.
  *
+ * A package whose version list gates to empty (fetch failure / fully age-gated)
+ * is treated as a skip, except that a strategy entry can still resync or
+ * materialize its managed peer offline from the current range.
+ *
  * @internal
  */
 export function runUpgrade(opts: {
 	file: string;
 	resolver: Resolver;
-}): Effect.Effect<{ updated: number; skipped: string[] }, UpgradeError> {
+}): Effect.Effect<{ updated: number; skipped: string[]; conflicts: InteropConflict[] }, UpgradeError> {
 	return Effect.gen(function* () {
 		const source = yield* Effect.try({
 			try: () => readFileSync(opts.file, "utf8"),
@@ -47,16 +103,39 @@ export function runUpgrade(opts: {
 			try: () => discoverCatalogEntries(source, opts.file),
 			catch: (e) => new UpgradeError({ message: String(e) }),
 		});
+		const gate = yield* computeGate(source, opts.file, opts.resolver);
+		const versionsByPkg = yield* resolveGatedVersions(entries, opts.resolver, gate, Date.now());
 		const edits: Edit[] = [];
 		const changedSpans = new Set<number>();
 
 		for (const entry of entries) {
-			const vr = yield* opts.resolver.versions(entry.pkg).pipe(Effect.either);
-			if (vr._tag === "Left") {
+			if (entry.strategy === "interop") continue;
+			const versions = versionsByPkg.get(entry.pkg) ?? [];
+			if (versions.length === 0) {
+				// No fetchable versions, but a strategy entry can still resync a drifted
+				// peer or materialize a missing one offline from the current range
+				// (parity with the interactive walk); otherwise the entry is a skip.
+				const at = entry.rangeSpan[1];
+				if (entry.peer && entry.strategy) {
+					const expected = yield* detectPeerDrift(entry).pipe(Effect.catchAll(() => Effect.succeed(null)));
+					if (expected !== null) {
+						edits.push({ span: entry.peer.span, text: JSON.stringify(expected) });
+						changedSpans.add(entry.rangeSpan[0]);
+						continue;
+					}
+				} else if (!entry.peer && entry.strategy) {
+					const peerRange = yield* derivePeerRange(entry.currentRange, entry.strategy).pipe(
+						Effect.catchAll(() => Effect.succeed(null)),
+					);
+					if (peerRange !== null) {
+						edits.push({ span: [at, at], text: `, peer: ${JSON.stringify(peerRange)}` });
+						changedSpans.add(entry.rangeSpan[0]);
+						continue;
+					}
+				}
 				skipped.push(`${entry.catalog}.${entry.pkg}`);
 				continue;
 			}
-			const versions = vr.right;
 			const candidates = yield* planEntry(entry, versions).pipe(Effect.catchAll(() => Effect.succeed([])));
 			const inRange = candidates.find((c) => c.kind === "in-range");
 			const at = entry.rangeSpan[1];
@@ -89,6 +168,30 @@ export function runUpgrade(opts: {
 			}
 		}
 
+		// group interop entries by catalog and reconcile each group
+		const interopEntries = entries.filter((e) => e.strategy === "interop");
+		const conflicts: InteropConflict[] = [];
+		const byCatalog = new Map<string, CatalogEntry[]>();
+		for (const e of interopEntries) {
+			const list = byCatalog.get(e.catalog) ?? [];
+			list.push(e);
+			byCatalog.set(e.catalog, list);
+		}
+		for (const [, group] of byCatalog) {
+			const members: GroupMember[] = [];
+			for (const e of group) {
+				const versions = versionsByPkg.get(e.pkg) ?? [];
+				const cands = yield* planEntry(e, versions).pipe(Effect.catchAll(() => Effect.succeed([])));
+				const inRange = cands.find((c) => c.kind === "in-range");
+				const ceiling = inRange ? inRange.version : e.currentRange.replace(/^[\^~]/, "");
+				members.push({ pkg: e.pkg, ceiling, candidates: versions });
+			}
+			const result = yield* runInterop(members, opts.resolver);
+			edits.push(...buildInteropEdits(group, result));
+			for (const e of group) if (interopEntryChanged(e, result)) changedSpans.add(e.rangeSpan[0]);
+			conflicts.push(...result.conflicts);
+		}
+
 		if (edits.length > 0) {
 			const next = applyEdits(source, edits);
 			yield* Effect.try({
@@ -98,27 +201,7 @@ export function runUpgrade(opts: {
 		}
 
 		const updated = changedSpans.size;
-		return { updated, skipped };
-	});
-}
-
-/**
- * Resolve published versions per unique package, swallowing per-package
- * failures to []. Mirrors the skip behavior in runUpgrade.
- *
- * @internal
- */
-export function resolveVersions(
-	entries: readonly CatalogEntry[],
-	resolver: Resolver,
-): Effect.Effect<Map<string, string[]>, never> {
-	return Effect.gen(function* () {
-		const out = new Map<string, string[]>();
-		for (const pkg of new Set(entries.map((e) => e.pkg))) {
-			const vr = yield* resolver.versions(pkg).pipe(Effect.either);
-			out.set(pkg, vr._tag === "Right" ? vr.right : []);
-		}
-		return out;
+		return { updated, skipped, conflicts };
 	});
 }
 
@@ -148,6 +231,32 @@ export function applyDecisions(
 				(d.item.entry.peer === undefined && d.item.materializePeer !== null),
 		).length;
 		return changedCount;
+	});
+}
+
+/**
+ * Apply the interactive result when interop members are present: the
+ * non-interop decisions go through `buildEdits`, the interop members through
+ * their separately-computed span edits. Interop members are EXCLUDED from
+ * `buildEdits` so the two never emit a range edit over the same span (which
+ * `applyEdits` would reject as overlapping).
+ *
+ * @internal
+ */
+export function applyInteropAndDecisions(
+	file: string,
+	source: string,
+	nonInteropDecisions: readonly Decision[],
+	interopEdits: readonly Edit[],
+): Effect.Effect<void, UpgradeError> {
+	return Effect.gen(function* () {
+		const edits = [...buildEdits(nonInteropDecisions), ...interopEdits];
+		if (edits.length === 0) return;
+		const next = applyEdits(source, edits);
+		yield* Effect.try({
+			try: () => writeFileSync(file, next, "utf8"),
+			catch: () => new UpgradeError({ message: `Cannot write ${file}` }),
+		});
 	});
 }
 
@@ -191,6 +300,12 @@ export const upgradeCommand = Command.make(
 				yield* Effect.sync(() =>
 					process.stdout.write(`Updated ${result.updated} package(s); skipped ${result.skipped.length}.\n`),
 				);
+				if (result.conflicts.length > 0) {
+					const lines = result.conflicts
+						.map((c) => `  ${c.pkg} (kept ${c.ceiling}) blocked by ${c.blockedBy}`)
+						.join("\n");
+					yield* Effect.sync(() => process.stdout.write(`Interop conflicts (left at your pick):\n${lines}\n`));
+				}
 				return;
 			}
 			const source = yield* Effect.try({
@@ -203,28 +318,120 @@ export const upgradeCommand = Command.make(
 			});
 			const catalogName = Option.getOrUndefined(catalog);
 			const entries = filterEntriesByCatalog(discovered.entries, catalogName);
-			const versions = yield* resolveVersions(entries, resolver);
+			const gate = yield* computeGate(source, file, resolver);
+			const versions = yield* resolveGatedVersions(entries, resolver, gate, Date.now());
 			const items = yield* buildWalkItems(entries, versions).pipe(
 				Effect.catchAll((e) => Effect.fail(new UpgradeError({ message: e.message }))),
 			);
 			// --dry-run: preview what the non-interactive apply would do — in-range bumps,
 			// plus peer-only resyncs/materializations (rendered via a keep decision).
-			const decisions: readonly Decision[] = dryRun
-				? items
-						.map((i): Decision | null => {
-							const inRange = i.candidates.find((c) => c.kind === "in-range");
-							if (inRange) return { item: i, chosen: inRange };
-							if (i.driftPeer !== null || i.materializePeer !== null) {
-								const keep = i.candidates.find((c) => c.kind === "keep");
-								if (keep) return { item: i, chosen: keep };
-							}
-							return null;
-						})
-						.filter((d): d is Decision => d !== null)
-				: yield* runWalk(items);
-			yield* Effect.sync(() => process.stdout.write(`${renderSummary(decisions)}\n`));
-			if (dryRun) return;
-			const changed = yield* applyDecisions(file, source, decisions);
-			yield* Effect.sync(() => process.stdout.write(`Applied ${changed} change(s).\n`));
+			// NOTE: --dry-run does NOT preview interop reconciliation — it returns before
+			// the network peerDeps resolve, so interop members show as raw in-range bumps
+			// in this summary rather than their reconciled (possibly held-back) versions.
+			if (dryRun) {
+				const decisions = items
+					.map((i): Decision | null => {
+						const inRange = i.candidates.find((c) => c.kind === "in-range");
+						if (inRange) return { item: i, chosen: inRange };
+						if (i.driftPeer !== null || i.materializePeer !== null) {
+							const keep = i.candidates.find((c) => c.kind === "keep");
+							if (keep) return { item: i, chosen: keep };
+						}
+						return null;
+					})
+					.filter((d): d is Decision => d !== null);
+				yield* Effect.sync(() => process.stdout.write(`${renderSummary(decisions)}\n`));
+				return;
+			}
+			const decisions = yield* runWalk(items);
+
+			// Reconcile interop catalog groups against the user's picks. A member
+			// pulled below its pick re-enters the walk (bounded) until the group is
+			// stable. Interop edits are built separately and EXCLUDED from buildEdits
+			// so the two never emit a range edit over the same span.
+			const interopByCatalog = new Map<string, CatalogEntry[]>();
+			for (const e of entries) {
+				if (e.strategy !== "interop") continue;
+				const list = interopByCatalog.get(e.catalog) ?? [];
+				list.push(e);
+				interopByCatalog.set(e.catalog, list);
+			}
+			const nonInteropDecisions = decisions.filter((d) => d.item.entry.strategy !== "interop");
+			const interopEdits: Edit[] = [];
+			const adjustments: InteropAdjustment[] = [];
+			const allConflicts: InteropConflict[] = [];
+			let interopChanged = 0;
+			for (const [, group] of interopByCatalog) {
+				const pickOf = (pkg: string): string => {
+					const d = decisions.find((dd) => dd.item.entry.pkg === pkg);
+					if (d) return d.chosen.version;
+					const ge = group.find((g) => g.pkg === pkg);
+					return ge ? ge.currentRange.replace(/^[\^~]/, "") : "";
+				};
+				let members: GroupMember[] = group.map((e) => ({
+					pkg: e.pkg,
+					ceiling: pickOf(e.pkg),
+					candidates: versions.get(e.pkg) ?? [],
+				}));
+				const originalPick = new Map(members.map((m) => [m.pkg, m.ceiling]));
+				let result = yield* runInterop(members, resolver);
+				for (let round = 0; round < members.length + 1; round++) {
+					// Re-prompt the downgraded/conflicted dependents (capped at their
+					// resolved version) AND their in-group anchors (uncapped), so the user
+					// can RAISE an anchor instead of accepting the dependent's downgrade.
+					const reentry = reentryCandidates(members, result);
+					if (reentry.length === 0) break; // internally compatible — done
+					const capEntries = group.filter((e) => reentry.some((rc) => rc.pkg === e.pkg));
+					const cappedVersions = new Map<string, readonly string[]>();
+					for (const rc of reentry) {
+						const all = versions.get(rc.pkg) ?? [];
+						cappedVersions.set(rc.pkg, rc.cap === null ? all : yield* capVersions(all, rc.cap));
+					}
+					const reItems = yield* buildWalkItems(capEntries, cappedVersions).pipe(
+						Effect.catchAll((err) => Effect.fail(new UpgradeError({ message: err.message }))),
+					);
+					const reDecisions = yield* runWalk(reItems);
+					const before = new Map(members.map((m) => [m.pkg, m.ceiling]));
+					members = members.map((m) => {
+						const rd = reDecisions.find((d) => d.item.entry.pkg === m.pkg);
+						return rd ? { ...m, ceiling: rd.chosen.version } : m;
+					});
+					// Terminate when no ceiling moved this round: a true conflict stays
+					// "affected" every pass, so re-prompting identically would spin to the
+					// bound. No change means the user accepted the remaining conflicts.
+					const changedCeiling = members.some((m) => before.get(m.pkg) !== m.ceiling);
+					if (!changedCeiling) break;
+					result = yield* runInterop(members, resolver);
+				}
+				interopEdits.push(...buildInteropEdits(group, result));
+				allConflicts.push(...result.conflicts);
+				for (const e of group) {
+					if (interopEntryChanged(e, result)) interopChanged++;
+					const version = result.resolved.get(e.pkg);
+					const original = originalPick.get(e.pkg);
+					// `version === undefined` is defensive: runInterop always resolves every
+					// member, so a missing entry here would indicate an internal mismatch.
+					if (version === undefined || original === undefined || version === original) continue;
+					adjustments.push({
+						catalog: e.catalog,
+						pkg: e.pkg,
+						from: `${e.operator}${original}`,
+						to: `${e.operator}${version}`,
+						peer: result.peers.get(e.pkg) ?? `^${version}`,
+					});
+				}
+			}
+
+			yield* Effect.sync(() =>
+				process.stdout.write(`${renderSummary(decisions, { adjustments, conflicts: allConflicts })}\n`),
+			);
+			yield* applyInteropAndDecisions(file, source, nonInteropDecisions, interopEdits);
+			const nonInteropChanged = nonInteropDecisions.filter(
+				(d) =>
+					d.chosen.kind !== "keep" ||
+					(d.item.entry.peer !== undefined && d.item.driftPeer !== null) ||
+					(d.item.entry.peer === undefined && d.item.materializePeer !== null),
+			).length;
+			yield* Effect.sync(() => process.stdout.write(`Applied ${nonInteropChanged + interopChanged} change(s).\n`));
 		}).pipe(Effect.provide(RegistryResolverLive), Effect.provide(NodeContext.layer)),
 ).pipe(Command.withDescription("Upgrade catalog versions in a config file"));
