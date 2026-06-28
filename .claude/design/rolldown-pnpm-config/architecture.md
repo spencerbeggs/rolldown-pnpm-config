@@ -3,8 +3,8 @@ status: current
 module: rolldown-pnpm-config
 category: architecture
 created: 2026-06-25
-updated: 2026-06-27
-last-synced: 2026-06-27
+updated: 2026-06-28
+last-synced: 2026-06-28
 completeness: 92
 related:
   - settings-coverage.md
@@ -130,9 +130,9 @@ Phase 3 (complete, on `feat/complete-schema`): the managed field surface grew fr
 
 Phase A (complete, on `feat/cli`): the three authoring entry points were collapsed into a single `PnpmConfigPlugin({...})` call with inline catalogs and materialized-in-source peer ranges. Part of the current state, described above.
 
-Phase B (complete, on `feat/cli`): the `upgrade` CLI that statically discovers, registry-resolves and surgically rewrites catalog version ranges in place, with interactive and non-interactive paths plus peer recompute, drift resync and materialization. Documented in [upgrade-cli.md](upgrade-cli.md).
+Phase B (complete, on `feat/cli`): the `upgrade` CLI that statically discovers, registry-resolves and surgically rewrites catalog version ranges in place, with interactive and non-interactive paths plus peer recompute, drift resync and materialization. Extended on `feat/peer-interop` with a third catalog peer strategy `interop` (a per-catalog group reconcile for packages that declare each other as peers) and a `minimumReleaseAge` gate on all version resolution. CLI-only: the engine is unchanged. Documented in [upgrade-cli.md](upgrade-cli.md).
 
-Pre-publish hardening (cross-cutting, before any release): ship library-owned ambient virtual-module types for external consumers, add real publish metadata and drop `private`, and widen peer ranges. The package is currently `private` and intentionally pre-publish.
+Pre-publish hardening (cross-cutting, before any release): ship library-owned ambient virtual-module types for external consumers, add real publish metadata and drop `private`, and widen peer ranges. The `interop` strategy gives authors a tool for the last item — deriving coherent group peer floors — though the package is currently `private` and intentionally pre-publish.
 
 ## Related documentation
 
