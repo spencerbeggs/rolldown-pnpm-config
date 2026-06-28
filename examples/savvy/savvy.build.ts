@@ -10,6 +10,12 @@ const plugin: PluginConfig = {
 				vitest: { range: "^4.0.0", peer: "^4.0.0", strategy: "lock-minor" },
 			},
 		},
+		effect: {
+			packages: {
+				effect: { range: "^3.15.0", peer: "^3.15.0", strategy: "interop" },
+				"@effect/platform": { range: "^0.75.0", peer: "^0.75.0", strategy: "interop" },
+			},
+		},
 	},
 	overrides: {
 		"tar@<6.2.1": ">=6.2.1",
