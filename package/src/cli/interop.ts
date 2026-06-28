@@ -192,14 +192,19 @@ export interface InteropResult {
  * then run the pure resolve + floor derivation. Failures degrade to empty
  * peerDeps (the member resolves at its ceiling).
  *
+ * A `(pkg, version)` peerDeps lookup is immutable, so the optional `cache` may
+ * be shared across the interactive re-entry rounds: each round only fetches the
+ * keys a prior round did not, sparing the sequential `pnpm view` calls for
+ * versions already seen. Omitting it yields a fresh per-call cache.
+ *
  * @internal
  */
 export function runInterop(
 	members: readonly GroupMember[],
 	resolver: InteropResolver,
+	cache: Map<string, Record<string, string>> = new Map(),
 ): Effect.Effect<InteropResult, never> {
 	return Effect.gen(function* () {
-		const cache = new Map<string, Record<string, string>>();
 		const key = (pkg: string, v: string) => `${pkg}@${v}`;
 		for (const m of members) {
 			// Only versions ≤ ceiling are ever consulted downstream (resolveGroup's
@@ -208,8 +213,10 @@ export function runInterop(
 			// work — cap the set to the ceiling plus the in-range candidates.
 			const wanted = new Set<string>([m.ceiling, ...(yield* capVersions(m.candidates, m.ceiling))]);
 			for (const v of wanted) {
+				const k = key(m.pkg, v);
+				if (cache.has(k)) continue; // reuse a peerDeps entry fetched in a prior round
 				const deps = yield* resolver.peerDependencies(m.pkg, v).pipe(Effect.catchAll(() => Effect.succeed({})));
-				cache.set(key(m.pkg, v), deps as Record<string, string>);
+				cache.set(k, deps as Record<string, string>);
 			}
 		}
 		const peerDepsOf: PeerDepsOf = (pkg, v) => cache.get(key(pkg, v)) ?? {};
@@ -217,25 +224,6 @@ export function runInterop(
 		const peers = yield* deriveFloors(resolved, peerDepsOf);
 		return { resolved, peers, conflicts, peerDepsOf };
 	});
-}
-
-/**
- * Members resolved below their ceiling, or in conflict — the set to re-prompt.
- *
- * @internal
- */
-export function affectedReentry(
-	members: readonly GroupMember[],
-	result: InteropResult,
-): { pkg: string; cappedVersion: string }[] {
-	const conflicted = new Set(result.conflicts.map((c) => c.pkg));
-	const out: { pkg: string; cappedVersion: string }[] = [];
-	for (const m of members) {
-		const r = result.resolved.get(m.pkg);
-		if (r === undefined) continue;
-		if (conflicted.has(m.pkg) || r !== m.ceiling) out.push({ pkg: m.pkg, cappedVersion: r });
-	}
-	return out;
 }
 
 /**

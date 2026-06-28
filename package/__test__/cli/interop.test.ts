@@ -2,7 +2,6 @@ import { Effect } from "effect";
 import { describe, expect, it } from "vitest";
 import type { InteropConflict, InteropResult, PeerDepsOf } from "../../src/cli/interop.js";
 import {
-	affectedReentry,
 	buildInteropEdits,
 	capVersions,
 	deriveFloors,
@@ -140,45 +139,41 @@ describe("runInterop", () => {
 		// peerDepsOf is exposed so re-entry can look up anchors.
 		expect(out.peerDepsOf("@effect/cli", "0.71.0")).toEqual({ effect: "^3.18.0" });
 	});
-});
 
-describe("affectedReentry", () => {
-	it("flags members downgraded below their ceiling and members in conflict", () => {
+	it("reuses a shared cache across rounds, fetching each (pkg, version) only once", async () => {
+		const fetched: string[] = [];
+		const resolver = {
+			peerDependencies: (pkg: string, v: string) => {
+				fetched.push(`${pkg}@${v}`);
+				return Effect.succeed({} as Record<string, string>);
+			},
+		};
 		const members = [
 			{ pkg: "effect", ceiling: "3.17.0", candidates: ["3.17.0"] },
 			{ pkg: "@effect/cli", ceiling: "0.71.0", candidates: ["0.70.0", "0.71.0"] },
 		];
-		const result = makeResult({
-			resolved: new Map([
-				["effect", "3.17.0"],
-				["@effect/cli", "0.70.0"],
-			]),
-		});
-		const out = affectedReentry(members, result);
-		expect(out).toEqual([{ pkg: "@effect/cli", cappedVersion: "0.70.0" }]);
+		const cache = new Map<string, Record<string, string>>();
+		await run(runInterop(members, resolver, cache));
+		const afterFirst = fetched.length;
+		expect(afterFirst).toBeGreaterThan(0);
+		// A second round over the same members must hit the cache for every key.
+		await run(runInterop(members, resolver, cache));
+		expect(fetched.length).toBe(afterFirst);
 	});
 
-	it("flags a conflicted member even when its resolved version equals its ceiling", () => {
-		const members = [{ pkg: "@effect/cli", ceiling: "0.71.0", candidates: ["0.71.0"] }];
-		const result = makeResult({
-			resolved: new Map([["@effect/cli", "0.71.0"]]),
-			conflicts: [{ pkg: "@effect/cli", ceiling: "0.71.0", blockedBy: "effect@^3.18.0" }],
-		});
-		expect(affectedReentry(members, result)).toEqual([{ pkg: "@effect/cli", cappedVersion: "0.71.0" }]);
-	});
-
-	it("flags nothing when every member resolves at its ceiling without conflict", () => {
-		const members = [
-			{ pkg: "effect", ceiling: "3.17.0", candidates: ["3.17.0"] },
-			{ pkg: "@effect/cli", ceiling: "0.70.0", candidates: ["0.70.0"] },
-		];
-		const result = makeResult({
-			resolved: new Map([
-				["effect", "3.17.0"],
-				["@effect/cli", "0.70.0"],
-			]),
-		});
-		expect(affectedReentry(members, result)).toEqual([]);
+	it("fetches afresh each call when no shared cache is passed", async () => {
+		const fetched: string[] = [];
+		const resolver = {
+			peerDependencies: (pkg: string, v: string) => {
+				fetched.push(`${pkg}@${v}`);
+				return Effect.succeed({} as Record<string, string>);
+			},
+		};
+		const members = [{ pkg: "effect", ceiling: "3.17.0", candidates: ["3.17.0"] }];
+		await run(runInterop(members, resolver));
+		const afterFirst = fetched.length;
+		await run(runInterop(members, resolver));
+		expect(fetched.length).toBe(afterFirst * 2);
 	});
 });
 

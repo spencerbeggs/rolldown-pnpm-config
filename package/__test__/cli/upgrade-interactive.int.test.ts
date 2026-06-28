@@ -12,13 +12,7 @@ import {
 } from "../../src/cli/commands/upgrade.js";
 import { discoverCatalogEntries } from "../../src/cli/discover.js";
 import type { GroupMember } from "../../src/cli/interop.js";
-import {
-	affectedReentry,
-	buildInteropEdits,
-	capVersions,
-	reentryCandidates,
-	runInterop,
-} from "../../src/cli/interop.js";
+import { buildInteropEdits, capVersions, reentryCandidates, runInterop } from "../../src/cli/interop.js";
 import { buildWalkItems } from "../../src/cli/walk-plan.js";
 import type { Decision } from "../../src/cli/walk-types.js";
 import { makeStubResolver } from "./utils/stub-resolver.js";
@@ -206,16 +200,17 @@ export const plugin = PnpmConfigPlugin({ catalogs: { effect: { packages: {
 				}));
 
 				const result = yield* runInterop(members, interopResolver);
-				const affected = affectedReentry(members, result);
+				const reentry = reentryCandidates(members, result);
 				const interopEdits = buildInteropEdits(group, result);
 				// Non-interop decisions are empty here; interop edits carry the change.
 				yield* applyInteropAndDecisions(file, source, [], interopEdits);
-				return affected;
+				return reentry;
 			}),
 		);
 
-		// The dependent the user picked too high is flagged for re-entry.
-		expect(flagged).toEqual([{ pkg: "@effect/cli", cappedVersion: "0.70.0" }]);
+		// The dependent the user picked too high is flagged for re-entry (capped at
+		// its resolved version); its in-group anchor rides along uncapped.
+		expect(flagged).toContainEqual({ pkg: "@effect/cli", cap: "0.70.0" });
 
 		const out = readFileSync(file, "utf8");
 		expect(out).toContain('effect: { range: "^3.17.0"'); // anchor unchanged
