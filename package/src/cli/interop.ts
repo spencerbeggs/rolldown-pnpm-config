@@ -183,6 +183,8 @@ export interface InteropResult {
 	readonly resolved: ReadonlyMap<string, string>;
 	readonly peers: ReadonlyMap<string, string>;
 	readonly conflicts: readonly InteropConflict[];
+	/** Synchronous lookup into the fetch cache used during this resolution. @internal */
+	readonly peerDepsOf: PeerDepsOf;
 }
 
 /**
@@ -209,7 +211,7 @@ export function runInterop(
 		const peerDepsOf: PeerDepsOf = (pkg, v) => cache.get(key(pkg, v)) ?? {};
 		const { resolved, conflicts } = yield* resolveGroup(members, peerDepsOf);
 		const peers = yield* deriveFloors(resolved, peerDepsOf);
-		return { resolved, peers, conflicts };
+		return { resolved, peers, conflicts, peerDepsOf };
 	});
 }
 
@@ -230,6 +232,40 @@ export function affectedReentry(
 		if (conflicted.has(m.pkg) || r !== m.ceiling) out.push({ pkg: m.pkg, cappedVersion: r });
 	}
 	return out;
+}
+
+/**
+ * The members to re-prompt in the interactive re-entry: each downgraded or
+ * conflicted dependent (capped at its resolved version) PLUS the in-group peer
+ * targets those dependents depend on (uncapped, so the user can RAISE the anchor
+ * instead of accepting the downgrade). `cap` is the version to cap candidates at,
+ * or null for an uncapped anchor.
+ *
+ * @internal
+ */
+export function reentryCandidates(
+	members: readonly GroupMember[],
+	result: InteropResult,
+): { readonly pkg: string; readonly cap: string | null }[] {
+	const memberSet = new Set(members.map((m) => m.pkg));
+	const byPkg = new Map(members.map((m) => [m.pkg, m]));
+	const conflicted = new Set(result.conflicts.map((c) => c.pkg));
+	const out = new Map<string, string | null>();
+	// pass 1: downgraded/conflicted dependents, capped at their resolved version
+	for (const m of members) {
+		const r = result.resolved.get(m.pkg);
+		if (r === undefined) continue;
+		if (r !== m.ceiling || conflicted.has(m.pkg)) out.set(m.pkg, r);
+	}
+	// pass 2: each dependent's in-group peer targets, uncapped (raise affordance)
+	for (const pkg of [...out.keys()]) {
+		const m = byPkg.get(pkg);
+		if (!m) continue;
+		for (const dep of Object.keys(result.peerDepsOf(pkg, m.ceiling))) {
+			if (memberSet.has(dep) && !out.has(dep)) out.set(dep, null);
+		}
+	}
+	return [...out].map(([pkg, cap]) => ({ pkg, cap }));
 }
 
 /** True when an interop member's resolved version/peer differs from what's in source. @internal */

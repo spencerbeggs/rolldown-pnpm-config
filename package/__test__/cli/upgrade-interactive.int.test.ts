@@ -12,7 +12,13 @@ import {
 } from "../../src/cli/commands/upgrade.js";
 import { discoverCatalogEntries } from "../../src/cli/discover.js";
 import type { GroupMember } from "../../src/cli/interop.js";
-import { affectedReentry, buildInteropEdits, runInterop } from "../../src/cli/interop.js";
+import {
+	affectedReentry,
+	buildInteropEdits,
+	capVersions,
+	reentryCandidates,
+	runInterop,
+} from "../../src/cli/interop.js";
 import { buildWalkItems } from "../../src/cli/walk-plan.js";
 import type { Decision } from "../../src/cli/walk-types.js";
 import { makeStubResolver } from "./utils/stub-resolver.js";
@@ -264,6 +270,79 @@ export const plugin = PnpmConfigPlugin({ catalogs: {
 		expect(out).toContain('typescript: "^5.9.3"'); // non-interop in-range bump applied
 		expect(out).toContain('"@effect/cli": { range: "^0.70.0"'); // interop downgrade applied
 		expect(out).toContain('peer: "^3.16.0"');
+	});
+});
+
+describe("interop re-entry loop (headless)", () => {
+	// effect anchor + two dependents. cli@0.71 needs a higher effect than the user
+	// initially picks; platform is always satisfied.
+	const loopResolver = makeStubResolver({
+		peerDependencies: {
+			effect: { "3.17.0": {}, "3.18.0": {} },
+			"@effect/cli": { "0.70.0": { effect: "^3.16.0" }, "0.71.0": { effect: "^3.18.0" } },
+			"@effect/platform": { "0.90.0": { effect: "^3.17.0" } },
+		},
+	});
+
+	it("offers the anchor uncapped, and raising it lets the dependent stay high (loop terminates)", async () => {
+		await Effect.runPromise(
+			Effect.gen(function* () {
+				// Round 1: user picks effect low (3.17.0); cli@0.71 must drop to 0.70.
+				const members1: GroupMember[] = [
+					{ pkg: "effect", ceiling: "3.17.0", candidates: ["3.17.0", "3.18.0"] },
+					{ pkg: "@effect/cli", ceiling: "0.71.0", candidates: ["0.70.0", "0.71.0"] },
+					{ pkg: "@effect/platform", ceiling: "0.90.0", candidates: ["0.90.0"] },
+				];
+				const result1 = yield* runInterop(members1, loopResolver);
+				expect(result1.resolved.get("@effect/cli")).toBe("0.70.0"); // dependent downgraded
+				const reentry1 = reentryCandidates(members1, result1);
+				// The downgraded dependent is capped; its anchor is offered uncapped.
+				expect(reentry1).toContainEqual({ pkg: "@effect/cli", cap: "0.70.0" });
+				expect(reentry1).toContainEqual({ pkg: "effect", cap: null });
+
+				// Round 2: simulate the user RAISING the anchor to 3.18.0 and keeping cli high.
+				const members2: GroupMember[] = [
+					{ pkg: "effect", ceiling: "3.18.0", candidates: ["3.17.0", "3.18.0"] },
+					{ pkg: "@effect/cli", ceiling: "0.71.0", candidates: ["0.70.0", "0.71.0"] },
+					{ pkg: "@effect/platform", ceiling: "0.90.0", candidates: ["0.90.0"] },
+				];
+				const result2 = yield* runInterop(members2, loopResolver);
+				expect(result2.resolved.get("@effect/cli")).toBe("0.71.0"); // dependent stays high
+				// Nothing left to re-prompt → the loop would terminate.
+				expect(reentryCandidates(members2, result2)).toEqual([]);
+			}),
+		);
+	});
+
+	it("terminates a true conflict when no ceiling moves (remaining conflicts accepted)", async () => {
+		const conflictResolver = makeStubResolver({
+			peerDependencies: {
+				effect: { "3.16.0": {} },
+				"@effect/cli": { "0.71.0": { effect: "^3.18.0" } }, // unsatisfiable at effect 3.16
+			},
+		});
+		await Effect.runPromise(
+			Effect.gen(function* () {
+				const members: GroupMember[] = [
+					{ pkg: "effect", ceiling: "3.16.0", candidates: ["3.16.0"] },
+					{ pkg: "@effect/cli", ceiling: "0.71.0", candidates: ["0.71.0"] },
+				];
+				const result = yield* runInterop(members, conflictResolver);
+				expect(result.conflicts.map((c) => c.pkg)).toEqual(["@effect/cli"]);
+				const reentry = reentryCandidates(members, result);
+				// The conflicted dependent (capped at itself) plus its anchor (uncapped).
+				expect(reentry).toContainEqual({ pkg: "@effect/cli", cap: "0.71.0" });
+				expect(reentry).toContainEqual({ pkg: "effect", cap: null });
+				// Capping the dependent at its own version leaves it no downgrade choice.
+				const cliCapped = yield* capVersions(["0.71.0"], "0.71.0");
+				expect(cliCapped).toEqual(["0.71.0"]);
+				// Simulate the user re-picking identical ceilings: the loop's no-progress
+				// guard fires and the remaining conflict is accepted.
+				const before = new Map(members.map((m) => [m.pkg, m.ceiling]));
+				const changedCeiling = members.some((m) => before.get(m.pkg) !== m.ceiling);
+				expect(changedCeiling).toBe(false);
+			}),
+		);
 	});
 });
 

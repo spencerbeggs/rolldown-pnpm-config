@@ -7,7 +7,7 @@ import { detectPeerDrift } from "../drift.js";
 import { buildEdits } from "../edits.js";
 import { evaluatePluginConfig } from "../evaluate.js";
 import type { GroupMember, InteropConflict } from "../interop.js";
-import { affectedReentry, buildInteropEdits, capVersions, interopEntryChanged, runInterop } from "../interop.js";
+import { buildInteropEdits, capVersions, interopEntryChanged, reentryCandidates, runInterop } from "../interop.js";
 import { derivePeerRange } from "../peer-range.js";
 import { planEntry } from "../plan.js";
 import type { ReleaseAgeGate } from "../release-age.js";
@@ -39,7 +39,11 @@ interface Resolver {
 /** Combine the config-declared and pnpm-resolved release-age gates (strictest of both). @internal */
 export function computeGate(source: string, file: string, resolver: Resolver): Effect.Effect<ReleaseAgeGate, never> {
 	return Effect.gen(function* () {
-		const { config } = evaluatePluginConfig(source, file);
+		// Defensive: a thrown evaluation (malformed source/AST) degrades to a null
+		// config gate rather than escaping as an Effect defect.
+		const { config } = yield* Effect.try(() => evaluatePluginConfig(source, file)).pipe(
+			Effect.catchAll(() => Effect.succeed({ config: null })),
+		);
 		const cfg = readConfigReleaseAge(config);
 		const age = yield* resolver.pnpmConfig("minimumReleaseAge").pipe(Effect.catchAll(() => Effect.succeed(null)));
 		const exc = yield* resolver
@@ -76,6 +80,10 @@ export function resolveGatedVersions(
  * resolve + plan each, build edits for the latest-IN-RANGE candidate (and its
  * recomputed peer literal), and write the file. Never selects a major bump.
  *
+ * A package whose version list gates to empty (fetch failure / fully age-gated)
+ * is treated as a skip, except that a strategy entry can still resync or
+ * materialize its managed peer offline from the current range.
+ *
  * @internal
  */
 export function runUpgrade(opts: {
@@ -100,6 +108,27 @@ export function runUpgrade(opts: {
 			if (entry.strategy === "interop") continue;
 			const versions = versionsByPkg.get(entry.pkg) ?? [];
 			if (versions.length === 0) {
+				// No fetchable versions, but a strategy entry can still resync a drifted
+				// peer or materialize a missing one offline from the current range
+				// (parity with the interactive walk); otherwise the entry is a skip.
+				const at = entry.rangeSpan[1];
+				if (entry.peer && entry.strategy) {
+					const expected = yield* detectPeerDrift(entry).pipe(Effect.catchAll(() => Effect.succeed(null)));
+					if (expected !== null) {
+						edits.push({ span: entry.peer.span, text: JSON.stringify(expected) });
+						changedSpans.add(entry.rangeSpan[0]);
+						continue;
+					}
+				} else if (!entry.peer && entry.strategy) {
+					const peerRange = yield* derivePeerRange(entry.currentRange, entry.strategy).pipe(
+						Effect.catchAll(() => Effect.succeed(null)),
+					);
+					if (peerRange !== null) {
+						edits.push({ span: [at, at], text: `, peer: ${JSON.stringify(peerRange)}` });
+						changedSpans.add(entry.rangeSpan[0]);
+						continue;
+					}
+				}
 				skipped.push(`${entry.catalog}.${entry.pkg}`);
 				continue;
 			}
@@ -292,6 +321,9 @@ export const upgradeCommand = Command.make(
 			);
 			// --dry-run: preview what the non-interactive apply would do — in-range bumps,
 			// plus peer-only resyncs/materializations (rendered via a keep decision).
+			// NOTE: --dry-run does NOT preview interop reconciliation — it returns before
+			// the network peerDeps resolve, so interop members show as raw in-range bumps
+			// in this summary rather than their reconciled (possibly held-back) versions.
 			if (dryRun) {
 				const decisions = items
 					.map((i): Decision | null => {
@@ -340,21 +372,31 @@ export const upgradeCommand = Command.make(
 				const originalPick = new Map(members.map((m) => [m.pkg, m.ceiling]));
 				let result = yield* runInterop(members, resolver);
 				for (let round = 0; round < members.length + 1; round++) {
-					const affected = affectedReentry(members, result);
-					if (affected.length === 0) break;
-					const capEntries = group.filter((e) => affected.some((a) => a.pkg === e.pkg));
+					// Re-prompt the downgraded/conflicted dependents (capped at their
+					// resolved version) AND their in-group anchors (uncapped), so the user
+					// can RAISE an anchor instead of accepting the dependent's downgrade.
+					const reentry = reentryCandidates(members, result);
+					if (reentry.length === 0) break; // internally compatible — done
+					const capEntries = group.filter((e) => reentry.some((rc) => rc.pkg === e.pkg));
 					const cappedVersions = new Map<string, readonly string[]>();
-					for (const a of affected) {
-						cappedVersions.set(a.pkg, yield* capVersions(versions.get(a.pkg) ?? [], a.cappedVersion));
+					for (const rc of reentry) {
+						const all = versions.get(rc.pkg) ?? [];
+						cappedVersions.set(rc.pkg, rc.cap === null ? all : yield* capVersions(all, rc.cap));
 					}
 					const reItems = yield* buildWalkItems(capEntries, cappedVersions).pipe(
 						Effect.catchAll((err) => Effect.fail(new UpgradeError({ message: err.message }))),
 					);
 					const reDecisions = yield* runWalk(reItems);
+					const before = new Map(members.map((m) => [m.pkg, m.ceiling]));
 					members = members.map((m) => {
 						const rd = reDecisions.find((d) => d.item.entry.pkg === m.pkg);
 						return rd ? { ...m, ceiling: rd.chosen.version } : m;
 					});
+					// Terminate when no ceiling moved this round: a true conflict stays
+					// "affected" every pass, so re-prompting identically would spin to the
+					// bound. No change means the user accepted the remaining conflicts.
+					const changedCeiling = members.some((m) => before.get(m.pkg) !== m.ceiling);
+					if (!changedCeiling) break;
 					result = yield* runInterop(members, resolver);
 				}
 				interopEdits.push(...buildInteropEdits(group, result));
@@ -363,6 +405,8 @@ export const upgradeCommand = Command.make(
 					if (interopEntryChanged(e, result)) interopChanged++;
 					const version = result.resolved.get(e.pkg);
 					const original = originalPick.get(e.pkg);
+					// `version === undefined` is defensive: runInterop always resolves every
+					// member, so a missing entry here would indicate an internal mismatch.
 					if (version === undefined || original === undefined || version === original) continue;
 					adjustments.push({
 						catalog: e.catalog,

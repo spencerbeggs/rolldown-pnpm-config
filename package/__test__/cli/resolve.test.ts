@@ -53,7 +53,7 @@ describe("parseVersions", () => {
 });
 
 describe("parseTimes", () => {
-	it("parses the npm time object, ignoring created/modified keys", async () => {
+	it("parses the npm time object, preserving all keys including created/modified", async () => {
 		const out = await Effect.runPromise(
 			parseTimes("p", JSON.stringify({ created: "x", modified: "y", "1.0.0": "2025-01-01T00:00:00Z" })),
 		);
