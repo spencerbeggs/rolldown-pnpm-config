@@ -374,7 +374,10 @@ export const upgradeCommand = Command.make(
 					candidates: versions.get(e.pkg) ?? [],
 				}));
 				const originalPick = new Map(members.map((m) => [m.pkg, m.ceiling]));
-				let result = yield* runInterop(members, resolver);
+				// One peerDeps cache shared across every re-entry round: a (pkg, version)
+				// lookup is immutable, so later rounds reuse versions earlier rounds fetched.
+				const peerCache = new Map<string, Record<string, string>>();
+				let result = yield* runInterop(members, resolver, peerCache);
 				for (let round = 0; round < members.length + 1; round++) {
 					// Re-prompt the downgraded/conflicted dependents (capped at their
 					// resolved version) AND their in-group anchors (uncapped), so the user
@@ -401,7 +404,7 @@ export const upgradeCommand = Command.make(
 					// bound. No change means the user accepted the remaining conflicts.
 					const changedCeiling = members.some((m) => before.get(m.pkg) !== m.ceiling);
 					if (!changedCeiling) break;
-					result = yield* runInterop(members, resolver);
+					result = yield* runInterop(members, resolver, peerCache);
 				}
 				interopEdits.push(...buildInteropEdits(group, result));
 				allConflicts.push(...result.conflicts);
