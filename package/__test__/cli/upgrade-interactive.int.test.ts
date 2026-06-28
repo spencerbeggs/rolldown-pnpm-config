@@ -3,8 +3,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Effect, Option } from "effect";
 import { describe, expect, it } from "vitest";
-import { applyDecisions, resolveGatedVersions, resolveTargetFile, runUpgrade } from "../../src/cli/commands/upgrade.js";
+import {
+	applyDecisions,
+	applyInteropAndDecisions,
+	resolveGatedVersions,
+	resolveTargetFile,
+	runUpgrade,
+} from "../../src/cli/commands/upgrade.js";
 import { discoverCatalogEntries } from "../../src/cli/discover.js";
+import type { GroupMember } from "../../src/cli/interop.js";
+import { affectedReentry, buildInteropEdits, runInterop } from "../../src/cli/interop.js";
 import { buildWalkItems } from "../../src/cli/walk-plan.js";
 import type { Decision } from "../../src/cli/walk-types.js";
 import { makeStubResolver } from "./utils/stub-resolver.js";
@@ -147,6 +155,115 @@ export const plugin = PnpmConfigPlugin({
 		expect(out).toContain('range: "^5.9.0"'); // range unchanged
 		expect(out).toContain('peer: "^5.9.0"'); // peer materialized (lock-minor of 5.9.0)
 		expect(result.updated).toBe(1);
+	});
+});
+
+describe("interactive interop apply (headless)", () => {
+	const INTEROP_SOURCE = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
+export const plugin = PnpmConfigPlugin({ catalogs: { effect: { packages: {
+ effect: { range: "^3.17.0", strategy: "interop" },
+ "@effect/cli": { range: "^0.71.0", strategy: "interop" },
+} } } });
+`;
+
+	it("holds back a dependent the user picked above the group, then materializes caret peers", async () => {
+		const file = writeTmpConfig(INTEROP_SOURCE);
+		const interopResolver = makeStubResolver({
+			versions: { effect: ["3.17.0"], "@effect/cli": ["0.70.0", "0.71.0"] },
+			peerDependencies: {
+				effect: { "3.17.0": {} },
+				// cli@0.71 needs effect ^3.18 (unavailable) → must drop to 0.70, which needs effect ^3.16
+				"@effect/cli": { "0.70.0": { effect: "^3.16.0" }, "0.71.0": { effect: "^3.18.0" } },
+			},
+		});
+
+		const flagged = await Effect.runPromise(
+			Effect.gen(function* () {
+				const source = readFileSync(file, "utf8");
+				const { entries } = discoverCatalogEntries(source, file);
+				const versions = yield* resolveGatedVersions(entries, interopResolver, ZERO_GATE, Date.now());
+				const items = yield* buildWalkItems(entries, versions);
+
+				// Simulate the user's walk: keep each interop entry at its current
+				// (newest) range — effect@3.17.0 and @effect/cli@0.71.0.
+				const decisions: Decision[] = items.map((i) => ({
+					item: i,
+					chosen: i.candidates.find((c) => c.kind === "in-range") ?? i.candidates.find((c) => c.kind === "keep")!,
+				}));
+
+				// Build the group exactly as the command does: ceiling = the user's pick.
+				const group = entries.filter((e) => e.strategy === "interop");
+				const members: GroupMember[] = group.map((e) => ({
+					pkg: e.pkg,
+					ceiling: decisions.find((d) => d.item.entry.pkg === e.pkg)!.chosen.version,
+					candidates: versions.get(e.pkg) ?? [],
+				}));
+
+				const result = yield* runInterop(members, interopResolver);
+				const affected = affectedReentry(members, result);
+				const interopEdits = buildInteropEdits(group, result);
+				// Non-interop decisions are empty here; interop edits carry the change.
+				yield* applyInteropAndDecisions(file, source, [], interopEdits);
+				return affected;
+			}),
+		);
+
+		// The dependent the user picked too high is flagged for re-entry.
+		expect(flagged).toEqual([{ pkg: "@effect/cli", cappedVersion: "0.70.0" }]);
+
+		const out = readFileSync(file, "utf8");
+		expect(out).toContain('effect: { range: "^3.17.0"'); // anchor unchanged
+		expect(out).toContain('"@effect/cli": { range: "^0.70.0"'); // dependent held back
+		expect(out).toContain('peer: "^3.16.0"'); // effect peer floor from cli@0.70
+		expect(out).toContain('peer: "^0.70.0"'); // cli peer floor (its own resolved version)
+	});
+
+	it("combines non-interop decision edits with interop edits without overlap", async () => {
+		const MIXED_SOURCE = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
+export const plugin = PnpmConfigPlugin({ catalogs: {
+ silk: { packages: { typescript: "^5.9.0" } },
+ effect: { packages: {
+  effect: { range: "^3.17.0", strategy: "interop" },
+  "@effect/cli": { range: "^0.71.0", strategy: "interop" },
+ } },
+} });
+`;
+		const file = writeTmpConfig(MIXED_SOURCE);
+		const mixedResolver = makeStubResolver({
+			versions: { typescript: ["5.9.0", "5.9.3"], effect: ["3.17.0"], "@effect/cli": ["0.70.0", "0.71.0"] },
+			peerDependencies: {
+				effect: { "3.17.0": {} },
+				"@effect/cli": { "0.70.0": { effect: "^3.16.0" }, "0.71.0": { effect: "^3.18.0" } },
+			},
+		});
+
+		await Effect.runPromise(
+			Effect.gen(function* () {
+				const source = readFileSync(file, "utf8");
+				const { entries } = discoverCatalogEntries(source, file);
+				const versions = yield* resolveGatedVersions(entries, mixedResolver, ZERO_GATE, Date.now());
+				const items = yield* buildWalkItems(entries, versions);
+				const decisions: Decision[] = items.map((i) => ({
+					item: i,
+					chosen: i.candidates.find((c) => c.kind === "in-range") ?? i.candidates.find((c) => c.kind === "keep")!,
+				}));
+				const nonInteropDecisions = decisions.filter((d) => d.item.entry.strategy !== "interop");
+				const group = entries.filter((e) => e.strategy === "interop");
+				const members: GroupMember[] = group.map((e) => ({
+					pkg: e.pkg,
+					ceiling: decisions.find((d) => d.item.entry.pkg === e.pkg)!.chosen.version,
+					candidates: versions.get(e.pkg) ?? [],
+				}));
+				const result = yield* runInterop(members, mixedResolver);
+				const interopEdits = buildInteropEdits(group, result);
+				yield* applyInteropAndDecisions(file, source, nonInteropDecisions, interopEdits);
+			}),
+		);
+
+		const out = readFileSync(file, "utf8");
+		expect(out).toContain('typescript: "^5.9.3"'); // non-interop in-range bump applied
+		expect(out).toContain('"@effect/cli": { range: "^0.70.0"'); // interop downgrade applied
+		expect(out).toContain('peer: "^3.16.0"');
 	});
 });
 

@@ -7,7 +7,7 @@ import { detectPeerDrift } from "../drift.js";
 import { buildEdits } from "../edits.js";
 import { evaluatePluginConfig } from "../evaluate.js";
 import type { GroupMember, InteropConflict } from "../interop.js";
-import { runInterop } from "../interop.js";
+import { affectedReentry, buildInteropEdits, capVersions, interopEntryChanged, runInterop } from "../interop.js";
 import { derivePeerRange } from "../peer-range.js";
 import { planEntry } from "../plan.js";
 import type { ReleaseAgeGate } from "../release-age.js";
@@ -15,6 +15,7 @@ import { combineReleaseAge, filterByReleaseAge, parsePnpmGate, readConfigRelease
 import { RegistryResolver, RegistryResolverLive } from "../resolve.js";
 import { applyEdits } from "../rewrite.js";
 import { filterEntriesByCatalog, findConfigFiles, pickConfigCandidate } from "../select-file.js";
+import type { InteropAdjustment } from "../summary.js";
 import { renderSummary } from "../summary.js";
 import type { CatalogEntry, Edit } from "../types.js";
 import { runWalk } from "../ui/run-walk.js";
@@ -153,27 +154,9 @@ export function runUpgrade(opts: {
 				members.push({ pkg: e.pkg, ceiling, candidates: versions });
 			}
 			const result = yield* runInterop(members, opts.resolver);
+			edits.push(...buildInteropEdits(group, result));
+			for (const e of group) if (interopEntryChanged(e, result)) changedSpans.add(e.rangeSpan[0]);
 			conflicts.push(...result.conflicts);
-			for (const e of group) {
-				const version = result.resolved.get(e.pkg);
-				const peer = result.peers.get(e.pkg);
-				if (version === undefined) continue;
-				const newRange = `${e.operator}${version}`;
-				if (newRange !== e.currentRange) {
-					edits.push({ span: e.rangeSpan, text: JSON.stringify(newRange) });
-					changedSpans.add(e.rangeSpan[0]);
-				}
-				const at = e.rangeSpan[1];
-				if (peer !== undefined) {
-					if (e.peer && peer !== e.peer.value) {
-						edits.push({ span: e.peer.span, text: JSON.stringify(peer) });
-						changedSpans.add(e.rangeSpan[0]);
-					} else if (!e.peer) {
-						edits.push({ span: [at, at], text: `, peer: ${JSON.stringify(peer)}` });
-						changedSpans.add(e.rangeSpan[0]);
-					}
-				}
-			}
 		}
 
 		if (edits.length > 0) {
@@ -215,6 +198,32 @@ export function applyDecisions(
 				(d.item.entry.peer === undefined && d.item.materializePeer !== null),
 		).length;
 		return changedCount;
+	});
+}
+
+/**
+ * Apply the interactive result when interop members are present: the
+ * non-interop decisions go through `buildEdits`, the interop members through
+ * their separately-computed span edits. Interop members are EXCLUDED from
+ * `buildEdits` so the two never emit a range edit over the same span (which
+ * `applyEdits` would reject as overlapping).
+ *
+ * @internal
+ */
+export function applyInteropAndDecisions(
+	file: string,
+	source: string,
+	nonInteropDecisions: readonly Decision[],
+	interopEdits: readonly Edit[],
+): Effect.Effect<void, UpgradeError> {
+	return Effect.gen(function* () {
+		const edits = [...buildEdits(nonInteropDecisions), ...interopEdits];
+		if (edits.length === 0) return;
+		const next = applyEdits(source, edits);
+		yield* Effect.try({
+			try: () => writeFileSync(file, next, "utf8"),
+			catch: () => new UpgradeError({ message: `Cannot write ${file}` }),
+		});
 	});
 }
 
@@ -283,22 +292,98 @@ export const upgradeCommand = Command.make(
 			);
 			// --dry-run: preview what the non-interactive apply would do — in-range bumps,
 			// plus peer-only resyncs/materializations (rendered via a keep decision).
-			const decisions: readonly Decision[] = dryRun
-				? items
-						.map((i): Decision | null => {
-							const inRange = i.candidates.find((c) => c.kind === "in-range");
-							if (inRange) return { item: i, chosen: inRange };
-							if (i.driftPeer !== null || i.materializePeer !== null) {
-								const keep = i.candidates.find((c) => c.kind === "keep");
-								if (keep) return { item: i, chosen: keep };
-							}
-							return null;
-						})
-						.filter((d): d is Decision => d !== null)
-				: yield* runWalk(items);
-			yield* Effect.sync(() => process.stdout.write(`${renderSummary(decisions)}\n`));
-			if (dryRun) return;
-			const changed = yield* applyDecisions(file, source, decisions);
-			yield* Effect.sync(() => process.stdout.write(`Applied ${changed} change(s).\n`));
+			if (dryRun) {
+				const decisions = items
+					.map((i): Decision | null => {
+						const inRange = i.candidates.find((c) => c.kind === "in-range");
+						if (inRange) return { item: i, chosen: inRange };
+						if (i.driftPeer !== null || i.materializePeer !== null) {
+							const keep = i.candidates.find((c) => c.kind === "keep");
+							if (keep) return { item: i, chosen: keep };
+						}
+						return null;
+					})
+					.filter((d): d is Decision => d !== null);
+				yield* Effect.sync(() => process.stdout.write(`${renderSummary(decisions)}\n`));
+				return;
+			}
+			const decisions = yield* runWalk(items);
+
+			// Reconcile interop catalog groups against the user's picks. A member
+			// pulled below its pick re-enters the walk (bounded) until the group is
+			// stable. Interop edits are built separately and EXCLUDED from buildEdits
+			// so the two never emit a range edit over the same span.
+			const interopByCatalog = new Map<string, CatalogEntry[]>();
+			for (const e of entries) {
+				if (e.strategy !== "interop") continue;
+				const list = interopByCatalog.get(e.catalog) ?? [];
+				list.push(e);
+				interopByCatalog.set(e.catalog, list);
+			}
+			const nonInteropDecisions = decisions.filter((d) => d.item.entry.strategy !== "interop");
+			const interopEdits: Edit[] = [];
+			const adjustments: InteropAdjustment[] = [];
+			const allConflicts: InteropConflict[] = [];
+			let interopChanged = 0;
+			for (const [, group] of interopByCatalog) {
+				const pickOf = (pkg: string): string => {
+					const d = decisions.find((dd) => dd.item.entry.pkg === pkg);
+					if (d) return d.chosen.version;
+					const ge = group.find((g) => g.pkg === pkg);
+					return ge ? ge.currentRange.replace(/^[\^~]/, "") : "";
+				};
+				let members: GroupMember[] = group.map((e) => ({
+					pkg: e.pkg,
+					ceiling: pickOf(e.pkg),
+					candidates: versions.get(e.pkg) ?? [],
+				}));
+				const originalPick = new Map(members.map((m) => [m.pkg, m.ceiling]));
+				let result = yield* runInterop(members, resolver);
+				for (let round = 0; round < members.length + 1; round++) {
+					const affected = affectedReentry(members, result);
+					if (affected.length === 0) break;
+					const capEntries = group.filter((e) => affected.some((a) => a.pkg === e.pkg));
+					const cappedVersions = new Map<string, readonly string[]>();
+					for (const a of affected) {
+						cappedVersions.set(a.pkg, yield* capVersions(versions.get(a.pkg) ?? [], a.cappedVersion));
+					}
+					const reItems = yield* buildWalkItems(capEntries, cappedVersions).pipe(
+						Effect.catchAll((err) => Effect.fail(new UpgradeError({ message: err.message }))),
+					);
+					const reDecisions = yield* runWalk(reItems);
+					members = members.map((m) => {
+						const rd = reDecisions.find((d) => d.item.entry.pkg === m.pkg);
+						return rd ? { ...m, ceiling: rd.chosen.version } : m;
+					});
+					result = yield* runInterop(members, resolver);
+				}
+				interopEdits.push(...buildInteropEdits(group, result));
+				allConflicts.push(...result.conflicts);
+				for (const e of group) {
+					if (interopEntryChanged(e, result)) interopChanged++;
+					const version = result.resolved.get(e.pkg);
+					const original = originalPick.get(e.pkg);
+					if (version === undefined || original === undefined || version === original) continue;
+					adjustments.push({
+						catalog: e.catalog,
+						pkg: e.pkg,
+						from: `${e.operator}${original}`,
+						to: `${e.operator}${version}`,
+						peer: result.peers.get(e.pkg) ?? `^${version}`,
+					});
+				}
+			}
+
+			yield* Effect.sync(() =>
+				process.stdout.write(`${renderSummary(decisions, { adjustments, conflicts: allConflicts })}\n`),
+			);
+			yield* applyInteropAndDecisions(file, source, nonInteropDecisions, interopEdits);
+			const nonInteropChanged = nonInteropDecisions.filter(
+				(d) =>
+					d.chosen.kind !== "keep" ||
+					(d.item.entry.peer !== undefined && d.item.driftPeer !== null) ||
+					(d.item.entry.peer === undefined && d.item.materializePeer !== null),
+			).length;
+			yield* Effect.sync(() => process.stdout.write(`Applied ${nonInteropChanged + interopChanged} change(s).\n`));
 		}).pipe(Effect.provide(RegistryResolverLive), Effect.provide(NodeContext.layer)),
 ).pipe(Command.withDescription("Upgrade catalog versions in a config file"));

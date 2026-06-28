@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { Range, SemVer } from "semver-effect";
+import type { CatalogEntry, Edit } from "./types.js";
 
 /** Synchronous lookup of already-fetched peerDependencies for a (pkg, version). @internal */
 export type PeerDepsOf = (pkg: string, version: string) => Record<string, string>;
@@ -209,5 +210,79 @@ export function runInterop(
 		const { resolved, conflicts } = yield* resolveGroup(members, peerDepsOf);
 		const peers = yield* deriveFloors(resolved, peerDepsOf);
 		return { resolved, peers, conflicts };
+	});
+}
+
+/**
+ * Members resolved below their ceiling, or in conflict — the set to re-prompt.
+ *
+ * @internal
+ */
+export function affectedReentry(
+	members: readonly GroupMember[],
+	result: InteropResult,
+): { pkg: string; cappedVersion: string }[] {
+	const conflicted = new Set(result.conflicts.map((c) => c.pkg));
+	const out: { pkg: string; cappedVersion: string }[] = [];
+	for (const m of members) {
+		const r = result.resolved.get(m.pkg);
+		if (r === undefined) continue;
+		if (conflicted.has(m.pkg) || r !== m.ceiling) out.push({ pkg: m.pkg, cappedVersion: r });
+	}
+	return out;
+}
+
+/** True when an interop member's resolved version/peer differs from what's in source. @internal */
+export function interopEntryChanged(e: CatalogEntry, result: InteropResult): boolean {
+	const version = result.resolved.get(e.pkg);
+	if (version === undefined) return false;
+	if (`${e.operator}${version}` !== e.currentRange) return true;
+	const peer = result.peers.get(e.pkg);
+	if (peer === undefined) return false;
+	if (e.peer) return peer !== e.peer.value;
+	return true; // no peer literal yet -> will be inserted
+}
+
+/**
+ * Build the span edits for one interop catalog group from its resolution: a
+ * range edit when the resolved version differs, and a peer edit that rewrites an
+ * existing `peer` literal or inserts `, peer: "^..."` at the range-span end.
+ *
+ * @internal
+ */
+export function buildInteropEdits(entries: readonly CatalogEntry[], result: InteropResult): Edit[] {
+	const edits: Edit[] = [];
+	for (const e of entries) {
+		const version = result.resolved.get(e.pkg);
+		if (version === undefined) continue;
+		const peer = result.peers.get(e.pkg);
+		const newRange = `${e.operator}${version}`;
+		if (newRange !== e.currentRange) edits.push({ span: e.rangeSpan, text: JSON.stringify(newRange) });
+		const at = e.rangeSpan[1];
+		if (peer !== undefined) {
+			if (e.peer && peer !== e.peer.value) edits.push({ span: e.peer.span, text: JSON.stringify(peer) });
+			else if (!e.peer) edits.push({ span: [at, at], text: `, peer: ${JSON.stringify(peer)}` });
+		}
+	}
+	return edits;
+}
+
+/**
+ * Keep only the versions less than or equal to `max` (SemVer comparison). Used
+ * to cap the candidate list of a re-prompted interop member. An unparseable
+ * `max` leaves the list unchanged.
+ *
+ * @internal
+ */
+export function capVersions(list: readonly string[], max: string): Effect.Effect<string[], never> {
+	return Effect.gen(function* () {
+		const mv = yield* SemVer.parse(max).pipe(Effect.catchAll(() => Effect.succeed(null)));
+		if (!mv) return [...list];
+		const out: string[] = [];
+		for (const v of list) {
+			const sv = yield* SemVer.parse(v).pipe(Effect.catchAll(() => Effect.succeed(null)));
+			if (sv && sv.compare(mv) <= 0) out.push(v);
+		}
+		return out;
 	});
 }
