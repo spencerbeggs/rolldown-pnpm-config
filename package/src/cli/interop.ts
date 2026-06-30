@@ -2,8 +2,21 @@ import { Effect } from "effect";
 import { Range, SemVer } from "semver-effect";
 import type { CatalogEntry, Edit } from "./types.js";
 
+/** Maximum number of concurrent peerDependencies fetches inside runInterop. @internal */
+export const INTEROP_PEER_CONCURRENCY = 8;
+
 /** Synchronous lookup of already-fetched peerDependencies for a (pkg, version). @internal */
 export type PeerDepsOf = (pkg: string, version: string) => Record<string, string>;
+
+/**
+ * Effectful, memoized peer-deps lookup used inside resolveGroup / deriveFloors /
+ * violations. On a cache hit the Effect returns immediately (synchronous-speed);
+ * on a miss it fetches from the resolver, stores into the shared cache, and
+ * returns. Callers never double-fetch the same key.
+ *
+ * @internal
+ */
+export type FetchPeer = (pkg: string, version: string) => Effect.Effect<Record<string, string>, never>;
 
 /** Strip a range operator to its bare version digits (e.g. `^3.17.0` → `3.17.0`). */
 function floorOf(range: string): string {
@@ -19,12 +32,12 @@ function floorOf(range: string): string {
  */
 export function deriveFloors(
 	resolved: ReadonlyMap<string, string>,
-	peerDepsOf: PeerDepsOf,
+	fetchPeer: FetchPeer,
 ): Effect.Effect<Map<string, string>, never> {
 	return Effect.gen(function* () {
 		const floors = new Map<string, string[]>();
 		for (const [pkg, version] of resolved) {
-			const peers = peerDepsOf(pkg, version);
+			const peers = yield* fetchPeer(pkg, version);
 			for (const [dep, range] of Object.entries(peers)) {
 				if (!resolved.has(dep)) continue; // in-group filter
 				const list = floors.get(dep) ?? [];
@@ -78,17 +91,21 @@ function satisfies(version: string, range: string): Effect.Effect<boolean, never
 	});
 }
 
-/** In-group peers of (pkg@version) that the current resolution violates, as "dep@range" strings. */
+/**
+ * In-group peers of (pkg@version) that the current resolution violates, as
+ * "dep@range" strings. Uses the Effectful `fetchPeer` so it fetches on-demand
+ * only when a candidate version's peer-deps have not yet been cached.
+ */
 function violations(
 	pkg: string,
 	version: string,
 	resolved: ReadonlyMap<string, string>,
 	memberSet: ReadonlySet<string>,
-	peerDepsOf: PeerDepsOf,
+	fetchPeer: FetchPeer,
 ): Effect.Effect<string[], never> {
 	return Effect.gen(function* () {
 		const out: string[] = [];
-		for (const [dep, range] of Object.entries(peerDepsOf(pkg, version))) {
+		for (const [dep, range] of Object.entries(yield* fetchPeer(pkg, version))) {
 			if (!memberSet.has(dep)) continue;
 			const rv = resolved.get(dep);
 			if (rv === undefined) continue;
@@ -107,7 +124,7 @@ function violations(
  */
 export function resolveGroup(
 	members: readonly GroupMember[],
-	peerDepsOf: PeerDepsOf,
+	fetchPeer: FetchPeer,
 ): Effect.Effect<GroupResolution, never> {
 	return Effect.gen(function* () {
 		const memberSet = new Set(members.map((m) => m.pkg));
@@ -126,7 +143,7 @@ export function resolveGroup(
 			let changed = false;
 			for (const m of members) {
 				const cur = resolved.get(m.pkg) as string;
-				if ((yield* violations(m.pkg, cur, resolved, memberSet, peerDepsOf)).length === 0) continue;
+				if ((yield* violations(m.pkg, cur, resolved, memberSet, fetchPeer)).length === 0) continue;
 				// search candidates ≤ ceiling, highest first, for a satisfying version
 				const ceiling = ceilingOf.get(m.pkg) as string;
 				const eligible: string[] = [];
@@ -134,7 +151,7 @@ export function resolveGroup(
 				const sorted = yield* sortDesc(eligible);
 				let pick: string | null = null;
 				for (const c of sorted) {
-					if ((yield* violations(m.pkg, c, resolved, memberSet, peerDepsOf)).length === 0) {
+					if ((yield* violations(m.pkg, c, resolved, memberSet, fetchPeer)).length === 0) {
 						pick = c;
 						break;
 					}
@@ -150,7 +167,7 @@ export function resolveGroup(
 		const conflicts: InteropConflict[] = [];
 		for (const m of members) {
 			const cur = resolved.get(m.pkg) as string;
-			const v = yield* violations(m.pkg, cur, resolved, memberSet, peerDepsOf);
+			const v = yield* violations(m.pkg, cur, resolved, memberSet, fetchPeer);
 			if (v.length > 0) {
 				conflicts.push({ pkg: m.pkg, ceiling: m.ceiling, blockedBy: v.join(", ") });
 			}
@@ -192,6 +209,14 @@ export interface InteropResult {
  * then run the pure resolve + floor derivation. Failures degrade to empty
  * peerDeps (the member resolves at its ceiling).
  *
+ * Phase 1 now prefetches only the ceiling version of each member (one
+ * `pnpm view` call per member) instead of every candidate version ≤ ceiling.
+ * `resolveGroup` / `violations` fetch lower versions on-demand via the shared
+ * `fetchPeer` Effectful memoized lookup — they are only consulted when a
+ * downgrade search probes them, which for real-world interop groups (where most
+ * members are compatible at their ceilings) reduces the total call count from
+ * O(N × |candidates|) to O(N + |downgraded members| × depth).
+ *
  * A `(pkg, version)` peerDeps lookup is immutable, so the optional `cache` may
  * be shared across the interactive re-entry rounds: each round only fetches the
  * keys a prior round did not, sparing the sequential `pnpm view` calls for
@@ -206,22 +231,52 @@ export function runInterop(
 ): Effect.Effect<InteropResult, never> {
 	return Effect.gen(function* () {
 		const key = (pkg: string, v: string) => `${pkg}@${v}`;
+
+		// Effectful memoized fetcher: cache hit → return immediately; cache miss →
+		// call resolver (degrading to {} on failure), store result, return.
+		// Callers (resolveGroup, violations, deriveFloors) yield* this so lower
+		// versions are fetched on-demand, not pre-fetched in bulk.
+		const fetchPeer: FetchPeer = (pkg, v) => {
+			const k = key(pkg, v);
+			const cached = cache.get(k);
+			if (cached !== undefined) return Effect.succeed(cached);
+			return resolver
+				.peerDependencies(pkg, v)
+				.pipe(Effect.catchAll(() => Effect.succeed({} as Record<string, string>)))
+				.pipe(
+					Effect.map((deps) => {
+						cache.set(k, deps);
+						return deps;
+					}),
+				);
+		};
+
+		// Phase 1 (concurrent): prefetch only the ceiling version of each member.
+		// This warms the cache for the most-common case (ceiling is compatible with
+		// all peers) so the first violation check in resolveGroup is a fast cache
+		// hit. Duplicates and prior-round cache hits are skipped.
+		const seen = new Set<string>();
+		const toFetch: Array<readonly [string, string]> = [];
 		for (const m of members) {
-			// Only versions ≤ ceiling are ever consulted downstream (resolveGroup's
-			// eligible search, deriveFloors' resolved reads, reentryCandidates' ceiling
-			// read), so prefetching candidates above the ceiling is wasted `pnpm view`
-			// work — cap the set to the ceiling plus the in-range candidates.
-			const wanted = new Set<string>([m.ceiling, ...(yield* capVersions(m.candidates, m.ceiling))]);
-			for (const v of wanted) {
-				const k = key(m.pkg, v);
-				if (cache.has(k)) continue; // reuse a peerDeps entry fetched in a prior round
-				const deps = yield* resolver.peerDependencies(m.pkg, v).pipe(Effect.catchAll(() => Effect.succeed({})));
-				cache.set(k, deps as Record<string, string>);
-			}
+			const k = key(m.pkg, m.ceiling);
+			if (seen.has(k) || cache.has(k)) continue;
+			seen.add(k);
+			toFetch.push([m.pkg, m.ceiling] as const);
 		}
+		yield* Effect.forEach(toFetch, ([pkg, v]) => fetchPeer(pkg, v), { concurrency: INTEROP_PEER_CONCURRENCY });
+
+		// Phase 2: resolve cross-peer constraints. Lower versions are fetched
+		// on-demand inside violations() when a downgrade search probes them.
+		const { resolved, conflicts } = yield* resolveGroup(members, fetchPeer);
+
+		// Phase 3: derive peer floors from the final resolved set. All resolved
+		// versions are already in the cache (ceilings from Phase 1, downgraded
+		// versions from Phase 2's on-demand fetches).
+		const peers = yield* deriveFloors(resolved, fetchPeer);
+
+		// Expose a synchronous cache reader for reentryCandidates and the command
+		// layer, which only ever read ceiling versions (always in cache after Phase 1).
 		const peerDepsOf: PeerDepsOf = (pkg, v) => cache.get(key(pkg, v)) ?? {};
-		const { resolved, conflicts } = yield* resolveGroup(members, peerDepsOf);
-		const peers = yield* deriveFloors(resolved, peerDepsOf);
 		return { resolved, peers, conflicts, peerDepsOf };
 	});
 }

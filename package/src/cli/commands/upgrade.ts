@@ -46,38 +46,88 @@ export function computeGate(source: string, file: string, resolver: Resolver): E
 			Effect.catchAll(() => Effect.succeed({ config: null })),
 		);
 		const cfg = readConfigReleaseAge(config);
-		const age = yield* resolver.pnpmConfig("minimumReleaseAge").pipe(Effect.catchAll(() => Effect.succeed(null)));
-		const exc = yield* resolver
-			.pnpmConfig("minimumReleaseAgeExclude")
-			.pipe(Effect.catchAll(() => Effect.succeed(null)));
+		// The two pnpmConfig reads are independent — fetch them concurrently.
+		const [age, exc] = yield* Effect.all(
+			[
+				resolver.pnpmConfig("minimumReleaseAge").pipe(Effect.catchAll(() => Effect.succeed(null))),
+				resolver.pnpmConfig("minimumReleaseAgeExclude").pipe(Effect.catchAll(() => Effect.succeed(null))),
+			],
+			{ concurrency: "unbounded" },
+		);
 		return combineReleaseAge(cfg, parsePnpmGate(age, exc));
 	});
 }
 
-/** Fetch and age-gate the version list for each unique package. @internal */
+/** Maximum number of per-package version+times fetches to issue concurrently. @internal */
+export const RESOLVE_CONCURRENCY = 12;
+
+/**
+ * Fetch and age-gate the version list for each unique package.
+ *
+ * @param onProgress - Optional callback invoked after each package resolves with
+ *   `(resolved, total)`. Useful for emitting CLI progress feedback. Called with
+ *   `(0, total)` before any work starts so callers can emit the initial banner.
+ *
+ * @internal
+ */
 export function resolveGatedVersions(
 	entries: readonly CatalogEntry[],
 	resolver: Resolver,
 	gate: ReleaseAgeGate,
 	now: number,
+	onProgress?: (resolved: number, total: number) => void,
 ): Effect.Effect<Map<string, string[]>, never> {
-	return Effect.gen(function* () {
-		const out = new Map<string, string[]>();
-		for (const pkg of new Set(entries.map((e) => e.pkg))) {
-			const vr = yield* resolver.versions(pkg).pipe(Effect.either);
-			if (vr._tag === "Left") {
-				out.set(pkg, []);
-				continue;
-			}
-			// Fail-closed: if the publish-times fetch fails, an empty map makes
-			// filterByReleaseAge drop every version (all timestamps unknown). This is a
-			// safe skip, consistent with the version-fetch Left→[] path above, honoring
-			// the contract of never proposing a version younger than the gate.
-			const times = yield* resolver.times(pkg).pipe(Effect.catchAll(() => Effect.succeed({})));
-			out.set(pkg, filterByReleaseAge(vr.right, times, gate, pkg, now));
-		}
-		return out;
-	});
+	const uniquePkgs = [...new Set(entries.map((e) => e.pkg))];
+	const total = uniquePkgs.length;
+	// Counter is captured in the closure; only one JS thread increments it so it
+	// is safe without an atomic wrapper even under concurrent fibers.
+	let resolved = 0;
+	onProgress?.(0, total);
+	return Effect.forEach(
+		uniquePkgs,
+		(pkg) =>
+			Effect.gen(function* () {
+				const vr = yield* resolver.versions(pkg).pipe(Effect.either);
+				if (vr._tag === "Left") {
+					onProgress?.(++resolved, total);
+					return [pkg, [] as string[]] as const;
+				}
+				// Fail-closed: if the publish-times fetch fails, an empty map makes
+				// filterByReleaseAge drop every version (all timestamps unknown). This is a
+				// safe skip, consistent with the version-fetch Left→[] path above, honoring
+				// the contract of never proposing a version younger than the gate.
+				// Skip times fetch entirely when no age gate is active — filterByReleaseAge
+				// returns all versions unchanged when ageMinutes === 0, so the fetch is
+				// wasted work.
+				const times =
+					gate.ageMinutes > 0
+						? yield* resolver.times(pkg).pipe(Effect.catchAll(() => Effect.succeed({} as Record<string, string>)))
+						: ({} as Record<string, string>);
+				onProgress?.(++resolved, total);
+				return [pkg, filterByReleaseAge(vr.right, times, gate, pkg, now)] as const;
+			}),
+		{ concurrency: RESOLVE_CONCURRENCY },
+	).pipe(Effect.map((pairs) => new Map(pairs)));
+}
+
+/**
+ * Write a resolve-progress line to stderr. Overwrites the previous line with
+ * ANSI carriage return so the terminal shows a single updating counter instead
+ * of a flood of lines. The initial call (resolved === 0) writes a newline so
+ * the first subsequent overwrite lands on its own line.
+ *
+ * Only call when caps.interactive is true; this function is not gated itself.
+ *
+ * @internal
+ */
+export function writeResolveProgress(resolved: number, total: number): void {
+	if (resolved === 0) {
+		process.stderr.write(`Resolving ${total} package${total === 1 ? "" : "s"}...\n`);
+	} else if (resolved === total) {
+		process.stderr.write(`\r  Resolved ${resolved}/${total}      \n`);
+	} else {
+		process.stderr.write(`\r  Resolved ${resolved}/${total}`);
+	}
 }
 
 /**
@@ -94,6 +144,8 @@ export function resolveGatedVersions(
 export function runUpgrade(opts: {
 	file: string;
 	resolver: Resolver;
+	/** Optional progress callback; pass `writeResolveProgress` when caps.interactive. */
+	onProgress?: (resolved: number, total: number) => void;
 }): Effect.Effect<{ updated: number; skipped: string[]; conflicts: InteropConflict[] }, UpgradeError> {
 	return Effect.gen(function* () {
 		const source = yield* Effect.try({
@@ -105,7 +157,7 @@ export function runUpgrade(opts: {
 			catch: (e) => new UpgradeError({ message: String(e) }),
 		});
 		const gate = yield* computeGate(source, opts.file, opts.resolver);
-		const versionsByPkg = yield* resolveGatedVersions(entries, opts.resolver, gate, Date.now());
+		const versionsByPkg = yield* resolveGatedVersions(entries, opts.resolver, gate, Date.now(), opts.onProgress);
 		const edits: Edit[] = [];
 		const changedSpans = new Set<number>();
 
@@ -354,7 +406,11 @@ export const upgradeCommand = Command.make(
 				return;
 			}
 			if (yes) {
-				const result = yield* runUpgrade({ file, resolver });
+				const result = yield* runUpgrade({
+					file,
+					resolver,
+					...(caps.interactive ? { onProgress: writeResolveProgress } : {}),
+				});
 				yield* Effect.sync(() =>
 					process.stdout.write(`Updated ${result.updated} package(s); skipped ${result.skipped.length}.\n`),
 				);
@@ -377,7 +433,13 @@ export const upgradeCommand = Command.make(
 			const catalogName = Option.getOrUndefined(catalog);
 			const entries = filterEntriesByCatalog(discovered.entries, catalogName);
 			const gate = yield* computeGate(source, file, resolver);
-			const versions = yield* resolveGatedVersions(entries, resolver, gate, Date.now());
+			const versions = yield* resolveGatedVersions(
+				entries,
+				resolver,
+				gate,
+				Date.now(),
+				caps.interactive ? writeResolveProgress : undefined,
+			);
 			const items = yield* buildWalkItems(entries, versions).pipe(
 				Effect.catchAll((e) => Effect.fail(new UpgradeError({ message: e.message }))),
 			);
