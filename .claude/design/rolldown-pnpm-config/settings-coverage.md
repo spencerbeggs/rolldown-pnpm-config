@@ -3,12 +3,14 @@ status: current
 module: rolldown-pnpm-config
 category: architecture
 created: 2026-06-26
-updated: 2026-06-26
-last-synced: 2026-06-26
+updated: 2026-06-30
+last-synced: 2026-06-30
 completeness: 95
 related:
   - architecture.md
+  - export-cli.md
   - specs/2026-06-26-pnpm-settings-coverage-design.md
+  - specs/2026-06-30-patch-distribution-design.md
 dependencies: []
 ---
 
@@ -126,6 +128,8 @@ descriptor (all lowercased; any normalisations are noted below the table).
 | `injectWorkspacePackages` | boolean | `scalar` | absent | [injectWorkspacePackages](https://pnpm.io/settings#injectworkspacepackages) |
 | `syncInjectedDepsAfterScripts` | stringArray | `arrayUnion` | absent | [syncInjectedDepsAfterScripts](https://pnpm.io/settings#syncinjecteddepsafterscripts) |
 | `dedupeInjectedDeps` | boolean | `scalar` | absent | [dedupeInjectedDeps](https://pnpm.io/settings#dedupeinjecteddeps) |
+
+`patchedDependencies` additionally supports authoring-layer patch discovery and path rewrite (the `feat/patch-support` work) — a `{ strategy: "rewrite" }` input discovers `public/patches/` and rewrites each entry to a distributed `node_modules/.pnpm-config/<name>/<rel>` path baked into `base`. This is layered on top of the field by `package/src/patches/`; the descriptor row above is unchanged (`stringRecord`/`mapChildWins`/`warn`). `patchesDir` stays `absent`/unmanaged and is never read by the patch code. See [export-cli.md](export-cli.md) and [the patch distribution spec](specs/2026-06-30-patch-distribution-design.md).
 
 ### Runtime config (`runtime-cfg.ts`) — 8 fields
 

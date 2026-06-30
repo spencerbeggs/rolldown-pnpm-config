@@ -106,3 +106,4 @@ publicHoistPattern: {
 - [Getting started](./01-getting-started.md) — author the config and run the plugin build.
 - [Concepts](./03-concepts.md) — the enforcement model and catalog semantics.
 - [Upgrading catalogs](./05-upgrading-catalogs.md) — the `upgrade` CLI.
+- [Distributing dependency patches](./07-distributing-patches.md) — how `export` writes patch entries with local on-disk paths.

@@ -47,17 +47,22 @@ function combine(managed: unknown, value: unknown, strategy: "union" | "differen
  */
 export function applyLocalDirective(managed: unknown, raw: unknown, parsed: unknown, field: string): unknown {
 	const directive = isLocalDirective(raw)
-		? (raw as { preserve?: readonly string[]; value?: unknown; strategy?: "union" | "difference" })
+		? (raw as {
+				preserve?: readonly string[];
+				value?: unknown;
+				strategy?: "union" | "difference" | "merge" | "rewrite";
+			})
 		: { value: raw };
 
-	// 1. base value: overwrite / union / difference / passthrough
+	// 1. base value: overwrite / union / difference / merge / rewrite-passthrough
 	let result: unknown;
-	if (directive.strategy && directive.value !== undefined) {
-		result = combine(managed, directive.value, directive.strategy);
-	} else if (directive.value !== undefined) {
+	const strat = directive.strategy === "merge" ? "union" : directive.strategy;
+	if (strat && strat !== "rewrite" && directive.value !== undefined) {
+		result = combine(managed, directive.value, strat);
+	} else if (directive.value !== undefined && directive.strategy !== "rewrite") {
 		result = directive.value; // overwrite
 	} else {
-		result = managed; // passthrough (e.g. default preserve only)
+		result = managed; // passthrough (rewrite, or default preserve only)
 	}
 
 	// 2. preserve (overrides only)

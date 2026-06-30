@@ -3,14 +3,15 @@ status: current
 module: rolldown-pnpm-config
 category: architecture
 created: 2026-06-25
-updated: 2026-06-29
-last-synced: 2026-06-29
+updated: 2026-06-30
+last-synced: 2026-06-30
 completeness: 95
 related:
   - settings-coverage.md
   - upgrade-cli.md
   - export-cli.md
   - specs/2026-06-26-pnpm-settings-coverage-design.md
+  - specs/2026-06-30-patch-distribution-design.md
 dependencies: []
 ---
 
@@ -137,6 +138,8 @@ Phase B (complete, on `feat/cli`): the `upgrade` CLI that statically discovers, 
 
 UI updates (complete, on `feat/ui-updates`): four related bodies of work. (1) `PluginConfig.name` became required — `freeze` validates it and returns it alongside `{ base, manifest }`; `createHooks` gains a required third `name` parameter and tags every warning box `[<name>]`. (2) All "silk" references removed from the runtime: `Divergence.silkValue`/`childValue` renamed to `managedValue`/`localValue`, warning copy and strategy internals de-silked. (3) A shared CLI diff/render layer (`cli/ui/styled.ts`, `cli/ui/ansi.ts`, `cli/ui/env.ts`, `cli/diff/`) makes `export --dry-run` and `upgrade --preview/--full` speak the same visual language; `upgrade` gains a non-TTY fallback that never hangs in CI. (4) `export` was restructured with a post-freeze local-merge pipeline — `LocalDirective` semantics, automatic `file:`/`link:`/`workspace:`/`portal:` override preservation, and `excludeByRepo` applied at export time — and a separate interactive `preview` command with `ink-tab` tabs over Changes/Full/Simulated views. Documented in [export-cli.md](export-cli.md).
 
+Patch distribution (complete, on `feat/patch-support`): a plugin author can distribute pnpm dependency patches through their config-dependency plugin. A new build/CLI-side module `package/src/patches/` discovers `.patch` files in two convention folders adjacent to the build file (`public/patches/` = distributed, `patches/` = local-only), reverses pnpm's `/`→`__` filename mangling to derive the `patchedDependencies` key, and rewrites distributed paths to `node_modules/.pnpm-config/<name>/<rel>`. The build bakes the rewritten distributed map into `base.patchedDependencies`; `export` overrides it with local on-disk paths merged by key so sibling plugins' and repo-own entries survive. The descriptor table is unchanged — this is an authoring-layer discovery/rewrite on top of the existing `patchedDependencies` descriptor. The Effect-at-build-time boundary holds: `patches/**` is build-side only (never imported by `runtime/**`) and `freeze` still receives plain data. Documented in [export-cli.md](export-cli.md); design recorded in [the patch distribution spec](specs/2026-06-30-patch-distribution-design.md).
+
 Pre-publish hardening (cross-cutting, before any release): ship library-owned ambient virtual-module types for external consumers, add real publish metadata and drop `private`, and widen peer ranges. The `interop` strategy gives authors a tool for the last item — deriving coherent group peer floors — though the package is currently `private` and intentionally pre-publish.
 
 ## Related documentation
@@ -145,7 +148,9 @@ Pre-publish hardening (cross-cutting, before any release): ship library-owned am
 - [upgrade-cli.md](upgrade-cli.md) — the `upgrade` CLI that rewrites catalog version ranges in place.
 - [export-cli.md](export-cli.md) — the `export` and `preview` CLI commands, the shared diff/render layer and local merge semantics.
 - [the coverage design spec](specs/2026-06-26-pnpm-settings-coverage-design.md) — the rationale for the descriptor-table-as-single-source-of-truth design.
+- [the patch distribution spec](specs/2026-06-30-patch-distribution-design.md) — the intended behavior for distributing pnpm dependency patches through a config-dependency plugin.
 - `package/src/descriptors/` — the descriptor table (single source of truth) and the `deriveSchemas`/`deriveRegistry` helpers.
+- `package/src/patches/` — the build/CLI-side patch discovery and path-rewrite module (`keys.ts`, `paths.ts`, `discover.ts`, `build.ts`, `reconcile.ts`); never imported by `runtime/**`.
 - `package/src/catalogs.ts` and `package/src/define-plugin.ts` — the inline catalog types plus `normalizeCatalogs`, the hand-authored `PluginConfig`/`FieldInput` and the `LocalDirective` type.
 - `package/src/registry.ts` and `package/src/runtime/strategies/table.ts` — the derived field-to-strategy registry and the strategy table.
 - `package/src/runtime/index.ts` and `package/src/runtime/enforcement.ts` — the install-time merge and the enforcement contract.

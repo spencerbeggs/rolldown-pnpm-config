@@ -4,26 +4,26 @@
 		{
 			"source": "CLAUDE.md",
 			"target": ".claude/design/rolldown-pnpm-config/architecture.md",
-			"hash": "df22e1ceea9cd352ec81b6a48673a1037fe9d04b1f923271f5785318c1d5ea5b",
-			"recordedAt": "2026-06-29"
+			"hash": "08ffc3264e06a7e1ace5da584aa2ac4875086538f8e93a3d9a00190656f11b0f",
+			"recordedAt": "2026-06-30"
 		},
 		{
 			"source": "CLAUDE.md",
 			"target": ".claude/design/rolldown-pnpm-config/export-cli.md",
-			"hash": "123b08d2d5bd083560a466103cefe4365e5cd1f23641e2550e9baf524839a5e2",
-			"recordedAt": "2026-06-29"
+			"hash": "81870c2f90eaed0c38f0679cfaf6fbe6e8c05c1e8f4bf27e4c3b614f6ff26ef4",
+			"recordedAt": "2026-06-30"
 		},
 		{
 			"source": "CLAUDE.md",
 			"target": ".claude/design/rolldown-pnpm-config/settings-coverage.md",
-			"hash": "aaca2f9ba25844ae4e138cd83050165144779173209655c00907c46bc1486ec2",
-			"recordedAt": "2026-06-26"
+			"hash": "028f8a2d1f45cf1e0264f848540c4aa306bac923280335e58c889389e684c921",
+			"recordedAt": "2026-06-30"
 		},
 		{
 			"source": "CLAUDE.md",
 			"target": ".claude/design/rolldown-pnpm-config/upgrade-cli.md",
-			"hash": "06d8262c398f83c87dfe4a978dd3b92c2d215d64606483747b92e68d2c0a9cc1",
-			"recordedAt": "2026-06-29"
+			"hash": "1f64ab85aa9e4ebd0b026c3cf6c353e1270560a4684ec56446db987a2f02bd35",
+			"recordedAt": "2026-06-30"
 		}
 	]
 }
