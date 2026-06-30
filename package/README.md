@@ -113,6 +113,20 @@ publicHoistPattern: {
 
 See [exporting to pnpm-workspace.yaml](https://github.com/spencerbeggs/rolldown-pnpm-config/blob/main/docs/06-exporting.md) for the full surface.
 
+## Distributing dependency patches
+
+A plugin author can ship pnpm dependency patches through the plugin. Author a `.patch` with stock pnpm into `public/patches/` — the bundler copies `public/` into the published package, so the file travels with the plugin. At build the plugin discovers each patch, rewrites its path to the consumer-resolved `node_modules/.pnpm-config/<name>/patches/<file>.patch` and bakes it into the emitted pnpmfile. Every consumer then applies it automatically through `updateConfig`, with no hand-written `patchedDependencies` entry:
+
+```ts
+export const plugin = {
+  name: "@acme/pnpm-config",
+  // default once public/patches/ has files; a bare map is the manual escape hatch
+  patchedDependencies: { strategy: "rewrite" },
+} satisfies PluginConfig;
+```
+
+A sibling `patches/` folder stays local to your repo and never ships. On `rolldown-pnpm-config export` your own `pnpm-workspace.yaml` gets the patches with their local on-disk paths, merged by key so sibling and hand-written entries survive. See [distributing dependency patches](https://github.com/spencerbeggs/rolldown-pnpm-config/blob/main/docs/07-distributing-patches.md) for the full surface.
+
 ## Documentation
 
 - [Getting started](https://github.com/spencerbeggs/rolldown-pnpm-config/blob/main/docs/01-getting-started.md) — Wire the plugin into a vanilla rolldown build and emit a pnpmfile.
@@ -121,6 +135,7 @@ See [exporting to pnpm-workspace.yaml](https://github.com/spencerbeggs/rolldown-
 - [pnpm settings coverage](https://github.com/spencerbeggs/rolldown-pnpm-config/blob/main/docs/04-pnpm-settings-coverage.md) — Every pnpm-workspace.yaml setting the plugin manages and the ones it leaves to each consumer.
 - [Upgrading catalogs](https://github.com/spencerbeggs/rolldown-pnpm-config/blob/main/docs/05-upgrading-catalogs.md) — The `upgrade` CLI that rewrites catalog version ranges in place.
 - [Exporting to pnpm-workspace.yaml](https://github.com/spencerbeggs/rolldown-pnpm-config/blob/main/docs/06-exporting.md) — The `export` and `preview` CLI, the `local` merge directive and per-repo `excludeByRepo` filtering.
+- [Distributing dependency patches](https://github.com/spencerbeggs/rolldown-pnpm-config/blob/main/docs/07-distributing-patches.md) — Ship pnpm patches through the plugin so every consumer applies them automatically.
 
 ## License
 

@@ -1,8 +1,12 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { Args, Command, Options } from "@effect/cli";
 import { Data, Effect, Option } from "effect";
 import { DESCRIPTORS } from "../../descriptors/index.js";
+import { readLocalPatchesDir, withResolvedBuildPatches } from "../../patches/build.js";
+import { discoverPatches } from "../../patches/discover.js";
+import type { PatchReconcileReport } from "../../patches/reconcile.js";
+import { reconcilePatches } from "../../patches/reconcile.js";
 import { freeze } from "../../plugin/freeze.js";
 import { resolveRootName } from "../../runtime/ctx.js";
 import { buildDiff } from "../diff/build.js";
@@ -49,7 +53,10 @@ export function runExport(opts: {
 	workspacePath?: string;
 	preview: boolean;
 	full?: boolean;
-}): Effect.Effect<{ path: string; rendered: string; written: boolean; diff: StyledLine[] }, ExportError> {
+}): Effect.Effect<
+	{ path: string; rendered: string; written: boolean; diff: StyledLine[]; report: PatchReconcileReport },
+	ExportError
+> {
 	return Effect.gen(function* () {
 		const configSource = yield* Effect.try({
 			try: () => readFileSync(opts.configFile, "utf8"),
@@ -62,7 +69,11 @@ export function runExport(opts: {
 		if (errors.length > 0) {
 			return yield* Effect.fail(new ExportError({ message: `Non-literal config values: ${errors.join("; ")}` }));
 		}
-		const { base, manifest } = yield* freeze(config as unknown as Parameters<typeof freeze>[0]).pipe(
+		const resolvedConfig = withResolvedBuildPatches(
+			config as unknown as Parameters<typeof withResolvedBuildPatches>[0],
+			dirname(opts.configFile),
+		);
+		const { base, manifest } = yield* freeze(resolvedConfig as unknown as Parameters<typeof freeze>[0]).pipe(
 			Effect.mapError((e) => new ExportError({ message: e.message })),
 		);
 		const managed: Record<string, unknown> = {};
@@ -82,6 +93,31 @@ export function runExport(opts: {
 		const localCfg =
 			config.local && typeof config.local === "object" ? (config.local as Record<string, unknown>) : undefined;
 		const effective = effectiveManaged(managed, localCfg, parsed, manifest, rootName);
+		// patchedDependencies is special-cased: write LOCAL on-disk paths for every
+		// owned patch, merged over existing entries so sibling plugins' and the
+		// repo's own patch registrations survive (the distributed .pnpm-config
+		// paths in `base` are for consumers, not this repo).
+		const localPatchesDir = readLocalPatchesDir(config as unknown as Parameters<typeof readLocalPatchesDir>[0]);
+		const owned = discoverPatches({
+			baseDir: dirname(opts.configFile),
+			name: typeof config.name === "string" ? config.name : "",
+			...(localPatchesDir !== undefined ? { localPatchesDir } : {}),
+		});
+		if (owned.length > 0) {
+			const workspaceRoot = dirname(path);
+			const existing =
+				parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)
+					? ((parsed as Record<string, unknown>).patchedDependencies as Record<string, string> | undefined)
+					: undefined;
+			const mergedPatches: Record<string, string> = { ...(existing ?? {}) };
+			for (const p of owned) mergedPatches[p.key] = relative(workspaceRoot, p.absPath).split(/[\\/]/).join("/");
+			effective.patchedDependencies = mergedPatches;
+		}
+		const report: PatchReconcileReport = reconcilePatches({
+			parsedPatched: (effective.patchedDependencies as Record<string, string> | undefined) ?? {},
+			root: dirname(path),
+			exists: existsSync,
+		});
 		const merged = overlayWorkspace(effective, parsed);
 		const rendered = renderWorkspace(merged);
 		const localKeys = new Set(
@@ -94,12 +130,12 @@ export function runExport(opts: {
 		);
 		const diff = renderExportDiff(tree, { full: opts.full ?? false });
 
-		if (opts.preview) return { path, rendered, written: false, diff };
+		if (opts.preview) return { path, rendered, written: false, diff, report };
 		yield* Effect.try({
 			try: () => writeFileSync(path, rendered, "utf8"),
 			catch: () => new ExportError({ message: `Cannot write ${path}` }),
 		});
-		return { path, rendered, written: true, diff };
+		return { path, rendered, written: true, diff, report };
 	});
 }
 
@@ -137,6 +173,10 @@ export const exportCommand = Command.make(
 					process.stdout.write(`${toAnsi(result.diff, { color: caps.color })}\n`);
 					process.stdout.write("\n+ added  ~ changed  - removed   (local) local override  (unmanaged) not managed\n");
 				} else process.stdout.write(`Exported to ${result.path}\n`);
+				for (const k of result.report.staleEntries)
+					process.stderr.write(`warning: patch entry "${k}" has no file on disk\n`);
+				for (const k of result.report.keyMismatches)
+					process.stderr.write(`warning: patch entry "${k}" does not match its filename\n`);
 			});
 		}),
 ).pipe(Command.withDescription("Materialize the plugin config into pnpm-workspace.yaml (--dry-run to preview)"));

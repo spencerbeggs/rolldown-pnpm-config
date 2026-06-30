@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import type { Plugin } from "rolldown";
 import type { PluginConfig } from "../define-plugin.js";
+import { withResolvedBuildPatches } from "../patches/build.js";
 import type { Base, Manifest } from "../runtime/types.js";
 import type { ConfigError } from "./freeze.js";
 import { freeze } from "./freeze.js";
@@ -34,7 +35,14 @@ export interface PluginDeps {
  */
 export function createPnpmConfigPlugin(config: PluginConfig, deps: PluginDeps = { freeze }): Plugin {
 	let frozen: Promise<Frozen> | undefined;
-	const getFrozen = (): Promise<Frozen> => (frozen ??= Effect.runPromise(deps.freeze(config)));
+	const getFrozen = (): Promise<Frozen> =>
+		// Patch discovery is rooted at process.cwd(), which under the normal
+		// tsdown/rolldown invocation (and turbo, which runs build scripts from the
+		// package dir) is the build-config's package directory — matching the
+		// `dirname(configFile)` root the `export` CLI uses, so build and export
+		// derive the same owned patches. A build invoked from a different cwd would
+		// diverge; run the build from the config's package directory.
+		(frozen ??= Effect.runPromise(deps.freeze(withResolvedBuildPatches(config, process.cwd()))));
 
 	return {
 		name: "rolldown-pnpm-config",

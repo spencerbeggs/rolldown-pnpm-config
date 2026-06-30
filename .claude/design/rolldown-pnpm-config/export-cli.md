@@ -3,14 +3,16 @@ status: current
 module: rolldown-pnpm-config
 category: architecture
 created: 2026-06-29
-updated: 2026-06-29
-last-synced: 2026-06-29
+updated: 2026-06-30
+last-synced: 2026-06-30
 completeness: 90
 related:
   - architecture.md
   - upgrade-cli.md
+  - settings-coverage.md
   - specs/2026-06-29-cli-diff-render-design.md
   - specs/2026-06-29-export-local-merge-preview-design.md
+  - specs/2026-06-30-patch-distribution-design.md
 dependencies:
   - architecture.md
 ---
@@ -27,9 +29,10 @@ The `export` and `preview` subcommands, the shared diff/render layer and the loc
 4. [Shared render layer](#shared-render-layer)
 5. [Export pipeline](#export-pipeline)
 6. [Local merge semantics](#local-merge-semantics)
-7. [Preview views](#preview-views)
-8. [Rationale](#rationale)
-9. [Related documentation](#related-documentation)
+7. [Patch distribution](#patch-distribution)
+8. [Preview views](#preview-views)
+9. [Rationale](#rationale)
+10. [Related documentation](#related-documentation)
 
 ## Overview
 
@@ -102,13 +105,33 @@ Semantics per call:
 - `{ value }` → overwrite managed.
 - `{ strategy: "union", value }` → record merge `{ ...managed, ...value }` (value wins on key clash) or array set-union.
 - `{ strategy: "difference", value }` → remove keys in `value` from managed record, or remove elements from managed array.
+- `{ strategy: "merge", value }` → union semantics (an alias used by `local.patchedDependencies` to upsert owned keys while preserving unowned ones).
+- `{ strategy: "rewrite" }` → passthrough; the directive carries no value and the actual rewrite happens in the patch pipeline (see [Patch distribution](#patch-distribution)).
 - `preserve` (overrides only, after the above) → copy back any entry from `parsed.overrides` whose value string starts with `<proto>:` for proto in the preserve list. Defaults to `["file", "link", "workspace", "portal"]` when absent.
+
+The `strategy` union is `"union" | "difference" | "merge" | "rewrite"`, defined on `LocalDirective<T>` in `package/src/define-plugin.ts`.
 
 `effectiveManaged` in `package/src/cli/effective.ts` composes `excludeByRepo` (applied first) and per-field local directives for all keys in `config.local` plus `overrides` (always, for the default-preserve step).
 
 `vanillaManaged` in `effective.ts` applies only `excludeByRepo` and no local directives; this is the "fresh consumer" base used by the Simulated preview view.
 
 `local` is export-time only — `freeze`, `base` and the bundled runtime pnpmfile are unaffected.
+
+## Patch distribution
+
+A plugin author can distribute pnpm dependency patches through their config-dependency plugin. The discovery and path-rewrite logic lives in the build/CLI-side module `package/src/patches/` (`keys.ts`, `paths.ts`, `discover.ts`, `build.ts`, `reconcile.ts`), shared by the build plugin and `export` so both emit agreeing paths. It is never imported by `runtime/**` — the Effect-at-build-time boundary holds. The full intended behavior is in [the patch distribution spec](specs/2026-06-30-patch-distribution-design.md); this section records the export-side shipped surface.
+
+Convention: `discoverPatches` walks two folders adjacent to the build file. `public/patches/` is **distributed** — the bundler ships `public/` into the package, so each file resolves in a consumer at `node_modules/.pnpm-config/<name>/<rel>` and is rewritten into `base.patchedDependencies` at build time. `patches/` (pnpm's default `patchesDir`) is **local-only** — never rewritten, never entered into `base`. Ownership is per-plugin, scoped by `name`: a plugin claims only patches under its own adjacent folders, so multiple config-deps and the repo's own `patches/` coexist; collisions are the user's to inspect via `preview` (no engine warning), and `mapChildWins` reconciles local-vs-distributed at install.
+
+Authoring directives (no new top-level field):
+
+- `patchedDependencies: { strategy: "rewrite" }` — discover `public/patches/` and rewrite each to its distributed path. Default behavior when patch files exist; the bare-map form remains the full-manual escape hatch.
+- `local.patchedDependencies: { strategy: "merge" }` — on `export`, upsert this plugin's owned keys with their local on-disk paths, preserving every key it does not own.
+- `local.localPatchesDir?: string` — override the distributed source root (default `public/patches/`). KNOWN LIMITATION: when this points outside `public/`, `distributedRel`'s basename fallback produces a `node_modules/.pnpm-config/<name>/<basename>/...` path that the bundler (which ships only `public/`) will not actually contain, so a non-public `localPatchesDir` can dangle. The intended case is a `public/` subfolder.
+
+Export behavior: `runExport` pre-resolves the config before `freeze`, then OVERRIDES `effective.patchedDependencies` with the local on-disk paths merged by key over the existing `pnpm-workspace.yaml`. Siblings (other plugins' and repo-own entries) are preserved and the distributed `.pnpm-config` path never leaks into the local file. `runExport` also returns a `reconcile` report (`reconcilePatches`, a `PatchReconcileReport`); the `export` command prints stale-entry and key-mismatch warnings to stderr. `getFrozen` in `package/src/plugin/index.ts` freezes `withResolvedBuildPatches(config, process.cwd())`, so the emitted pnpmfile's `base.patchedDependencies` carries distributed paths — discovery roots at `process.cwd()`, which equals the build-config package dir under normal tsdown/rolldown/turbo invocation (matching the export CLI's `dirname(configFile)` root).
+
+The descriptor table is unchanged: `patchedDependencies`/`patchesDir`/`configDependencies` descriptors stay as-is and `patchesDir` is never read by the new code. See [settings-coverage.md](settings-coverage.md).
 
 ## Preview views
 
@@ -147,6 +170,8 @@ The runtime pnpmfile must be the same for every consumer of the plugin. Per-repo
 - [upgrade-cli.md](upgrade-cli.md) — the `upgrade` command that shares the `StyledLine`/`toAnsi`/`env.ts` render layer.
 - [the cli diff/render design spec](specs/2026-06-29-cli-diff-render-design.md) — the original design rationale for the shared render layer.
 - [the export/preview design spec](specs/2026-06-29-export-local-merge-preview-design.md) — the original design rationale for the command split, local merge semantics and preview views.
+- [the patch distribution spec](specs/2026-06-30-patch-distribution-design.md) — the ownership model, path rewrite and reconcile design for distributing dependency patches.
+- `package/src/patches/` — the shared build/CLI patch discovery and path-rewrite module (`keys.ts`, `paths.ts`, `discover.ts`, `build.ts`, `reconcile.ts`).
 - `package/src/cli/commands/export.ts` and `package/src/cli/commands/preview.ts` — the command implementations.
 - `package/src/cli/ui/` — the shared render layer (`styled.ts`, `ansi.ts`, `env.ts`, `Preview.ts`, `run-preview.ts`).
 - `package/src/cli/diff/` — the diff model (`types.ts`, `build.ts`, `render.ts`).

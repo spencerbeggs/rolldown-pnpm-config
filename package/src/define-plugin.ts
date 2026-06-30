@@ -19,7 +19,7 @@ export type FieldInput<T> = T | { readonly value: T; readonly enforcement?: Enfo
 export interface LocalDirective<T> {
 	readonly preserve?: readonly string[];
 	readonly value?: T;
-	readonly strategy?: "union" | "difference";
+	readonly strategy?: "union" | "difference" | "merge" | "rewrite";
 }
 
 /**
@@ -44,6 +44,13 @@ export interface PluginConfig {
 	 * build and the shipped pnpmfile.
 	 */
 	readonly local?: {
+		/**
+		 * Override the local discovery root for distributed patches (default
+		 * `public/patches/` adjacent to the build file). The local-only `patches/`
+		 * folder detection is independent and unaffected.
+		 */
+		readonly localPatchesDir?: string;
+	} & {
 		readonly [K in keyof PluginConfig]?: PluginConfig[K] | LocalDirective<PluginConfig[K]>;
 	};
 	/** Whether pnpm prompts before purging `node_modules`. */
@@ -204,8 +211,13 @@ export interface PluginConfig {
 	readonly shellEmulator?: FieldInput<boolean>;
 	/** Scripts that must exist in every project matching the current filter. */
 	readonly requiredScripts?: FieldInput<string[]>;
-	/** Patches applied to dependencies, keyed by package identifier. */
-	readonly patchedDependencies?: FieldInput<Record<string, string>>;
+	/**
+	 * Patches applied to dependencies, keyed by package identifier. Pass a plain
+	 * map for explicit control, or `{ strategy: "rewrite" }` (the default when
+	 * `public/patches/` contains files) to auto-discover and rewrite patch paths
+	 * to their distributed `node_modules/.pnpm-config/<name>/` location.
+	 */
+	readonly patchedDependencies?: FieldInput<Record<string, string>> | { readonly strategy: "rewrite" };
 	/** Whether unused patches (patches that apply to no installed package) are allowed. */
 	readonly allowUnusedPatches?: FieldInput<boolean>;
 	/** Whether non-applied patches (patches that fail to apply) are allowed. */
