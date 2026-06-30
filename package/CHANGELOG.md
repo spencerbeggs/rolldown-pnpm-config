@@ -1,5 +1,56 @@
 # rolldown-pnpm-config
 
+## 0.2.0
+
+### Features
+
+* [`5dcc988`](https://github.com/spencerbeggs/rolldown-pnpm-config/commit/5dcc988974b23b657b5a071baab4a0dddc49d67b) ### Distributed Dependency Patches
+
+Plugin authors can now bundle `.patch` files with their config-dependency plugin and have them applied automatically in every consumer project — no per-consumer `patchedDependencies` registration required.
+
+Place patch files under `public/patches/` in the plugin source tree. At build time, the plugin discovers those files, rewrites each path to `node_modules/.pnpm-config/<name>/patches/<file>.patch` in the consumer's project, and injects the registrations into the shipped pnpmfile via `updateConfig`. Consumers receive the patches on install without any manual configuration.
+
+```ts
+// rolldown.config.ts (plugin author)
+import { PnpmConfigPlugin } from "rolldown-pnpm-config";
+
+export default PnpmConfigPlugin({
+  name: "my-config-plugin",
+
+  // Distribute patches from public/patches/ (auto-detected when the folder exists)
+  patchedDependencies: {
+    strategy: "rewrite",
+  },
+
+  // Control how the local export merges distributed patches with the repo's own
+  local: {
+    patchedDependencies: {
+      strategy: "merge", // default — sibling plugins and repo patches are preserved
+    },
+    localPatchesDir: "custom-patches/", // override source root (default: public/patches/)
+  },
+});
+```
+
+Ownership is scoped by plugin `name`, so multiple config-dependency plugins and the consuming repo's own `patchedDependencies` coexist without key collisions. `mapChildWins` reconciles local-vs-distributed entries at install time.
+
+### Folder Convention
+
+Two directories establish clear ownership boundaries:
+
+* `public/patches/` — patches to distribute; discovered at build time and bundled into the shipped pnpmfile
+* `patches/` — local-only patches; never discovered or distributed
+
+Projects with no `public/patches/` directory are unaffected — build-time discovery is a no-op and the plugin config passes through unchanged.
+
+### Export Warnings
+
+`rolldown-pnpm-config export` now emits stale-entry and key-mismatch diagnostics for `patchedDependencies` to stderr when the local merge state diverges from the distributed set.
+
+### Type Changes
+
+`LocalDirective.strategy` gains `"merge"` and `"rewrite"` as valid values (additive widening, backward compatible).
+
 ## 0.1.0
 
 ### Breaking Changes
@@ -94,7 +145,5 @@ The effective gate is the strictest of the `minimumReleaseAge` declared in your 
 * [`e7594a6`](https://github.com/spencerbeggs/rolldown-pnpm-config/commit/e7594a6df54c699fefe3f703e33d6a82de846d1e) Concurrent version resolution in `upgrade`: packages are now resolved in parallel (bounded concurrency) rather than one `pnpm view` call at a time. A \~50-package config drops from \~44 s to \~7 s.
 * Live progress (`Resolved X/N`) is printed to stderr in interactive terminals so the command no longer appears to hang during resolution.
 
-### Performance
-
-* [`2079125`](https://github.com/spencerbeggs/rolldown-pnpm-config/commit/2079125044d977bd6b0bd649459cacda8a515d06) Shared peerDeps cache across interactive `upgrade` re-entry rounds; later rounds reuse immutable `(package, version)` lookups fetched by earlier rounds instead of re-issuing `pnpm view` calls.
-* Cuts re-entry latency for large interop groups — the `@effect` ecosystem in particular, where a single member can publish dozens of versions.
+- [`2079125`](https://github.com/spencerbeggs/rolldown-pnpm-config/commit/2079125044d977bd6b0bd649459cacda8a515d06) Shared peerDeps cache across interactive `upgrade` re-entry rounds; later rounds reuse immutable `(package, version)` lookups fetched by earlier rounds instead of re-issuing `pnpm view` calls.
+- Cuts re-entry latency for large interop groups — the `@effect` ecosystem in particular, where a single member can publish dozens of versions.
