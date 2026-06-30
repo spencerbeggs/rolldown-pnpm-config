@@ -1,13 +1,20 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { Args, Command, Options } from "@effect/cli";
 import { Data, Effect, Option } from "effect";
 import { DESCRIPTORS } from "../../descriptors/index.js";
 import { freeze } from "../../plugin/freeze.js";
+import { resolveRootName } from "../../runtime/ctx.js";
+import { buildDiff } from "../diff/build.js";
+import { renderExportDiff } from "../diff/render.js";
+import type { DiffNode } from "../diff/types.js";
+import { effectiveManaged } from "../effective.js";
 import { evaluatePluginConfig } from "../evaluate.js";
-import { applyLocal } from "../local-overlay.js";
 import { findConfigFiles, pickConfigCandidate } from "../select-file.js";
-import { findWorkspaceFile, parseWorkspace, renderWorkspace } from "../workspace-file.js";
+import { toAnsi } from "../ui/ansi.js";
+import { detectCapabilities } from "../ui/env.js";
+import type { StyledLine } from "../ui/styled.js";
+import { canonicalize, findWorkspaceFile, parseWorkspace, renderWorkspace } from "../workspace-file.js";
 import { overlayWorkspace } from "../workspace-overlay.js";
 
 /**
@@ -30,9 +37,10 @@ export const WORKSPACE_FIELDS: ReadonlySet<string> = new Set(
 );
 
 /**
- * Export core: evaluate the plugin config, apply the local overlay, freeze it,
- * filter to workspace-yaml fields, overlay onto the existing pnpm-workspace.yaml
- * (or create fresh), and write the result. In preview mode nothing is written.
+ * Export core: freeze the plugin config first, then apply excludeByRepo and
+ * local directives via the effective pipeline, overlay onto the existing
+ * pnpm-workspace.yaml (or create fresh), and write the result. In preview
+ * mode nothing is written.
  *
  * @internal
  */
@@ -40,7 +48,8 @@ export function runExport(opts: {
 	configFile: string;
 	workspacePath?: string;
 	preview: boolean;
-}): Effect.Effect<{ path: string; rendered: string; written: boolean }, ExportError> {
+	full?: boolean;
+}): Effect.Effect<{ path: string; rendered: string; written: boolean; diff: StyledLine[] }, ExportError> {
 	return Effect.gen(function* () {
 		const configSource = yield* Effect.try({
 			try: () => readFileSync(opts.configFile, "utf8"),
@@ -53,10 +62,7 @@ export function runExport(opts: {
 		if (errors.length > 0) {
 			return yield* Effect.fail(new ExportError({ message: `Non-literal config values: ${errors.join("; ")}` }));
 		}
-		const effective = applyLocal(config);
-		// Cast through the freeze parameter type (not `as never`) so a future drift
-		// between the evaluated config shape and PluginConfig is caught at compile time.
-		const { base } = yield* freeze(effective as unknown as Parameters<typeof freeze>[0]).pipe(
+		const { base, manifest } = yield* freeze(config as unknown as Parameters<typeof freeze>[0]).pipe(
 			Effect.mapError((e) => new ExportError({ message: e.message })),
 		);
 		const managed: Record<string, unknown> = {};
@@ -71,42 +77,66 @@ export function runExport(opts: {
 					catch: (e) => new ExportError({ message: `Cannot read or parse ${path}: ${String(e)}` }),
 				})
 			: {};
-		const merged = overlayWorkspace(managed, parsed);
-		const rendered = renderWorkspace(merged);
 
-		if (opts.preview) return { path, rendered, written: false };
+		const rootName = resolveRootName({ dir: dirname(path) });
+		const localCfg =
+			config.local && typeof config.local === "object" ? (config.local as Record<string, unknown>) : undefined;
+		const effective = effectiveManaged(managed, localCfg, parsed, manifest, rootName);
+		const merged = overlayWorkspace(effective, parsed);
+		const rendered = renderWorkspace(merged);
+		const localKeys = new Set(
+			config.local && typeof config.local === "object" ? Object.keys(config.local as Record<string, unknown>) : [],
+		);
+		const tree: DiffNode = buildDiff(
+			canonicalize(parsed) as Record<string, unknown>,
+			canonicalize(merged) as Record<string, unknown>,
+			{ localKeys, managedKeys: WORKSPACE_FIELDS },
+		);
+		const diff = renderExportDiff(tree, { full: opts.full ?? false });
+
+		if (opts.preview) return { path, rendered, written: false, diff };
 		yield* Effect.try({
 			try: () => writeFileSync(path, rendered, "utf8"),
 			catch: () => new ExportError({ message: `Cannot write ${path}` }),
 		});
-		return { path, rendered, written: true };
+		return { path, rendered, written: true, diff };
 	});
 }
 
 const pathArg = Args.file({ name: "path" }).pipe(Args.optional);
-const previewFlag = Options.boolean("preview").pipe(Options.withDefault(false));
+const dryRunFlag = Options.boolean("dry-run").pipe(Options.withDefault(false));
+const fullFlag = Options.boolean("full").pipe(Options.withDefault(false));
 
 /**
  * The "export" command. Materializes the plugin config into pnpm-workspace.yaml.
- * An optional path argument overrides the auto-detected workspace file. --preview
- * prints the rendered YAML to stdout without writing.
+ * An optional path argument overrides the auto-detected workspace file. --dry-run
+ * prints the colored diff to stdout without writing. --full disables context
+ * collapsing in the diff output.
  *
  * @internal
  */
-export const exportCommand = Command.make("export", { path: pathArg, preview: previewFlag }, ({ path, preview }) =>
-	Effect.gen(function* () {
-		const matches = yield* findConfigFiles(process.cwd());
-		const picked = pickConfigCandidate(matches);
-		if (!picked.ok) return yield* Effect.fail(new ExportError({ message: picked.message }));
-		const workspacePath = Option.getOrUndefined(path);
-		const result = yield* runExport({
-			configFile: picked.file,
-			...(workspacePath !== undefined ? { workspacePath } : {}),
-			preview,
-		});
-		yield* Effect.sync(() => {
-			if (preview) process.stdout.write(`${result.rendered}\n`);
-			else process.stdout.write(`Exported to ${result.path}\n`);
-		});
-	}),
-).pipe(Command.withDescription("Export the plugin config into pnpm-workspace.yaml"));
+export const exportCommand = Command.make(
+	"export",
+	{ path: pathArg, dryRun: dryRunFlag, full: fullFlag },
+	({ path, dryRun, full }) =>
+		Effect.gen(function* () {
+			const matches = yield* findConfigFiles(process.cwd());
+			const picked = pickConfigCandidate(matches);
+			if (!picked.ok) return yield* Effect.fail(new ExportError({ message: picked.message }));
+			const workspacePath = Option.getOrUndefined(path);
+			const result = yield* runExport({
+				configFile: picked.file,
+				...(workspacePath !== undefined ? { workspacePath } : {}),
+				preview: dryRun,
+				full,
+			});
+			yield* Effect.sync(() => {
+				if (dryRun) {
+					const caps = detectCapabilities();
+					process.stdout.write(`${result.path} (dry run — not written)\n\n`);
+					process.stdout.write(`${toAnsi(result.diff, { color: caps.color })}\n`);
+					process.stdout.write("\n+ added  ~ changed  - removed   (local) local override  (unmanaged) not managed\n");
+				} else process.stdout.write(`Exported to ${result.path}\n`);
+			});
+		}),
+).pipe(Command.withDescription("Materialize the plugin config into pnpm-workspace.yaml (--dry-run to preview)"));

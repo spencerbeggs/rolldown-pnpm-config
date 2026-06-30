@@ -6,18 +6,21 @@ describe("error enforcement", () => {
 	it("throws EnforcementError when an error-enforced field diverges", () => {
 		const base = { minimumReleaseAge: 1440 };
 		const manifest = { minimumReleaseAge: { strategy: "securityMin", enforcement: "error" as const } };
-		expect(() => createHooks(base, manifest).updateConfig({ minimumReleaseAge: 60 })).toThrow(EnforcementError);
+		expect(() => createHooks(base, manifest, "@acme/cfg").updateConfig({ minimumReleaseAge: 60 })).toThrow(
+			EnforcementError,
+		);
 	});
 	it("does NOT throw when an error-enforced field does not diverge", () => {
 		const base = { minimumReleaseAge: 1440 };
 		const manifest = { minimumReleaseAge: { strategy: "securityMin", enforcement: "error" as const } };
-		expect(() => createHooks(base, manifest).updateConfig({ minimumReleaseAge: 2880 })).not.toThrow();
+		expect(() => createHooks(base, manifest, "@acme/cfg").updateConfig({ minimumReleaseAge: 2880 })).not.toThrow();
 	});
 	it("EnforcementError names the field and is identifiable by name", () => {
 		try {
 			createHooks(
 				{ strictDepBuilds: true },
 				{ strictDepBuilds: { strategy: "securityFlag", enforcement: "error" as const } },
+				"@acme/cfg",
 			).updateConfig({ strictDepBuilds: false });
 			expect.unreachable("expected createHooks to throw");
 		} catch (e) {

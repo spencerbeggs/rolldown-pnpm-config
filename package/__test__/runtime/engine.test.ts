@@ -5,19 +5,23 @@ describe("createHooks engine", () => {
 	it("merges catalogs via the catalogs strategy (M1 parity)", () => {
 		const base = { catalogs: { silk: { a: "1.0.0", b: "2.0.0" } } };
 		const manifest = { catalogs: { strategy: "catalogs", enforcement: "warn" as const } };
-		const out = createHooks(base, manifest).updateConfig({ catalogs: { silk: { b: "9.9.9", c: "3.0.0" } } });
+		const out = createHooks(base, manifest, "@acme/cfg").updateConfig({
+			catalogs: { silk: { b: "9.9.9", c: "3.0.0" } },
+		});
 		expect(out.catalogs).toEqual({ silk: { a: "1.0.0", b: "9.9.9", c: "3.0.0" } });
 	});
 
 	it("applies a quiet scalar field (confirmModulesPurge) silently, child wins", () => {
 		const base = { confirmModulesPurge: true };
 		const manifest = { confirmModulesPurge: { strategy: "scalar", enforcement: "absent" as const } };
-		expect(createHooks(base, manifest).updateConfig({}).confirmModulesPurge).toBe(true);
-		expect(createHooks(base, manifest).updateConfig({ confirmModulesPurge: false }).confirmModulesPurge).toBe(false);
+		expect(createHooks(base, manifest, "@acme/cfg").updateConfig({}).confirmModulesPurge).toBe(true);
+		expect(
+			createHooks(base, manifest, "@acme/cfg").updateConfig({ confirmModulesPurge: false }).confirmModulesPurge,
+		).toBe(false);
 	});
 
 	it("omits a field whose merged value is undefined/empty", () => {
-		const out = createHooks({}, {}).updateConfig({ dir: "/x" });
+		const out = createHooks({}, {}, "@acme/cfg").updateConfig({ dir: "/x" });
 		expect(out.dir).toBe("/x");
 	});
 
@@ -30,7 +34,7 @@ describe("createHooks engine", () => {
 				options: { excludeByRepo: { "x-repo": ["@x/cli"] } },
 			},
 		};
-		const out = createHooks(base, manifest).updateConfig({ rootProjectManifest: { name: "x-repo" } });
+		const out = createHooks(base, manifest, "@acme/cfg").updateConfig({ rootProjectManifest: { name: "x-repo" } });
 		expect(out.publicHoistPattern).toEqual(["@types/*"]);
 	});
 });

@@ -1,3 +1,5 @@
+import { toAnsi } from "./ui/ansi.js";
+import type { StyledLine } from "./ui/styled.js";
 import type { Decision } from "./walk-types.js";
 
 /** One interop member pulled below the user's pick to satisfy the group. @internal */
@@ -15,15 +17,14 @@ export interface InteropSummary {
 }
 
 /**
- * Render a human-readable diff of the pending decisions: one line per real
- * change, peer changes indented, ending with an update/major/up-to-date tally.
- * When an interop section is supplied, append `↓ adjusted` and `⚠ conflict`
- * lines below the tally.
+ * Build the pending-decisions summary as styled lines: one line per real
+ * change, peer changes indented, a dim tally, then interop adjustments and
+ * conflicts. Pure; color is applied by `renderSummary`/`toAnsi`.
  *
  * @internal
  */
-export function renderSummary(decisions: readonly Decision[], interop?: InteropSummary): string {
-	const lines: string[] = [];
+export function summaryLines(decisions: readonly Decision[], interop?: InteropSummary): StyledLine[] {
+	const lines: StyledLine[] = [];
 	let toUpdate = 0;
 	let major = 0;
 	let resync = 0;
@@ -34,36 +35,91 @@ export function renderSummary(decisions: readonly Decision[], interop?: InteropS
 		if (chosen.kind !== "keep") {
 			toUpdate++;
 			if (chosen.isMajor) major++;
-			lines.push(`  ${entry.catalog} › ${entry.pkg}  ${entry.currentRange} → ${chosen.range}`);
+			lines.push({
+				indent: 0,
+				gutter: "~",
+				segments: [
+					{ text: `${entry.catalog} › ${entry.pkg}  ${entry.currentRange} → ${chosen.range}`, style: "changed" },
+				],
+			});
 			if (entry.peer && chosen.peerRange && chosen.peerRange !== entry.peer.value) {
-				lines.push(`    ↳ peer  ${entry.peer.value} → ${chosen.peerRange}`);
+				lines.push({
+					indent: 1,
+					gutter: "~",
+					segments: [{ text: `↳ peer  ${entry.peer.value} → ${chosen.peerRange}`, style: "changed" }],
+				});
 			} else if (!entry.peer && entry.strategy && chosen.peerRange) {
-				lines.push(`    ↳ peer (new)  → ${chosen.peerRange}`);
+				lines.push({
+					indent: 1,
+					gutter: "+",
+					segments: [{ text: `↳ peer (new)  → ${chosen.peerRange}`, style: "added" }],
+				});
 				materialize++;
 			}
 		} else if (entry.peer && item.driftPeer) {
 			resync++;
-			lines.push(`  ${entry.catalog} › ${entry.pkg}  (resync peer)`);
-			lines.push(`    ↳ peer  ${entry.peer.value} → ${item.driftPeer}`);
+			lines.push({
+				indent: 0,
+				gutter: "~",
+				segments: [{ text: `${entry.catalog} › ${entry.pkg}  (resync peer)`, style: "changed" }],
+			});
+			lines.push({
+				indent: 1,
+				gutter: "~",
+				segments: [{ text: `↳ peer  ${entry.peer.value} → ${item.driftPeer}`, style: "changed" }],
+			});
 		} else if (!entry.peer && item.materializePeer) {
 			materialize++;
-			lines.push(`  ${entry.catalog} › ${entry.pkg}  (materialize peer)`);
-			lines.push(`    ↳ peer (new)  → ${item.materializePeer}`);
+			lines.push({
+				indent: 0,
+				gutter: "+",
+				segments: [{ text: `${entry.catalog} › ${entry.pkg}  (materialize peer)`, style: "added" }],
+			});
+			lines.push({
+				indent: 1,
+				gutter: "+",
+				segments: [{ text: `↳ peer (new)  → ${item.materializePeer}`, style: "added" }],
+			});
 		} else {
 			upToDate++;
 		}
 	}
-	lines.push(
-		`${toUpdate} to update · ${major} major · ${resync} resync · ${materialize} new peer · ${upToDate} up to date`,
-	);
+	lines.push({
+		indent: 0,
+		gutter: " ",
+		segments: [
+			{
+				text: `${toUpdate} to update · ${major} major · ${resync} resync · ${materialize} new peer · ${upToDate} up to date`,
+				style: "unchanged",
+			},
+		],
+	});
 	if (interop) {
 		for (const a of interop.adjustments) {
-			lines.push(`  ↓ ${a.pkg}  ${a.from} → ${a.to}`);
-			lines.push(`    ↳ peer  → ${a.peer}`);
+			lines.push({ indent: 0, gutter: "~", segments: [{ text: `↓ ${a.pkg}  ${a.from} → ${a.to}`, style: "changed" }] });
+			lines.push({ indent: 1, gutter: "~", segments: [{ text: `↳ peer  → ${a.peer}`, style: "changed" }] });
 		}
 		for (const c of interop.conflicts) {
-			lines.push(`  ⚠ ${c.pkg} (kept ${c.ceiling}) blocked by ${c.blockedBy}`);
+			lines.push({
+				indent: 0,
+				gutter: "⚠",
+				segments: [{ text: `${c.pkg} (kept ${c.ceiling}) blocked by ${c.blockedBy}`, style: "warn" }],
+			});
 		}
 	}
-	return lines.join("\n");
+	return lines;
+}
+
+/**
+ * Render the summary to a string. Color defaults off so non-TTY/test callers
+ * get clean text; the upgrade command passes the detected color flag.
+ *
+ * @internal
+ */
+export function renderSummary(
+	decisions: readonly Decision[],
+	interop?: InteropSummary,
+	opts?: { color?: boolean },
+): string {
+	return toAnsi(summaryLines(decisions, interop), { color: opts?.color ?? false });
 }

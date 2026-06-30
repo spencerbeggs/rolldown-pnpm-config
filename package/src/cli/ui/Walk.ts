@@ -58,14 +58,12 @@ export function Walk({ items, onDone }: WalkProps): ReactElement {
 	const header = createElement(Text, null, headerText);
 
 	const candidateRows = item.candidates.map((c, i) => {
-		const label = c.kind === "keep" ? `keep ${c.range}` : `${c.range}   ${c.kind}${c.isMajor ? "  ⚠ major" : ""}`;
-
-		const cursor = i === state.cursor ? "❯ " : "  ";
-		// Omit `color` entirely when not selected: exactOptionalPropertyTypes
-		// forbids passing `undefined` to Ink's optional `color` prop.
-		const colorProps = i === state.cursor ? ({ color: "cyan" } as const) : {};
-
-		return createElement(Text, { key: c.kind, ...colorProps }, `${cursor}${label}`);
+		const selected = i === state.cursor;
+		const cursor = selected ? "❯ " : "  ";
+		const base = c.kind === "keep" ? `keep ${c.range}` : `${c.range}   ${c.kind}`;
+		const colorProps = selected ? ({ color: "cyan" } as const) : c.isMajor ? ({ color: "yellow" } as const) : {};
+		const text = c.kind === "keep" ? `${cursor}${base}` : `${cursor}${base}${c.isMajor ? "  ⚠ major" : ""}`;
+		return createElement(Text, { key: c.kind, ...colorProps }, text);
 	});
 
 	return createElement(Box, { flexDirection: "column" }, header, ...candidateRows);

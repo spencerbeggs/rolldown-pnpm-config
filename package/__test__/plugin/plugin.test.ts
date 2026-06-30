@@ -4,6 +4,7 @@ import type { PluginConfig } from "../../src/index.js";
 import { PnpmConfigPlugin, createPnpmConfigPlugin } from "../../src/plugin/index.js";
 
 const config = {
+	name: "@test/cfg",
 	catalogs: { silk: { packages: { a: { range: "^1.0.0", peer: "^1.0.0" } } } },
 } satisfies PluginConfig;
 
@@ -36,6 +37,7 @@ describe("PnpmConfigPlugin", () => {
 		// Spy returns a fixed frozen value regardless of which config is passed.
 		const freezeSpy = vi.fn((_c: PluginConfig) =>
 			Effect.succeed({
+				name: "@test/cfg",
 				base: { catalogs: { silk: { a: "^1.0.0" }, silkPeers: { a: "^1.0.0" } } },
 				manifest: { catalogs: { strategy: "catalogs", enforcement: "warn" as const } },
 			}),

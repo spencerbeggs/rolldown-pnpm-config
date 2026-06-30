@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { findWorkspaceFile, parseWorkspace, renderWorkspace } from "../../src/cli/workspace-file.js";
+import { canonicalize, findWorkspaceFile, parseWorkspace, renderWorkspace } from "../../src/cli/workspace-file.js";
 
 describe("workspace-file", () => {
 	it("walks up to find pnpm-workspace.yaml", () => {
@@ -20,5 +20,20 @@ describe("workspace-file", () => {
 		const once = renderWorkspace(parsed);
 		expect(renderWorkspace(parseWorkspace(once))).toBe(once); // idempotent
 		expect(parseWorkspace("")).toEqual({});
+	});
+});
+
+describe("canonicalize", () => {
+	it("sorts primitive arrays lexicographically", () => {
+		expect(canonicalize({ a: ["swc", "esbuild", "sharp"] })).toEqual({ a: ["esbuild", "sharp", "swc"] });
+	});
+
+	it("preserves arrays that contain objects", () => {
+		const v = { a: [{ x: 2 }, { x: 1 }] };
+		expect(canonicalize(v)).toEqual({ a: [{ x: 2 }, { x: 1 }] });
+	});
+
+	it("alpha-sorts object keys recursively", () => {
+		expect(Object.keys(canonicalize({ b: 1, a: { d: 1, c: 2 } }) as Record<string, unknown>)).toEqual(["a", "b"]);
 	});
 });

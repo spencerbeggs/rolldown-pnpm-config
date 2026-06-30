@@ -4,13 +4,17 @@ import { freeze } from "../../src/plugin/freeze.js";
 
 describe("freeze", () => {
 	it("produces base + manifest from a valid config", async () => {
-		const out = await Effect.runPromise(freeze({ catalogs: { silk: { packages: { a: "1.0.0" } } } }));
+		const out = await Effect.runPromise(
+			freeze({ name: "@test/cfg", catalogs: { silk: { packages: { a: "1.0.0" } } } }),
+		);
 		expect(out.base.catalogs).toEqual({ silk: { a: "1.0.0" } });
 		expect(out.manifest.catalogs).toEqual({ strategy: "catalogs", enforcement: "warn" });
 	});
 
 	it("fails with ConfigError when catalogs are malformed", async () => {
-		const bad = { catalogs: { silk: { packages: { a: 123 } } } } as unknown as Parameters<typeof freeze>[0];
+		const bad = { name: "@test/cfg", catalogs: { silk: { packages: { a: 123 } } } } as unknown as Parameters<
+			typeof freeze
+		>[0];
 		const exit = await Effect.runPromiseExit(freeze(bad));
 		expect(Exit.isFailure(exit)).toBe(true);
 		if (Exit.isFailure(exit)) {
@@ -22,6 +26,7 @@ describe("freeze", () => {
 	it("validates + freezes every declared field with its strategy and enforcement", async () => {
 		const out = await Effect.runPromise(
 			freeze({
+				name: "@test/cfg",
 				catalogs: { silk: { packages: { a: "1.0.0" } } },
 				overrides: { "tar@<1": ">=1" },
 				strictDepBuilds: true,
@@ -48,6 +53,7 @@ describe("freeze", () => {
 	it("treats a record field containing a `value` key as data, not the wrapped form", async () => {
 		const out = await Effect.runPromise(
 			freeze({
+				name: "@test/cfg",
 				catalogs: { silk: { packages: { a: "1.0.0" } } },
 				overrides: { value: ">=1", lodash: ">=4" },
 			}),
@@ -58,6 +64,7 @@ describe("freeze", () => {
 
 	it("fails with ConfigError naming the field when a field's value shape is wrong", async () => {
 		const bad = {
+			name: "@test/cfg",
 			catalogs: { silk: { packages: { a: "1.0.0" } } },
 			minimumReleaseAge: "soon" as unknown as number,
 		};
@@ -71,9 +78,25 @@ describe("freeze", () => {
 	it("freezes a materialized peer catalog verbatim", async () => {
 		const { base } = await Effect.runPromise(
 			freeze({
+				name: "@test/cfg",
 				catalogs: { silk: { packages: { vitest: { range: "^4.2.3", peer: "^4.2.0", strategy: "lock-minor" } } } },
 			}),
 		);
 		expect(base.catalogs).toEqual({ silk: { vitest: "^4.2.3" }, silkPeers: { vitest: "^4.2.0" } });
+	});
+
+	it("returns the provided name", async () => {
+		const cfg = { name: "@acme/cfg", catalogs: {} } as unknown as Parameters<typeof freeze>[0];
+		const out = await Effect.runPromise(freeze(cfg));
+		expect(out.name).toBe("@acme/cfg");
+		expect("name" in out.base).toBe(false);
+		expect("name" in out.manifest).toBe(false);
+	});
+
+	it("fails when name is missing or empty", async () => {
+		const missing = { catalogs: {} } as unknown as Parameters<typeof freeze>[0];
+		const empty = { name: "  ", catalogs: {} } as unknown as Parameters<typeof freeze>[0];
+		expect(await Effect.runPromiseExit(freeze(missing)).then((e) => e._tag)).toBe("Failure");
+		expect(await Effect.runPromiseExit(freeze(empty)).then((e) => e._tag)).toBe("Failure");
 	});
 });

@@ -15,21 +15,20 @@ export interface PnpmConfig {
  * @public
  */
 export interface PnpmHooks {
-	/** Merges the frozen, Silk-managed config into the consumer's pnpm config. */
+	/** Merges the frozen, managed config into the consumer's pnpm config. */
 	updateConfig(config: PnpmConfig): PnpmConfig;
 }
 
 /**
- * A single detected difference between the Silk-managed value and the
- * consumer's local value, classified as either an override or a security
- * loosening.
+ * A single detected difference between the managed value and the consumer's
+ * local value, classified as either an override or a security loosening.
  *
  * @internal
  */
 export interface Divergence {
 	readonly setting: string;
-	readonly silkValue: string;
-	readonly childValue: string;
+	readonly managedValue: string;
+	readonly localValue: string;
 	readonly detail: string;
 	readonly kind: "override" | "security";
 }
@@ -55,7 +54,7 @@ export interface StrategyResult {
 }
 
 /**
- * A pure merge function for one field: combine the Silk base with the local
+ * A pure merge function for one field: combine the managed base with the local
  * value, reporting any divergences.
  *
  * @internal

@@ -10,8 +10,8 @@ describe("catalogs override detection", () => {
 		expect(r.divergences).toHaveLength(1);
 		expect(r.divergences[0]).toMatchObject({
 			setting: "catalogs.silk.a",
-			silkValue: "1.0.0",
-			childValue: "2.0.0",
+			managedValue: "1.0.0",
+			localValue: "2.0.0",
 			kind: "override",
 		});
 	});

@@ -5,7 +5,7 @@ import type { PnpmConfig, RuntimeCtx } from "./types.js";
 /**
  * Resolve the consuming repo's root package name. Prefers pnpm's
  * `rootProjectManifest.name`, falling back to reading `package.json` from the
- * workspace/lockfile dir. Ports Silk `resolveRootName`.
+ * workspace/lockfile dir.
  *
  * @internal
  */
@@ -29,8 +29,11 @@ export function resolveRootName(config: PnpmConfig): string | undefined {
 
 /**
  * Drop packages assigned to the consuming repo from a merged hoist list.
- * Data-driven port of Silk's `WORKSPACE_LOCAL_HOISTS_BY_REPO` exclusion.
+ * Drop packages listed in the per-repo exclusion table (`byRepo`).
  *
+ * @param merged - The full merged hoist-pattern list before repo-specific exclusions.
+ * @param ctx - Runtime context; `ctx.rootName` is the consuming repo's root `package.json` `name`.
+ * @param byRepo Keyed by consuming-repo package.json name; value = hoist patterns dropped in that repo.
  * @internal
  */
 export function excludeByRepo(merged: string[], ctx: RuntimeCtx, byRepo: Record<string, string[]>): string[] {

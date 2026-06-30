@@ -20,6 +20,7 @@ import { writeTmpConfig } from "./utils/tmp-config.js";
 
 const SOURCE = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
 export const plugin = PnpmConfigPlugin({
+ name: "@test/cfg",
  catalogs: { silk: { packages: {
   typescript: "^5.9.0",
   vitest: { range: "^4.0.0", peer: "^4.0.0", strategy: "lock-minor" },
@@ -29,6 +30,7 @@ export const plugin = PnpmConfigPlugin({
 
 const DRIFT_SOURCE = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
 export const plugin = PnpmConfigPlugin({
+ name: "@test/cfg",
  catalogs: { silk: { packages: {
   vitest: { range: "^4.2.3", peer: "^4.1.0", strategy: "lock-minor" },
  } } },
@@ -69,6 +71,7 @@ describe("interactive apply (headless)", () => {
 	it("materializes a new peer literal when strategy is set but no peer exists", async () => {
 		const SOURCE = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
 export const plugin = PnpmConfigPlugin({
+ name: "@test/cfg",
  catalogs: { silk: { packages: {
   typescript: { range: "^5.9.0", strategy: "lock-minor" },
  } } },
@@ -126,6 +129,7 @@ describe("runUpgrade --yes path", () => {
 	it("resyncs a drifted existing peer under --yes when already at newest", async () => {
 		const SOURCE = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
 export const plugin = PnpmConfigPlugin({
+	name: "@test/cfg",
 	catalogs: { silk: { packages: {
 		vitest: { range: "^4.2.3", peer: "^4.1.0", strategy: "lock-minor" },
 	} } },
@@ -143,6 +147,7 @@ export const plugin = PnpmConfigPlugin({
 	it("materializes a peer under --yes even when the package is already at its newest version", async () => {
 		const SOURCE = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
 export const plugin = PnpmConfigPlugin({
+ name: "@test/cfg",
  catalogs: { silk: { packages: {
   typescript: { range: "^5.9.0", strategy: "lock-minor" },
  } } },
@@ -160,7 +165,7 @@ export const plugin = PnpmConfigPlugin({
 
 describe("interactive interop apply (headless)", () => {
 	const INTEROP_SOURCE = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
-export const plugin = PnpmConfigPlugin({ catalogs: { effect: { packages: {
+export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: { effect: { packages: {
  effect: { range: "^3.17.0", strategy: "interop" },
  "@effect/cli": { range: "^0.71.0", strategy: "interop" },
 } } } });
@@ -221,7 +226,7 @@ export const plugin = PnpmConfigPlugin({ catalogs: { effect: { packages: {
 
 	it("combines non-interop decision edits with interop edits without overlap", async () => {
 		const MIXED_SOURCE = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
-export const plugin = PnpmConfigPlugin({ catalogs: {
+export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: {
  silk: { packages: { typescript: "^5.9.0" } },
  effect: { packages: {
   effect: { range: "^3.17.0", strategy: "interop" },
@@ -346,7 +351,7 @@ describe("resolveTargetFile autodetect", () => {
 		const dir = mkdtempSync(join(tmpdir(), "rpc-auto-"));
 		writeFileSync(
 			join(dir, "savvy.build.ts"),
-			`import { PnpmConfigPlugin } from "rolldown-pnpm-config";\nexport const p = PnpmConfigPlugin({ catalogs: { silk: { packages: { typescript: "^5.9.0" } } } });\n`,
+			`import { PnpmConfigPlugin } from "rolldown-pnpm-config";\nexport const p = PnpmConfigPlugin({ name: "@test/cfg", catalogs: { silk: { packages: { typescript: "^5.9.0" } } } });\n`,
 			"utf8",
 		);
 		const prev = process.cwd();

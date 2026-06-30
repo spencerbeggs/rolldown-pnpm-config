@@ -1,6 +1,7 @@
 import { PnpmConfigPlugin } from "rolldown-pnpm-config";
 
 export const plugin = PnpmConfigPlugin({
+ name: "@test/cfg",
  catalogs: {
   silk: {
    packages: {

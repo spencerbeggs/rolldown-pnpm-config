@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createHooks } from "../../src/runtime/index.js";
 
 const base = {
-	catalogs: { silk: { typescript: "^5.9.0" } },
+	catalogs: { default: { typescript: "^5.9.0" } },
 	overrides: { "tar@<1": ">=1" },
 	strictDepBuilds: true,
 	minimumReleaseAge: 1440,
@@ -23,18 +23,20 @@ afterEach(() => vi.restoreAllMocks());
 describe("createHooks full integration", () => {
 	it("merges all fields, child-wins, and warns on override + security loosening", () => {
 		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-		const out = createHooks(base, manifest).updateConfig({
-			catalogs: { silk: { typescript: "5.0.0" } },
+		const out = createHooks(base, manifest, "@acme/cfg").updateConfig({
+			catalogs: { default: { typescript: "5.0.0" } },
 			strictDepBuilds: false,
 			publicHoistPattern: ["lodash"],
 		});
-		expect(out.catalogs).toEqual({ silk: { typescript: "5.0.0" } });
+		expect(out.catalogs).toEqual({ default: { typescript: "5.0.0" } });
 		expect(out.strictDepBuilds).toBe(false);
 		expect(out.publicHoistPattern).toEqual(["@types/*", "lodash"]);
 		expect(out.confirmModulesPurge).toBe(true);
 		const printed = warn.mock.calls.map((c) => String(c[0])).join("\n");
-		expect(printed).toContain("SILK CATALOG OVERRIDE DETECTED");
-		expect(printed).toContain("SILK SECURITY OVERRIDE DETECTED");
+		expect(printed).toContain("[@acme/cfg]");
+		expect(printed).toContain("CATALOG OVERRIDE DETECTED");
+		expect(printed).toContain("SECURITY OVERRIDE DETECTED");
 		expect(printed).toContain("strictDepBuilds");
+		expect(printed.toLowerCase()).not.toContain("silk");
 	});
 });

@@ -29,7 +29,7 @@ describe("pickConfigCandidate", () => {
 });
 
 const CONFIG = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
-export const plugin = PnpmConfigPlugin({ catalogs: { silk: { packages: { typescript: "^5.9.0" } } } });
+export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: { silk: { packages: { typescript: "^5.9.0" } } } });
 `;
 
 describe("findConfigFiles", () => {
