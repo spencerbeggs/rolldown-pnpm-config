@@ -1,5 +1,6 @@
 # rolldown-pnpm-config
 
+[![npm](https://img.shields.io/npm/v/rolldown-pnpm-config?label=npm&color=cb3837)](https://www.npmjs.com/package/rolldown-pnpm-config)
 [![License: MIT](https://img.shields.io/badge/License-MIT-4caf50.svg)](https://opensource.org/licenses/MIT)
 [![Node.js %3E%3D24.11.0](https://img.shields.io/badge/Node.js-%3E%3D24.11.0-5fa04e.svg)](https://nodejs.org/)
 
@@ -19,12 +20,13 @@ The build runs on Node.js. The emitted `pnpmfile.mjs` targets pnpm 11 in the con
 
 A vanilla rolldown setup is three files: the config you author, a build entry that re-exports the runtime hooks and a rolldown config that runs the plugin.
 
-Author your catalogs and pnpm settings as a plain `PluginConfig` object:
+Author your catalogs and pnpm settings as a plain `PluginConfig` object. The `name` field is required — use the npm name of the config package itself; it tags runtime warnings as `[<name>]` so consuming repos know which config dependency is speaking:
 
 ```ts
 import type { PluginConfig } from "rolldown-pnpm-config";
 
 export const plugin = {
+  name: "@acme/pnpm-config",
   catalogs: {
     default: { packages: { typescript: "^5.9.0", vitest: "^4.0.0" } },
   },
@@ -79,11 +81,37 @@ npx rolldown-pnpm-config upgrade
 # Applied <n> change(s).
 ```
 
-The walk is interactive by default. `--yes` takes the latest in-range version without prompting, `--dry-run` previews the changes and `--catalog <name>` restricts the walk to one catalog. For packages that declare a `strategy`, the command also resyncs their materialized peer range. See [upgrading catalogs](https://github.com/spencerbeggs/rolldown-pnpm-config/blob/main/docs/05-upgrading-catalogs.md) for the full surface.
+The walk is interactive by default. `--yes` takes the latest in-range version without prompting, `--dry-run` prints the planned changes without writing and `--catalog <name>` restricts the walk to one catalog. Pass `--preview` for a non-interactive projection of what the walk would do, with `--full` to show the full tree without context collapsing. The output is colorized in a supporting terminal. For packages that declare a `strategy`, the command also resyncs their materialized peer range. See [upgrading catalogs](https://github.com/spencerbeggs/rolldown-pnpm-config/blob/main/docs/05-upgrading-catalogs.md) for the full surface.
 
-For repos that develop the plugin itself and cannot consume it as a config dependency, use `rolldown-pnpm-config export` to materialize the managed config directly into `pnpm-workspace.yaml`. The command preserves unknown keys and local-only catalogs; the `local` key on `PnpmConfigPlugin` can override settings for this export. Pass `--preview` to print the result without writing to disk.
+## Exporting to pnpm-workspace.yaml
 
-The export command normalizes pnpm-workspace.yaml — it parses, sorts, and re-emits the whole file, so comments are not preserved. It is plugin-authoritative for the fields and catalogs the plugin manages: a catalog the plugin declares will be written as-is, and a catalog the plugin no longer declares is left alone (not deleted). Use `--preview` to review the output before committing the change.
+For repos that develop the plugin itself and cannot consume it as a config dependency, `rolldown-pnpm-config export` materializes the managed config directly into `pnpm-workspace.yaml`. Pass `--dry-run` to print a colored canonical diff without writing; add `--full` to emit the entire tree rather than changed lines with context. `file:`, `link:`, `workspace:` and `portal:` overrides already present in the file are preserved by default on every run.
+
+The `rolldown-pnpm-config preview` command opens an interactive tabbed view — Changes, Full and Simulated — without writing anything. In a non-interactive terminal it falls back to printing the Changes diff, so it is safe to run in CI.
+
+The optional `local` field on `PluginConfig` adjusts managed settings for this repo's export only — the built pnpmfile and its runtime behavior are unaffected. A bare value overwrites the managed value; the directive form merges it:
+
+```ts
+local: {
+  // union: add local patterns on top of the managed list
+  publicHoistPattern: { strategy: "union", value: ["@acme/*"] },
+  // difference: drop one managed override entry
+  overrides: { strategy: "difference", value: { "lodash@<4.17.21": ">=4.17.21" } },
+  // bare value: overwrite the managed field entirely
+  strictDepBuilds: false,
+},
+```
+
+`publicHoistPattern` also accepts `excludeByRepo` — a map keyed by consuming repo name — to drop specific patterns when the config runs in a named repo:
+
+```ts
+publicHoistPattern: {
+  value: ["@types/*", "@acme/cli"],
+  excludeByRepo: { "consumer-a": ["@acme/cli"] },
+}
+```
+
+See [exporting to pnpm-workspace.yaml](https://github.com/spencerbeggs/rolldown-pnpm-config/blob/main/docs/06-exporting.md) for the full surface.
 
 ## Documentation
 
@@ -92,6 +120,7 @@ The export command normalizes pnpm-workspace.yaml — it parses, sorts, and re-e
 - [Concepts](https://github.com/spencerbeggs/rolldown-pnpm-config/blob/main/docs/03-concepts.md) — What the emitted pnpmfile does: config dependencies, catalogs and the enforcement model.
 - [pnpm settings coverage](https://github.com/spencerbeggs/rolldown-pnpm-config/blob/main/docs/04-pnpm-settings-coverage.md) — Every pnpm-workspace.yaml setting the plugin manages and the ones it leaves to each consumer.
 - [Upgrading catalogs](https://github.com/spencerbeggs/rolldown-pnpm-config/blob/main/docs/05-upgrading-catalogs.md) — The `upgrade` CLI that rewrites catalog version ranges in place.
+- [Exporting to pnpm-workspace.yaml](https://github.com/spencerbeggs/rolldown-pnpm-config/blob/main/docs/06-exporting.md) — The `export` and `preview` CLI, the `local` merge directive and per-repo `excludeByRepo` filtering.
 
 ## License
 

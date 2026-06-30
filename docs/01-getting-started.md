@@ -24,6 +24,7 @@ Declare your catalogs and pnpm settings as a plain `PluginConfig` object.
 import type { PluginConfig } from "rolldown-pnpm-config";
 
 export const plugin = {
+  name: "@acme/pnpm-config",
   catalogs: {
     default: { packages: { typescript: "^5.9.0", vitest: "^4.0.0" } },
   },
@@ -36,7 +37,7 @@ export const plugin = {
 } satisfies PluginConfig;
 ```
 
-Each key is a pnpm field the plugin knows how to manage. A field can be a bare value or a `{ value, enforcement }` pair when you want to override the default enforcement for that one field — `minimumReleaseAge` above warns rather than failing on divergence. See [concepts](./03-concepts.md) for the catalog and enforcement model.
+The `name` field is required — use the npm name of the config package itself. It tags runtime warnings as `[<name>]` so consuming repos know which config dependency is speaking. Each other key is a pnpm field the plugin knows how to manage. A field can be a bare value or a `{ value, enforcement }` pair when you want to override the default enforcement for that one field — `minimumReleaseAge` above warns rather than failing on divergence. See [concepts](./03-concepts.md) for the catalog and enforcement model.
 
 ### 2. The build entry
 

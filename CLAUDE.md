@@ -17,8 +17,9 @@ The design documentation system is available via Claude Code skills and agents.
 Architecture lives in `.claude/design/rolldown-pnpm-config/`. Load these when the task touches the area they cover; do not load them by default.
 
 - Current-state architecture → `@./.claude/design/rolldown-pnpm-config/architecture.md`. Load when: working on the engine in `package/src/**`, the consolidated `PnpmConfigPlugin({...})` authoring API, the descriptor table in `package/src/descriptors/` as the single source of truth, the derived strategies/registry/freeze/createHooks contract, or the compile-time `PluginConfig` drift guard.
-- upgrade CLI → `@./.claude/design/rolldown-pnpm-config/upgrade-cli.md`. Load when: working on the `rolldown-pnpm-config upgrade` command under `package/src/cli/` — the discover → resolve → plan → rewrite pipeline, the interactive Ink walk, the `--yes`/`--dry-run`/`--catalog` flags, peer recompute/drift-resync/materialize, or config autodetect.
+- upgrade CLI → `@./.claude/design/rolldown-pnpm-config/upgrade-cli.md`. Load when: working on the `rolldown-pnpm-config upgrade` command under `package/src/cli/` — the discover → resolve → plan → rewrite pipeline, the interactive Ink walk, the `--yes`/`--dry-run`/`--catalog`/`--preview`/`--full` flags, peer recompute/drift-resync/materialize, or config autodetect.
 - pnpm settings coverage matrix → `@./.claude/design/rolldown-pnpm-config/settings-coverage.md`. Load when: adding or auditing managed pnpm fields, editing the descriptor table in `package/src/descriptors/`, or checking which of the 121 fields (and the not-covered ones) the plugin handles.
+- export/preview CLI → `@./.claude/design/rolldown-pnpm-config/export-cli.md`. Load when: working on the `rolldown-pnpm-config export` or `preview` commands under `package/src/cli/commands/`, the shared diff/render layer (`cli/ui/styled`, `cli/ui/ansi`, `cli/ui/env`, `cli/diff/`), local merge directives (`LocalDirective`, `excludeByRepo`, override preservation), or the preview views (Changes/Full/Simulated).
 
 ## Getting Started (After Cloning This Template)
 

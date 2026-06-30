@@ -3,12 +3,13 @@ status: current
 module: rolldown-pnpm-config
 category: architecture
 created: 2026-06-25
-updated: 2026-06-28
-last-synced: 2026-06-28
-completeness: 92
+updated: 2026-06-29
+last-synced: 2026-06-29
+completeness: 95
 related:
   - settings-coverage.md
   - upgrade-cli.md
+  - export-cli.md
   - specs/2026-06-26-pnpm-settings-coverage-design.md
 dependencies: []
 ---
@@ -50,19 +51,21 @@ The build-to-runtime pipeline has three stages, each on one side of the build / 
 
 Authoring API (`@public`, build time): authors call `PnpmConfigPlugin({...})` to declare catalogs plus the managed pnpm fields in one canonical, statically analyzable call. Catalogs are inline — `catalogs: { <name>: { packages: { <pkg>: range | { range, peer?, strategy? } } } }`, keyed by catalog name. The `PluginConfig` shape is a hand-authored interface (one `FieldInput<T>` per field, for rich per-field JSDoc and DX), kept in lockstep with the descriptor table by the compile-time drift guard described below. `defineCatalogs` and `definePlugin` were removed; the catalog types and a pure `normalizeCatalogs` now live in `package/src/catalogs.ts`, and the `PluginConfig`/`FieldInput` types in `package/src/define-plugin.ts`.
 
-Build step (`freeze`, the only place Effect runs, `@internal`): `freeze` validates each declared field against its descriptor-derived Schema and emits two plain-data structures — `base` (field to frozen value) and `manifest` (field to `{ strategy, enforcement, options? }`). Invalid config surfaces as a typed `ConfigError`. The schema map (`FIELD_SCHEMAS`) is derived from `DESCRIPTORS`; `catalogs` is special-cased — `freeze` runs `normalizeCatalogs(config.catalogs)` to resolve the inline declarations (including any materialized `<name>Peers` catalogs) before validating. See `package/src/plugin/freeze.ts` and `package/src/catalogs.ts`.
+Build step (`freeze`, the only place Effect runs, `@internal`): `freeze` first validates `config.name` — a missing or empty `name` is a `ConfigError`. It then validates each declared field against its descriptor-derived Schema and emits three plain-data values — `base` (field to frozen value), `manifest` (field to `{ strategy, enforcement, options? }`) and `name` (the validated string). The schema map (`FIELD_SCHEMAS`) is derived from `DESCRIPTORS`; `catalogs` is special-cased — `freeze` runs `normalizeCatalogs(config.catalogs)` to resolve the inline declarations (including any materialized `<name>Peers` catalogs) before validating. See `package/src/plugin/freeze.ts` and `package/src/catalogs.ts`.
 
-Runtime (`createHooks`, zero-dependency, `@public`): `createHooks(base, manifest)` returns `{ updateConfig }`. It builds the strategy table, runs each field's strategy, applies the field's enforcement, prints the warning boxes and returns the merged config. See `package/src/runtime/index.ts`.
+Runtime (`createHooks`, zero-dependency, `@public`): `createHooks(base, manifest, name)` returns `{ updateConfig }`. It builds the strategy table, runs each field's strategy, applies the field's enforcement, prints the warning boxes — each tagged `[<name>]` on the first line — and returns the merged config. See `package/src/runtime/index.ts`.
 
 ### Load-bearing field shapes
 
+`PluginConfig.name` is a required top-level string — plugin metadata, never written to `pnpm-workspace.yaml` and not a descriptor field. `freeze` validates it (non-empty) and returns it alongside `base` and `manifest`; `serialize.ts` bakes it into the pnpmfile virtual module as the third argument to `createHooks`. This is a breaking change on `createHooks` for any external caller.
+
 `FieldInput<T>` is either a bare `T` or `{ value, enforcement }`, letting an author override the default enforcement per field. `publicHoistPattern` additionally accepts `{ value, excludeByRepo }`. Both live in `package/src/define-plugin.ts`.
 
-`Enforcement` is `absent | warn | error` and a `Divergence` carries `kind: "override" | "security"`. Both are defined in `package/src/runtime/types.ts` and are the stable contract every strategy and the enforcement step share.
+`Enforcement` is `absent | warn | error` and a `Divergence` carries `kind: "override" | "security"`, `managedValue` (the plugin's intended value) and `localValue` (what the consuming repo has). All are defined in `package/src/runtime/types.ts` and are the stable contract every strategy and the enforcement step share.
 
 ### Public API boundary
 
-The build-time authoring surface plus the runtime entry are `@public`; everything else — the strategies, the descriptor table, the derived field registry, `freeze`, `ConfigError`, the warning-box formatters and the ctx helpers — is `@internal`. The exact `@public` set is the export list of `package/src/index.ts` and the runtime types in `package/src/runtime/types.ts`; treat changes to either as API-surface changes.
+The build-time authoring surface plus the runtime entry are `@public`; everything else — the strategies, the descriptor table, the derived field registry, `freeze`, `ConfigError`, the warning-box formatters and the ctx helpers — is `@internal`. The exact `@public` set is the export list of `package/src/index.ts` and the runtime types in `package/src/runtime/types.ts`; treat changes to either as API-surface changes. `createHooks` is `@public` and now has a required third `name: string` parameter — this is a breaking change for any direct consumer of the runtime entry.
 
 ## Rationale
 
@@ -102,17 +105,17 @@ The build step ships as `PnpmConfigPlugin`, a standard tsdown/rolldown plugin, s
 
 `PnpmConfigPlugin(config)` is constructed with the inline `PluginConfig` object and serves two virtual modules. The Effect `freeze` runs once and is memoized on the plugin closure, because the bundler invokes the plugin across several passes and the validate-freeze-manifest work must not repeat. See `package/src/plugin/index.ts`.
 
-The pnpmfile virtual module is `import { createHooks }` plus deterministically key-sorted `base` and `manifest` literals; the catalogs virtual module is a standalone sorted `Map` literal for programmatic catalog reads. Both are produced by `package/src/plugin/serialize.ts`, whose recursive `sortKeys` keeps emitted artifacts diff-stable.
+The pnpmfile virtual module is `import { createHooks }` plus deterministically key-sorted `base` and `manifest` literals and the `name` string literal as the third argument; the catalogs virtual module is a standalone sorted `Map` literal for programmatic catalog reads. Both are produced by `package/src/plugin/serialize.ts`, whose recursive `sortKeys` keeps emitted artifacts diff-stable.
 
 At install time `createHooks` builds the strategy table from the manifest, resolves the per-install `ctx` once, then for each manifest field runs its strategy, applies any data-driven refine to the merged value, applies enforcement, and accumulates divergences for the two warning boxes before returning the merged config.
 
 ## Data flow
 
-Build time: the inline `PluginConfig` flows into `freeze`, which normalizes the catalogs, validates per field and emits `{ base, manifest }`; `PnpmConfigPlugin` serializes that into the two virtual modules the bundler emits as the pnpmfile and the catalogs module.
+Build time: the inline `PluginConfig` flows into `freeze`, which normalizes the catalogs, validates `name` and each field, and emits `{ base, manifest, name }`; `PnpmConfigPlugin` serializes that into the two virtual modules the bundler emits as the pnpmfile and the catalogs module.
 
-Install time: pnpm calls `updateConfig(localConfig)`; for each field the runtime merges `base[field]` with `localConfig[field]` via the named strategy, refines and enforces the result, and writes it into the merged config only when it carries content. The merged config crosses back to pnpm; divergence warnings go to the console.
+Install time: pnpm calls `updateConfig(localConfig)`; for each field the runtime merges `base[field]` with `localConfig[field]` via the named strategy, refines and enforces the result, and writes it into the merged config only when it carries content. The merged config crosses back to pnpm; divergence warnings — tagged `[<name>]` — go to the console.
 
-The boundary that must stay stable is the `{ base, manifest }` contract — it is the only thing crossing from build time into the bundled runtime, and both sides are typed by `Base` and `Manifest` in `package/src/runtime/types.ts`.
+The boundary that must stay stable is the `{ base, manifest, name }` contract — it is the only thing crossing from build time into the bundled runtime, and the data shapes are typed by `Base`, `Manifest` and the literal `name: string` in `package/src/runtime/index.ts`.
 
 ## Integration points
 
@@ -132,15 +135,19 @@ Phase A (complete, on `feat/cli`): the three authoring entry points were collaps
 
 Phase B (complete, on `feat/cli`): the `upgrade` CLI that statically discovers, registry-resolves and surgically rewrites catalog version ranges in place, with interactive and non-interactive paths plus peer recompute, drift resync and materialization. Extended on `feat/peer-interop` with a third catalog peer strategy `interop` (a per-catalog group reconcile for packages that declare each other as peers) and a `minimumReleaseAge` gate on all version resolution. CLI-only: the engine is unchanged. Documented in [upgrade-cli.md](upgrade-cli.md).
 
+UI updates (complete, on `feat/ui-updates`): four related bodies of work. (1) `PluginConfig.name` became required — `freeze` validates it and returns it alongside `{ base, manifest }`; `createHooks` gains a required third `name` parameter and tags every warning box `[<name>]`. (2) All "silk" references removed from the runtime: `Divergence.silkValue`/`childValue` renamed to `managedValue`/`localValue`, warning copy and strategy internals de-silked. (3) A shared CLI diff/render layer (`cli/ui/styled.ts`, `cli/ui/ansi.ts`, `cli/ui/env.ts`, `cli/diff/`) makes `export --dry-run` and `upgrade --preview/--full` speak the same visual language; `upgrade` gains a non-TTY fallback that never hangs in CI. (4) `export` was restructured with a post-freeze local-merge pipeline — `LocalDirective` semantics, automatic `file:`/`link:`/`workspace:`/`portal:` override preservation, and `excludeByRepo` applied at export time — and a separate interactive `preview` command with `ink-tab` tabs over Changes/Full/Simulated views. Documented in [export-cli.md](export-cli.md).
+
 Pre-publish hardening (cross-cutting, before any release): ship library-owned ambient virtual-module types for external consumers, add real publish metadata and drop `private`, and widen peer ranges. The `interop` strategy gives authors a tool for the last item — deriving coherent group peer floors — though the package is currently `private` and intentionally pre-publish.
 
 ## Related documentation
 
 - [settings-coverage.md](settings-coverage.md) — the full enumerated 121-field coverage matrix (key, kind, strategy, enforcement, anchor) and the excluded-key classification.
 - [upgrade-cli.md](upgrade-cli.md) — the `upgrade` CLI that rewrites catalog version ranges in place.
+- [export-cli.md](export-cli.md) — the `export` and `preview` CLI commands, the shared diff/render layer and local merge semantics.
 - [the coverage design spec](specs/2026-06-26-pnpm-settings-coverage-design.md) — the rationale for the descriptor-table-as-single-source-of-truth design.
 - `package/src/descriptors/` — the descriptor table (single source of truth) and the `deriveSchemas`/`deriveRegistry` helpers.
-- `package/src/catalogs.ts` and `package/src/define-plugin.ts` — the inline catalog types plus `normalizeCatalogs`, and the hand-authored `PluginConfig`/`FieldInput`.
+- `package/src/catalogs.ts` and `package/src/define-plugin.ts` — the inline catalog types plus `normalizeCatalogs`, the hand-authored `PluginConfig`/`FieldInput` and the `LocalDirective` type.
 - `package/src/registry.ts` and `package/src/runtime/strategies/table.ts` — the derived field-to-strategy registry and the strategy table.
 - `package/src/runtime/index.ts` and `package/src/runtime/enforcement.ts` — the install-time merge and the enforcement contract.
+- `package/src/runtime/warnings.ts` and `package/src/runtime/types.ts` — the warning-box formatters (now `name`-tagged) and the `Divergence` type.
 - pnpm config dependencies: <https://pnpm.io/config-dependencies> and pnpmfile hooks: <https://pnpm.io/pnpmfile>.
