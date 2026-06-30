@@ -27,7 +27,7 @@ function uniform(
 		return { key, path: here, kind, ...(tag ? { tag } : {}), children };
 	}
 	if (Array.isArray(value)) {
-		const children = value.map((el) => uniform(String(el), here, el, kind));
+		const children = value.map((el) => ({ ...uniform(String(el), here, el, kind), arrayElement: true }) as DiffNode);
 		return { key, path: here, kind, ...(tag ? { tag } : {}), children };
 	}
 	return { key, path: here, kind, ...(tag ? { tag } : {}), ...side };
@@ -50,7 +50,7 @@ function diffArray(
 		const inA = a.has(el);
 		const kind: ChangeKind = inB && inA ? "unchanged" : inA ? "added" : "removed";
 		const side = inA ? { after: el } : { before: el };
-		return { key: el, path: [...here, el], kind, ...side };
+		return { key: el, path: [...here, el], kind, arrayElement: true, ...side };
 	});
 	return { key, path: here, kind: rollup(children), ...(tag ? { tag } : {}), children };
 }

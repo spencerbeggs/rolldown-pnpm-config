@@ -10,6 +10,8 @@ export interface DiffNode {
 	readonly before?: unknown;
 	readonly after?: unknown;
 	readonly children?: readonly DiffNode[];
+	/** True for leaves that are array elements (rendered as `- value`). */
+	readonly arrayElement?: true;
 }
 
 /** Classification metadata for the top-level keys. @internal */

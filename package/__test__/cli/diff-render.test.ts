@@ -11,6 +11,23 @@ const plain = (lines: ReturnType<typeof renderExportDiff>) =>
 	);
 
 describe("renderExportDiff", () => {
+	it("renders a record entry whose key equals its value as `key: value`, not an array element", () => {
+		// Regression: the old key==value heuristic mis-tagged this as an array element.
+		const m: DiffMeta = { localKeys: new Set(), managedKeys: new Set(["overrides"]) };
+		const root = buildDiff({}, { overrides: { auto: "auto" } }, m);
+		const out = plain(renderExportDiff(root, { full: true }));
+		expect(out).toContain("+   auto: auto");
+		expect(out).not.toContain("- auto");
+	});
+
+	it("renders array elements with a `- ` prefix", () => {
+		const m: DiffMeta = { localKeys: new Set(), managedKeys: new Set(["packages"]) };
+		const root = buildDiff({}, { packages: ["a/*", "b/*"] }, m);
+		const out = plain(renderExportDiff(root, { full: true }));
+		expect(out).toContain("+   - a/*");
+		expect(out).toContain("+   - b/*");
+	});
+
 	it("renders a changed scalar inline with a ~ gutter", () => {
 		const root = buildDiff({ catalogMode: "strict" }, { catalogMode: "manual" }, meta);
 		expect(plain(renderExportDiff(root, { full: true }))).toContain("~ catalogMode: strict → manual");

@@ -32,8 +32,8 @@ function flatten(node: DiffNode, depth: number): Flat[] {
 	const tag: DiffTag | undefined = node.tag;
 	const changed = node.kind !== "unchanged";
 
-	// Array element leaf: childless, and its key is the stringified element value.
-	const isArrayEl = !node.children && node.key === scalarText(node.after ?? node.before);
+	// Array element leaf: tagged by the diff builder (no key/value heuristic).
+	const isArrayEl = node.arrayElement === true;
 
 	if (node.children) {
 		const header: Segment[] = [{ text: `${node.key}:`, style }];
