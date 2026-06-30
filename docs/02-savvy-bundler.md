@@ -20,6 +20,7 @@ import type { PluginConfig } from "rolldown-pnpm-config";
 import { PnpmConfigPlugin } from "rolldown-pnpm-config";
 
 const plugin = {
+  name: "@acme/pnpm-config",
   catalogs: {
     silk: { packages: { typescript: "^5.9.0", vitest: "^4.0.0" } },
   },

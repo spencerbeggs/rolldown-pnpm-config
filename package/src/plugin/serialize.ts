@@ -28,12 +28,16 @@ export function emitCatalogsModule(catalogs: Record<string, Record<string, strin
 }
 
 /** Source for the `pnpmfile` virtual module: createHooks over base + manifest. */
-export function emitPnpmfileModule(base: Record<string, unknown>, manifest: Record<string, unknown>): string {
+export function emitPnpmfileModule(
+	base: Record<string, unknown>,
+	manifest: Record<string, unknown>,
+	name: string,
+): string {
 	const b = JSON.stringify(sortKeys(base));
 	const m = JSON.stringify(sortKeys(manifest));
 	return [
 		'import { createHooks } from "rolldown-pnpm-config/runtime";',
-		`export const hooks = createHooks(${b}, ${m});`,
+		`export const hooks = createHooks(${b}, ${m}, ${JSON.stringify(name)});`,
 		"",
 	].join("\n");
 }

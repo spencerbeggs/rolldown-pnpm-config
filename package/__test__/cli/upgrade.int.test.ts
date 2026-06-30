@@ -1,12 +1,13 @@
 import { readFileSync } from "node:fs";
 import { Effect } from "effect";
 import { describe, expect, it } from "vitest";
-import { runUpgrade } from "../../src/cli/commands/upgrade.js";
+import { runUpgrade, runUpgradePreview } from "../../src/cli/commands/upgrade.js";
 import { makeStubResolver } from "./utils/stub-resolver.js";
 import { writeTmpConfig } from "./utils/tmp-config.js";
 
 const SOURCE = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
 export const plugin = PnpmConfigPlugin({
+ name: "@test/cfg",
  catalogs: {
   silk: {
    packages: {
@@ -43,6 +44,7 @@ describe("runUpgrade (non-interactive)", () => {
 describe("runUpgrade (release-age gate)", () => {
 	const CONFIG = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
 export const plugin = PnpmConfigPlugin({
+ name: "@test/cfg",
  minimumReleaseAge: 1440,
  catalogs: { silk: { packages: { typescript: "^5.9.0" } } },
 });
@@ -65,7 +67,7 @@ export const plugin = PnpmConfigPlugin({
 
 describe("runUpgrade (interop)", () => {
 	const SRC = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
-export const plugin = PnpmConfigPlugin({ catalogs: { effect: { packages: {
+export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: { effect: { packages: {
  effect: { range: "^3.16.0", strategy: "interop" },
  "@effect/cli": { range: "^0.70.0", strategy: "interop" },
 } } } });
@@ -85,5 +87,20 @@ export const plugin = PnpmConfigPlugin({ catalogs: { effect: { packages: {
 		expect(result).toContain('"@effect/cli": { range: "^0.70.0"'); // cli held — 0.71 needs effect ^3.18
 		expect(result).toContain('peer: "^3.16.0"'); // effect peer floor from cli@0.70
 		expect(out.conflicts).toEqual([]);
+	});
+});
+
+describe("runUpgradePreview", () => {
+	it("projects in-range bumps without writing", async () => {
+		const SOURCE = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
+export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: { silk: { packages: { typescript: "^5.9.0" } } } });
+`;
+		const file = writeTmpConfig(SOURCE);
+		const resolver = makeStubResolver({ versions: { typescript: ["5.9.0", "5.9.3"] } });
+		const before = readFileSync(file, "utf8");
+		const out = await Effect.runPromise(runUpgradePreview({ file, resolver, full: false }));
+		expect(out).toContain("typescript");
+		expect(out).toContain("→");
+		expect(readFileSync(file, "utf8")).toBe(before);
 	});
 });

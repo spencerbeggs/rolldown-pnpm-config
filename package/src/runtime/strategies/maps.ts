@@ -1,36 +1,37 @@
 import type { Divergence, Strategy } from "../types.js";
 
 /**
- * `{...silk, ...child}` — child wins per key. Quiet. Ports Silk `merge-map.ts`.
+ * `{...managed, ...child}` — child wins per key. Quiet. Merges two maps,
+ * preferring child values.
  *
  * @internal
  */
 export const mapChildWins: Strategy = (base, local) => {
-	const silk = (base ?? {}) as Record<string, unknown>;
+	const managed = (base ?? {}) as Record<string, unknown>;
 	const child = local as Record<string, unknown> | undefined;
-	return { merged: child ? { ...silk, ...child } : { ...silk }, divergences: [] };
+	return { merged: child ? { ...managed, ...child } : { ...managed }, divergences: [] };
 };
 
 /**
- * `{...silk, ...child}`; flags enabling a build silk blocked. Ports Silk
- * `detectAllowBuildsLoosening`.
+ * `{...managed, ...child}`; flags enabling a build the managed config blocked.
+ * Detects allow-builds loosening.
  *
  * @internal
  */
 export const allowBuilds: Strategy = (base, local) => {
-	const silk = (base ?? {}) as Record<string, boolean>;
+	const managed = (base ?? {}) as Record<string, boolean>;
 	const child = (local ?? {}) as Record<string, boolean>;
 	const divergences: Divergence[] = [];
 	for (const [pkg, childAllowed] of Object.entries(child)) {
-		if (childAllowed === true && silk[pkg] === false) {
+		if (childAllowed === true && managed[pkg] === false) {
 			divergences.push({
 				setting: `allowBuilds.${pkg}`,
-				silkValue: "false",
-				childValue: "true",
-				detail: `Enables build scripts for "${pkg}" that Silk blocked.`,
+				managedValue: "false",
+				localValue: "true",
+				detail: `Enables build scripts for "${pkg}" that the managed config blocked.`,
 				kind: "security",
 			});
 		}
 	}
-	return { merged: { ...silk, ...child }, divergences };
+	return { merged: { ...managed, ...child }, divergences };
 };

@@ -9,6 +9,7 @@ import { emitCatalogsModule, emitPnpmfileModule } from "./serialize.js";
 interface Frozen {
 	readonly base: Base;
 	readonly manifest: Manifest;
+	readonly name: string;
 }
 
 const PNPMFILE_SPEC = "rolldown-pnpm-config/virtual/pnpmfile";
@@ -45,8 +46,8 @@ export function createPnpmConfigPlugin(config: PluginConfig, deps: PluginDeps = 
 		},
 		async load(id) {
 			if (id === `\0${PNPMFILE_SPEC}`) {
-				const { base, manifest } = await getFrozen();
-				return emitPnpmfileModule(base, manifest);
+				const { base, manifest, name } = await getFrozen();
+				return emitPnpmfileModule(base, manifest, name);
 			}
 			if (id === `\0${CATALOGS_SPEC}`) {
 				const { base } = await getFrozen();

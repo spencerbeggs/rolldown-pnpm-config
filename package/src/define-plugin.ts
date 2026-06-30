@@ -9,11 +9,33 @@ import type { Enforcement } from "./runtime/types.js";
 export type FieldInput<T> = T | { readonly value: T; readonly enforcement?: Enforcement };
 
 /**
+ * Per-field local merge directive applied only by `rolldown-pnpm-config export`.
+ * All keys optional: `value` alone overwrites; `strategy` unions/differences
+ * `value` with the managed value; `preserve` (overrides only) keeps existing
+ * file entries whose value starts with a listed protocol.
+ *
+ * @public
+ */
+export interface LocalDirective<T> {
+	readonly preserve?: readonly string[];
+	readonly value?: T;
+	readonly strategy?: "union" | "difference";
+}
+
+/**
  * The declarative plugin configuration.
  *
  * @public
  */
 export interface PluginConfig {
+	/**
+	 * Identifier for this config dependency, surfaced in runtime warnings as a
+	 * `[name]` tag. Conventionally the config package's npm name,
+	 * e.g. `"@acme/pnpm-config"`. Required.
+	 *
+	 * @public
+	 */
+	readonly name: string;
 	/** The catalogs to inject into pnpm config, keyed by catalog name. */
 	readonly catalogs: Record<string, CatalogDeclaration>;
 	/**
@@ -21,7 +43,9 @@ export interface PluginConfig {
 	 * generated field when running `rolldown-pnpm-config export`. Ignored by the
 	 * build and the shipped pnpmfile.
 	 */
-	readonly local?: Partial<PluginConfig>;
+	readonly local?: {
+		readonly [K in keyof PluginConfig]?: PluginConfig[K] | LocalDirective<PluginConfig[K]>;
+	};
 	/** Whether pnpm prompts before purging `node_modules`. */
 	readonly confirmModulesPurge?: FieldInput<boolean>;
 	/** Per-package manifest overrides merged into the dependency graph. */
@@ -29,16 +53,26 @@ export interface PluginConfig {
 	/** Deprecated versions explicitly allowed, keyed by package. */
 	readonly allowedDeprecatedVersions?: FieldInput<Record<string, string>>;
 	/**
-	 * Glob patterns hoisted to the root `node_modules`. May carry an
-	 * `excludeByRepo` refine: packages dropped from the merged hoist list when
-	 * installed inside the named consuming repo.
+	 * Glob patterns hoisted to the root `node_modules`.
+	 *
+	 * The optional `excludeByRepo` refine is a map **keyed by consuming-repo name**
+	 * (the root `package.json` `name` of the repo where this config runs); each
+	 * value is the list of hoist patterns to drop in that repo. Example — drop
+	 * `@savvy-web/cli`/`@savvy-web/mcp` only in the `savvy-web-systems` repo:
+	 *
+	 * ```ts
+	 * publicHoistPattern: {
+	 *   value: ["@types/*", "@savvy-web/cli", "@savvy-web/mcp"],
+	 *   excludeByRepo: { "savvy-web-systems": ["@savvy-web/cli", "@savvy-web/mcp"] },
+	 * }
+	 * ```
 	 */
 	readonly publicHoistPattern?:
 		| string[]
 		| {
 				readonly value: string[];
 				readonly enforcement?: Enforcement;
-				readonly excludeByRepo?: Record<string, string[]>;
+				readonly excludeByRepo?: Record<string, string[]>; // { [consumingRepoName]: patternsToDrop[] }
 		  };
 	/** Packages excluded from the minimum-release-age quarantine. */
 	readonly minimumReleaseAgeExclude?: FieldInput<string[]>;

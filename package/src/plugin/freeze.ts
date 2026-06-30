@@ -52,7 +52,9 @@ function normalizeField(input: unknown): FieldDecl {
  *
  * @internal
  */
-export function freeze(config: PluginConfig): Effect.Effect<{ base: Base; manifest: Manifest }, ConfigError> {
+export function freeze(
+	config: PluginConfig,
+): Effect.Effect<{ base: Base; manifest: Manifest; name: string }, ConfigError> {
 	return Effect.gen(function* () {
 		const base: Base = {};
 		const manifest: Manifest = {};
@@ -62,6 +64,11 @@ export function freeze(config: PluginConfig): Effect.Effect<{ base: Base; manife
 			Effect.mapError((error) => new ConfigError({ message: `Invalid catalogs: ${String(error)}` })),
 		);
 		manifest.catalogs = { strategy: "catalogs", enforcement: "warn" };
+		if (typeof config.name !== "string" || config.name.trim() === "") {
+			return yield* Effect.fail(
+				new ConfigError({ message: "Config `name` is required and must be a non-empty string" }),
+			);
+		}
 		for (const [field, reg] of Object.entries(FIELD_REGISTRY)) {
 			if (field === "catalogs") continue;
 			const raw = (config as unknown as Record<string, unknown>)[field];
@@ -81,6 +88,6 @@ export function freeze(config: PluginConfig): Effect.Effect<{ base: Base; manife
 		}
 		// `base.catalogs` is unconditionally decoded above; a missing/invalid
 		// catalogs map already fails as `Invalid catalogs: …`, so no further guard.
-		return { base, manifest };
+		return { base, manifest, name: config.name };
 	});
 }

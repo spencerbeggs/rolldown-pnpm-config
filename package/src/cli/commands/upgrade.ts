@@ -18,9 +18,10 @@ import { filterEntriesByCatalog, findConfigFiles, pickConfigCandidate } from "..
 import type { InteropAdjustment } from "../summary.js";
 import { renderSummary } from "../summary.js";
 import type { CatalogEntry, Edit } from "../types.js";
+import { detectCapabilities } from "../ui/env.js";
 import { runWalk } from "../ui/run-walk.js";
 import { buildWalkItems } from "../walk-plan.js";
-import type { Decision } from "../walk-types.js";
+import type { Decision, WalkItem } from "../walk-types.js";
 
 /**
  * Typed failure raised when the upgrade run cannot complete.
@@ -260,6 +261,55 @@ export function applyInteropAndDecisions(
 	});
 }
 
+/** Project walk items to the non-interactive default decisions (latest-in-range, plus peer-only keeps). @internal */
+export function projectDecisions(items: readonly WalkItem[], full: boolean): Decision[] {
+	const out: Decision[] = [];
+	for (const i of items) {
+		const inRange = i.candidates.find((c) => c.kind === "in-range");
+		if (inRange) {
+			out.push({ item: i, chosen: inRange });
+			continue;
+		}
+		if (i.driftPeer !== null || i.materializePeer !== null) {
+			const keep = i.candidates.find((c) => c.kind === "keep");
+			if (keep) {
+				out.push({ item: i, chosen: keep });
+				continue;
+			}
+		}
+		if (full) {
+			const keep = i.candidates.find((c) => c.kind === "keep");
+			if (keep) out.push({ item: i, chosen: keep });
+		}
+	}
+	return out;
+}
+
+/** Build the colored preview summary string without writing. @internal */
+export function runUpgradePreview(opts: {
+	file: string;
+	resolver: Resolver;
+	full: boolean;
+	color?: boolean;
+}): Effect.Effect<string, UpgradeError> {
+	return Effect.gen(function* () {
+		const source = yield* Effect.try({
+			try: () => readFileSync(opts.file, "utf8"),
+			catch: () => new UpgradeError({ message: `Cannot read ${opts.file}` }),
+		});
+		const discovered = yield* Effect.try({
+			try: () => discoverCatalogEntries(source, opts.file),
+			catch: (e) => new UpgradeError({ message: String(e) }),
+		});
+		const gate = yield* computeGate(source, opts.file, opts.resolver);
+		const versions = yield* resolveGatedVersions(discovered.entries, opts.resolver, gate, Date.now());
+		const items = yield* buildWalkItems(discovered.entries, versions).pipe(
+			Effect.catchAll((e) => Effect.fail(new UpgradeError({ message: e.message }))),
+		);
+		return renderSummary(projectDecisions(items, opts.full), undefined, { color: opts.color ?? false });
+	});
+}
+
 /**
  * Resolve the target file: the passed path, or autodetect in cwd.
  *
@@ -280,6 +330,8 @@ const fileArg = Args.file({ name: "file", exists: "yes" }).pipe(Args.optional);
 const yesFlag = Options.boolean("yes").pipe(Options.withAlias("y"), Options.withDefault(false));
 const dryRunFlag = Options.boolean("dry-run").pipe(Options.withDefault(false));
 const catalogOption = Options.text("catalog").pipe(Options.optional);
+const previewFlag = Options.boolean("preview").pipe(Options.withDefault(false));
+const fullFlag = Options.boolean("full").pipe(Options.withDefault(false));
 
 /**
  * The "upgrade" command. The default path runs the interactive walk;
@@ -290,11 +342,17 @@ const catalogOption = Options.text("catalog").pipe(Options.optional);
  */
 export const upgradeCommand = Command.make(
 	"upgrade",
-	{ file: fileArg, yes: yesFlag, dryRun: dryRunFlag, catalog: catalogOption },
-	({ file: fileOpt, yes, dryRun, catalog }) =>
+	{ file: fileArg, yes: yesFlag, dryRun: dryRunFlag, catalog: catalogOption, preview: previewFlag, full: fullFlag },
+	({ file: fileOpt, yes, dryRun, catalog, preview, full }) =>
 		Effect.gen(function* () {
 			const file = yield* resolveTargetFile(fileOpt);
 			const resolver = yield* RegistryResolver;
+			const caps = detectCapabilities();
+			if (preview) {
+				const text = yield* runUpgradePreview({ file, resolver, full, color: caps.color });
+				yield* Effect.sync(() => process.stdout.write(`${text}\n`));
+				return;
+			}
 			if (yes) {
 				const result = yield* runUpgrade({ file, resolver });
 				yield* Effect.sync(() =>
@@ -329,18 +387,19 @@ export const upgradeCommand = Command.make(
 			// the network peerDeps resolve, so interop members show as raw in-range bumps
 			// in this summary rather than their reconciled (possibly held-back) versions.
 			if (dryRun) {
-				const decisions = items
-					.map((i): Decision | null => {
-						const inRange = i.candidates.find((c) => c.kind === "in-range");
-						if (inRange) return { item: i, chosen: inRange };
-						if (i.driftPeer !== null || i.materializePeer !== null) {
-							const keep = i.candidates.find((c) => c.kind === "keep");
-							if (keep) return { item: i, chosen: keep };
-						}
-						return null;
-					})
-					.filter((d): d is Decision => d !== null);
-				yield* Effect.sync(() => process.stdout.write(`${renderSummary(decisions)}\n`));
+				const decisions = projectDecisions(items, false);
+				yield* Effect.sync(() =>
+					process.stdout.write(`${renderSummary(decisions, undefined, { color: caps.color })}\n`),
+				);
+				return;
+			}
+			if (!caps.interactive) {
+				const text = renderSummary(projectDecisions(items, full), undefined, { color: caps.color });
+				yield* Effect.sync(() =>
+					process.stdout.write(
+						`${text}\n\n(non-interactive terminal — run with --yes to apply, or in a TTY to choose)\n`,
+					),
+				);
 				return;
 			}
 			const decisions = yield* runWalk(items);
@@ -426,7 +485,9 @@ export const upgradeCommand = Command.make(
 			}
 
 			yield* Effect.sync(() =>
-				process.stdout.write(`${renderSummary(decisions, { adjustments, conflicts: allConflicts })}\n`),
+				process.stdout.write(
+					`${renderSummary(decisions, { adjustments, conflicts: allConflicts }, { color: caps.color })}\n`,
+				),
 			);
 			yield* applyInteropAndDecisions(file, source, nonInteropDecisions, interopEdits);
 			const nonInteropChanged = nonInteropDecisions.filter(

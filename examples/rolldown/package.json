@@ -21,11 +21,12 @@
 	},
 	"scripts": {
 		"build:dev": "rolldown -c",
+		"build:prod": "rolldown -c",
 		"prepare": "turbo run build:dev",
 		"types:check": "tsgo --noEmit"
 	},
 	"devDependencies": {
-		"@types/node": "catalog:silk",
+		"@types/node": "^26.0.0",
 		"@typescript/native-preview": "catalog:silk",
 		"rolldown": "^1.1.2",
 		"rolldown-pnpm-config": "workspace:*",

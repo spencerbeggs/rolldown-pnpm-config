@@ -19,7 +19,7 @@ export * from "./types.js";
  *
  * @public
  */
-export function createHooks(base: Base, manifest: Manifest): PnpmHooks {
+export function createHooks(base: Base, manifest: Manifest, name: string): PnpmHooks {
 	return {
 		updateConfig(config) {
 			const ctx: RuntimeCtx = { rootName: resolveRootName(config) };
@@ -51,9 +51,9 @@ export function createHooks(base: Base, manifest: Manifest): PnpmHooks {
 					out[field] = value;
 				}
 			}
-			const ob = formatOverrideWarning(allOverrides);
+			const ob = formatOverrideWarning(allOverrides, name);
 			if (ob) console.warn(ob);
-			const sb = formatSecurityWarning(allSecurity);
+			const sb = formatSecurityWarning(allSecurity, name);
 			if (sb) console.warn(sb);
 			return out;
 		},

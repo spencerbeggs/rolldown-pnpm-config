@@ -8,7 +8,7 @@ describe("securityFlag", () => {
 	it("flags loosening when child disables a silk-enabled flag", () => {
 		const r = securityFlag(true, false, ctx);
 		expect(r.merged).toBe(false);
-		expect(r.divergences[0]).toMatchObject({ setting: "", childValue: "false", kind: "security" });
+		expect(r.divergences[0]).toMatchObject({ setting: "", localValue: "false", kind: "security" });
 	});
 	it("no flag when child keeps it enabled or absent", () => {
 		expect(securityFlag(true, undefined, ctx).divergences).toEqual([]);

@@ -5,14 +5,28 @@ import { parse, stringify } from "yaml";
 const FILENAME = "pnpm-workspace.yaml";
 const STRINGIFY_OPTIONS = { indent: 2, lineWidth: 0, singleQuote: false } as const;
 
-/** Recursively sort object keys for deterministic output; arrays keep order. */
-function sortKeys(value: unknown): unknown {
-	if (Array.isArray(value)) return value.map(sortKeys);
+/** True when every element is a string/number/boolean (safe to sort). */
+function allPrimitive(arr: readonly unknown[]): boolean {
+	return arr.every((v) => v === null || (typeof v !== "object" && typeof v !== "function"));
+}
+
+/**
+ * Canonical form for deterministic output and diffing: object keys alpha-sorted
+ * recursively; arrays of all-primitive elements sorted lexicographically;
+ * arrays containing objects keep their order.
+ *
+ * @internal
+ */
+export function canonicalize(value: unknown): unknown {
+	if (Array.isArray(value)) {
+		const mapped = value.map(canonicalize);
+		return allPrimitive(mapped) ? [...mapped].sort((a, b) => String(a).localeCompare(String(b))) : mapped;
+	}
 	if (value !== null && typeof value === "object") {
 		return Object.fromEntries(
 			Object.entries(value as Record<string, unknown>)
 				.sort(([a], [b]) => a.localeCompare(b))
-				.map(([k, v]) => [k, sortKeys(v)]),
+				.map(([k, v]) => [k, canonicalize(v)]),
 		);
 	}
 	return value;
@@ -43,5 +57,5 @@ export function parseWorkspace(source: string): Record<string, unknown> {
 
 /** Render a workspace object: deterministic key sort + yaml.stringify. @internal */
 export function renderWorkspace(obj: Record<string, unknown>): string {
-	return stringify(sortKeys(obj), STRINGIFY_OPTIONS);
+	return stringify(canonicalize(obj), STRINGIFY_OPTIONS);
 }

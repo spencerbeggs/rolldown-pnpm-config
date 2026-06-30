@@ -1,14 +1,13 @@
 import type { Strategy } from "../types.js";
 
-function unionSort(silk: readonly string[], local: readonly string[] | undefined): string[] {
-	const set = new Set(silk);
+function unionSort(managed: readonly string[], local: readonly string[] | undefined): string[] {
+	const set = new Set(managed);
 	for (const item of local ?? []) set.add(item);
 	return [...set].sort((a, b) => a.localeCompare(b));
 }
 
 /**
- * Union + sort string arrays; child entries added to the silk set. Quiet. Ports
- * Silk `mergeStringArrays`.
+ * Union + sort string arrays; child entries are added to the managed set. Quiet.
  *
  * @internal
  */
@@ -18,18 +17,17 @@ export const arrayUnion: Strategy = (base, local) => ({
 });
 
 /**
- * Per-axis union of a record of string arrays; drops empty axes. Quiet. Ports
- * Silk `mergeArrayRecord`.
+ * Per-axis union of a record of string arrays; drops empty axes. Quiet.
  *
  * @internal
  */
 export const arrayRecordUnion: Strategy = (base, local) => {
-	const silk = (base ?? {}) as Record<string, readonly string[] | undefined>;
+	const managed = (base ?? {}) as Record<string, readonly string[] | undefined>;
 	const child = (local ?? {}) as Record<string, readonly string[] | undefined>;
-	const keys = new Set([...Object.keys(silk), ...Object.keys(child)]);
+	const keys = new Set([...Object.keys(managed), ...Object.keys(child)]);
 	const result: Record<string, string[]> = {};
 	for (const key of [...keys].sort((a, b) => a.localeCompare(b))) {
-		const merged = unionSort(silk[key] ?? [], child[key]);
+		const merged = unionSort(managed[key] ?? [], child[key]);
 		if (merged.length > 0) result[key] = merged;
 	}
 	return { merged: result, divergences: [] };

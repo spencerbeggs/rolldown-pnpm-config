@@ -1,79 +1,62 @@
 import type { Divergence } from "./types.js";
 
-/** Width of the warning box in characters. */
 const WARNING_BOX_WIDTH = 75;
 
+function pad(line: string): string {
+	return `│${line}${" ".repeat(Math.max(0, WARNING_BOX_WIDTH - line.length - 2))}│`;
+}
+
 /**
- * Format override divergences into a prominent warning box for console output.
- * Ports Silk `warnings.ts` `formatOverrideWarning`; `Divergence.setting` is the
+ * Format override divergences into a prominent warning box for console output,
+ * tagged with the emitting config's `name`. `Divergence.setting` is the
  * already-resolved config path, printed directly.
  *
  * @internal
  */
-export function formatOverrideWarning(divergences: readonly Divergence[]): string {
-	if (divergences.length === 0) {
-		return "";
-	}
-
-	const lines: string[] = [];
+export function formatOverrideWarning(divergences: readonly Divergence[], name: string): string {
+	if (divergences.length === 0) return "";
 	const border = "─".repeat(WARNING_BOX_WIDTH - 2);
-
+	const lines: string[] = [];
 	lines.push(`┌${border}┐`);
-	lines.push(`│  ⚠️  SILK CATALOG OVERRIDE DETECTED${" ".repeat(WARNING_BOX_WIDTH - 39)}│`);
+	lines.push(pad(`  [${name}]`));
+	lines.push(pad("  ⚠️  CATALOG OVERRIDE DETECTED"));
 	lines.push(`├${border}┤`);
-	lines.push(`│  The following entries override Silk-managed versions:${" ".repeat(WARNING_BOX_WIDTH - 58)}│`);
-	lines.push(`│${" ".repeat(WARNING_BOX_WIDTH - 2)}│`);
-
-	for (const divergence of divergences) {
-		const catalogPath = divergence.setting;
-		const silkLine = `    Silk version:   ${divergence.silkValue}`;
-		const localLine = `    Local override: ${divergence.childValue}`;
-
-		lines.push(`│  ${catalogPath}${" ".repeat(Math.max(0, WARNING_BOX_WIDTH - catalogPath.length - 4))}│`);
-		lines.push(`│${silkLine}${" ".repeat(Math.max(0, WARNING_BOX_WIDTH - silkLine.length - 2))}│`);
-		lines.push(`│${localLine}${" ".repeat(Math.max(0, WARNING_BOX_WIDTH - localLine.length - 2))}│`);
-		lines.push(`│${" ".repeat(WARNING_BOX_WIDTH - 2)}│`);
+	lines.push(pad("  The following entries override managed versions:"));
+	lines.push(pad(""));
+	for (const d of divergences) {
+		lines.push(pad(`  ${d.setting}`));
+		lines.push(pad(`    Managed version: ${d.managedValue}`));
+		lines.push(pad(`    Local override:  ${d.localValue}`));
+		lines.push(pad(""));
 	}
-
-	lines.push(
-		`│  Local versions will be used. To use Silk defaults, remove these${" ".repeat(WARNING_BOX_WIDTH - 69)}│`,
-	);
-	lines.push(`│  entries from your pnpm-workspace.yaml.${" ".repeat(WARNING_BOX_WIDTH - 44)}│`);
+	lines.push(pad("  Local versions will be used. To use the managed defaults, remove"));
+	lines.push(pad("  these entries from your pnpm-workspace.yaml."));
 	lines.push(`└${border}┘`);
-
 	return lines.join("\n");
 }
 
 /**
- * Format security-loosening divergences into a prominent box for console
- * output. Ports Silk `warnings.ts` `formatSecurityWarning`.
+ * Format security-loosening divergences into a prominent box, tagged with the
+ * emitting config's `name`.
  *
  * @internal
  */
-export function formatSecurityWarning(divergences: readonly Divergence[]): string {
-	if (divergences.length === 0) {
-		return "";
-	}
-
-	const lines: string[] = [];
+export function formatSecurityWarning(divergences: readonly Divergence[], name: string): string {
+	if (divergences.length === 0) return "";
 	const border = "─".repeat(WARNING_BOX_WIDTH - 2);
-
+	const lines: string[] = [];
 	lines.push(`┌${border}┐`);
-	lines.push(`│  ⚠️  SILK SECURITY OVERRIDE DETECTED${" ".repeat(WARNING_BOX_WIDTH - 40)}│`);
+	lines.push(pad(`  [${name}]`));
+	lines.push(pad("  ⚠️  SECURITY OVERRIDE DETECTED"));
 	lines.push(`├${border}┤`);
-	lines.push(`│  The following entries weaken Silk-managed security defaults:${" ".repeat(WARNING_BOX_WIDTH - 64)}│`);
-	lines.push(`│${" ".repeat(WARNING_BOX_WIDTH - 2)}│`);
-
-	for (const divergence of divergences) {
-		const settingLine = `  ${divergence.setting}: Silk=${divergence.silkValue} -> local=${divergence.childValue}`;
-		const detailLine = `    ${divergence.detail}`;
-		lines.push(`│${settingLine}${" ".repeat(Math.max(0, WARNING_BOX_WIDTH - settingLine.length - 2))}│`);
-		lines.push(`│${detailLine}${" ".repeat(Math.max(0, WARNING_BOX_WIDTH - detailLine.length - 2))}│`);
-		lines.push(`│${" ".repeat(WARNING_BOX_WIDTH - 2)}│`);
+	lines.push(pad("  The following entries weaken managed security defaults:"));
+	lines.push(pad(""));
+	for (const d of divergences) {
+		lines.push(pad(`  ${d.setting}: managed=${d.managedValue} -> local=${d.localValue}`));
+		lines.push(pad(`    ${d.detail}`));
+		lines.push(pad(""));
 	}
-
-	lines.push(`│  Local values will be used. Review these before shipping.${" ".repeat(WARNING_BOX_WIDTH - 60)}│`);
+	lines.push(pad("  Local values will be used. Review these before shipping."));
 	lines.push(`└${border}┘`);
-
 	return lines.join("\n");
 }

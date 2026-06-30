@@ -3,6 +3,7 @@ import { evaluatePluginConfig } from "../../src/cli/evaluate.js";
 
 const SOURCE = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
 export const plugin = PnpmConfigPlugin({
+ name: "@test/cfg",
  local: { publicHoistPattern: ["@override/*"] },
  catalogs: { silk: { packages: { typescript: { range: "^5.9.0", peer: "^5.9.0", strategy: "lock-minor" } } } },
  overrides: { "tar@<6.2.1": ">=6.2.1" },
@@ -18,6 +19,7 @@ describe("evaluatePluginConfig", () => {
 		const { config, errors } = evaluatePluginConfig(SOURCE, "savvy.build.ts");
 		expect(errors).toEqual([]);
 		expect(config).toEqual({
+			name: "@test/cfg",
 			local: { publicHoistPattern: ["@override/*"] },
 			catalogs: { silk: { packages: { typescript: { range: "^5.9.0", peer: "^5.9.0", strategy: "lock-minor" } } } },
 			overrides: { "tar@<6.2.1": ">=6.2.1" },
@@ -31,7 +33,7 @@ describe("evaluatePluginConfig", () => {
 	it("reports a computed value as an error and omits it", () => {
 		const src = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
 const x = ["@types/*"];
-export const p = PnpmConfigPlugin({ catalogs: {}, publicHoistPattern: x });`;
+export const p = PnpmConfigPlugin({ name: "@test/cfg", catalogs: {}, publicHoistPattern: x });`;
 		const { config, errors } = evaluatePluginConfig(src, "x.ts");
 		expect(config).toMatchObject({ catalogs: {} });
 		expect((config as Record<string, unknown>).publicHoistPattern).toBeUndefined();
@@ -46,7 +48,7 @@ export const p = PnpmConfigPlugin({ catalogs: {}, publicHoistPattern: x });`;
 	it("omits a non-literal array element and reports it", () => {
 		const src = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
 const x = "@types/*";
-export const p = PnpmConfigPlugin({ catalogs: {}, publicHoistPattern: [x] });`;
+export const p = PnpmConfigPlugin({ name: "@test/cfg", catalogs: {}, publicHoistPattern: [x] });`;
 		const { config, errors } = evaluatePluginConfig(src, "x.ts");
 		expect((config as Record<string, unknown>).publicHoistPattern).toEqual([]);
 		expect(errors.some((e) => e.includes("publicHoistPattern[0]"))).toBe(true);

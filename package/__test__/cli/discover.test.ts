@@ -36,7 +36,7 @@ describe("discoverCatalogEntries", () => {
 
 	it("returns no entries when catalogs is not an object literal", () => {
 		const { entries } = discoverCatalogEntries(
-			`import { PnpmConfigPlugin } from "rolldown-pnpm-config"; const c = {}; export const p = PnpmConfigPlugin({ catalogs: c });`,
+			`import { PnpmConfigPlugin } from "rolldown-pnpm-config"; const c = {}; export const p = PnpmConfigPlugin({ name: "@test/cfg", catalogs: c });`,
 			"x.ts",
 		);
 		expect(entries).toEqual([]);
@@ -44,7 +44,7 @@ describe("discoverCatalogEntries", () => {
 
 	it("returns no entries when a catalog has no packages object", () => {
 		const { entries } = discoverCatalogEntries(
-			`import { PnpmConfigPlugin } from "rolldown-pnpm-config"; export const p = PnpmConfigPlugin({ catalogs: { silk: {} } });`,
+			`import { PnpmConfigPlugin } from "rolldown-pnpm-config"; export const p = PnpmConfigPlugin({ name: "@test/cfg", catalogs: { silk: {} } });`,
 			"x.ts",
 		);
 		expect(entries).toEqual([]);
@@ -52,7 +52,7 @@ describe("discoverCatalogEntries", () => {
 
 	it("recognizes the interop strategy", () => {
 		const src = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
-PnpmConfigPlugin({ catalogs: { effect: { packages: {
+PnpmConfigPlugin({ name: "@test/cfg", catalogs: { effect: { packages: {
  effect: { range: "^3.17.0", strategy: "interop" },
 } } } });`;
 		const { entries } = discoverCatalogEntries(src, "c.ts");

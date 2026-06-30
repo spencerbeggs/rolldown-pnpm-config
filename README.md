@@ -13,7 +13,7 @@ Monorepo for `rolldown-pnpm-config`, a rolldown plugin that compiles your catalo
 ## Documentation
 
 - [`package/README.md`](./package/README.md) — npm-facing overview and quick start for the library.
-- [`docs/`](./docs) — user guide: getting started, using `@savvy-web/bundler`, the concepts behind the emitted pnpmfile and the full pnpm settings coverage reference.
+- [`docs/`](./docs) — user guide: getting started, using `@savvy-web/bundler`, the concepts behind the emitted pnpmfile, the full pnpm settings coverage reference, upgrading catalogs and exporting to `pnpm-workspace.yaml`.
 - Architecture and design notes live in `.claude/design/rolldown-pnpm-config/`.
 
 ## Requirements

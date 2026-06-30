@@ -10,23 +10,30 @@ describe("sortKeys", () => {
 
 describe("emitCatalogsModule", () => {
 	it("emits a sorted Map literal (plain-JS branch)", () => {
-		const src = emitCatalogsModule({ silkPeers: { z: "2" }, silk: { b: "1", a: "9" } });
+		const src = emitCatalogsModule({ peers: { z: "2" }, default: { b: "1", a: "9" } });
 		expect(src).toBe(
-			'export const catalogs = new Map([["silk", new Map([["a", "9"], ["b", "1"]])], ["silkPeers", new Map([["z", "2"]])]]);\n',
+			'export const catalogs = new Map([["default", new Map([["a", "9"], ["b", "1"]])], ["peers", new Map([["z", "2"]])]]);\n',
 		);
 	});
 });
 
 describe("emitPnpmfileModule", () => {
-	it("emits createHooks wiring over base + manifest (plain-JS branch)", () => {
+	it("emits createHooks wiring over base + manifest + name (plain-JS branch)", () => {
 		const src = emitPnpmfileModule(
-			{ catalogs: { silk: { a: "1" } } },
+			{ catalogs: { default: { a: "1" } } },
 			{ catalogs: { strategy: "catalogs", enforcement: "warn" } },
+			"@acme/cfg",
 		);
 		expect(src).toContain('import { createHooks } from "rolldown-pnpm-config/runtime";');
 		expect(src).not.toContain("import type");
 		expect(src).toContain(
-			'export const hooks = createHooks({"catalogs":{"silk":{"a":"1"}}}, {"catalogs":{"enforcement":"warn","strategy":"catalogs"}});',
+			'export const hooks = createHooks({"catalogs":{"default":{"a":"1"}}}, {"catalogs":{"enforcement":"warn","strategy":"catalogs"}}, "@acme/cfg");',
 		);
+	});
+
+	it("includes the name as a JSON string literal in the emitted source", () => {
+		const src = emitPnpmfileModule({}, {}, "@acme/cfg");
+		expect(src).toContain("createHooks(");
+		expect(src).toContain('"@acme/cfg")');
 	});
 });

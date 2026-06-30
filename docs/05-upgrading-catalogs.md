@@ -18,7 +18,7 @@ Only simple ranges are touched — a bare version or a `^`/`~` range (`5.9.0`, `
 
 ## Interactive walk (default)
 
-Run with no flags and the command walks every catalog package one at a time. For each one it shows the resolved candidates and you choose the range to take or keep the current one. When you finish it prints a summary and applies your choices.
+Run with no flags and the command walks every catalog package one at a time. For each one it shows the resolved candidates and you choose the range to take or keep the current one. When you finish it prints a colorized summary and applies your choices. In a non-interactive terminal (CI, piped output) the command prints the same summary and exits with instructions to run `--yes` or re-run in a TTY.
 
 ```bash
 npx rolldown-pnpm-config upgrade
@@ -30,9 +30,11 @@ npx rolldown-pnpm-config upgrade
 
 | Flag | Effect |
 | ---- | ------ |
-| `--yes` | Non-interactive. Takes the latest published version that still satisfies each existing range. Never crosses a major bump. |
-| `--dry-run` | Prints the planned changes and writes nothing. |
-| `--catalog <name>` | Restricts the walk to a single catalog by name. |
+| `--yes` | Non-interactive. Takes the latest in-range version without prompting. Never crosses a major bump. |
+| `--dry-run` | Prints the planned in-range bumps without writing. Does not run interop reconciliation. |
+| `--catalog <name>` | Restricts the walk to a single named catalog. |
+| `--preview` | Non-interactive projection: resolves the full walk and prints the colorized summary without writing or entering interactive mode. |
+| `--full` | Used with `--preview` or in non-TTY output: disables context collapsing and shows every catalog entry. |
 
 `--yes` is the unattended path — useful in scripts or a scheduled job:
 
@@ -41,10 +43,18 @@ npx rolldown-pnpm-config upgrade --yes
 # Updated <n> package(s); skipped <m>.
 ```
 
-`--dry-run` shows the same summary the interactive walk would apply, without touching the file:
+`--dry-run` prints the planned changes without touching the file:
 
 ```bash
 npx rolldown-pnpm-config upgrade --dry-run
+# example output (varies by environment)
+```
+
+`--preview` runs the full resolution and prints the colorized summary without entering interactive mode — useful for inspecting what the walk would do before committing to it:
+
+```bash
+npx rolldown-pnpm-config upgrade --preview
+# example output (varies by environment)
 ```
 
 ## Materialized peer ranges

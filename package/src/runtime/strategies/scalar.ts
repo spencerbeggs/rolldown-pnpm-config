@@ -1,7 +1,7 @@
 import type { Divergence, Strategy } from "../types.js";
 
 /**
- * `child ?? silk` — quiet (no divergences). Ports Silk `merge-scalar.ts`.
+ * `child ?? base` — quiet (no divergences). Prefer local, fall back to managed.
  *
  * @internal
  */
@@ -11,9 +11,9 @@ export const scalar: Strategy = (base, local) => ({
 });
 
 /**
- * `child ?? silk`; flags when child disables a silk-enabled boolean. The
- * strategy is field-agnostic, so it emits `setting: ""`; the runtime fills the
- * field name. Ports Silk `detectFlagLoosening`.
+ * `child ?? base`; flags when child disables a managed boolean. The strategy is
+ * field-agnostic, so it emits `setting: ""`; the runtime fills the field name.
+ * Detects flag loosening.
  *
  * @internal
  */
@@ -23,9 +23,9 @@ export const securityFlag: Strategy = (base, local) => {
 	if (base === true && local === false) {
 		divergences.push({
 			setting: "",
-			silkValue: "true",
-			childValue: "false",
-			detail: "Disables a security check that Silk enabled.",
+			managedValue: "true",
+			localValue: "false",
+			detail: "Disables a security check the managed config enabled.",
 			kind: "security",
 		});
 	}
@@ -33,9 +33,9 @@ export const securityFlag: Strategy = (base, local) => {
 };
 
 /**
- * `child ?? silk`; flags when child lowers the value. Field-agnostic, so it
- * emits `setting: ""`; the runtime fills the field name. Ports Silk
- * `detectMinReleaseAgeLoosening`.
+ * `child ?? base`; flags when child lowers the value. Field-agnostic, so it
+ * emits `setting: ""`; the runtime fills the field name. Detects
+ * minimum-release-age loosening.
  *
  * @internal
  */
@@ -45,8 +45,8 @@ export const securityMin: Strategy = (base, local) => {
 	if (typeof base === "number" && typeof local === "number" && local < base) {
 		divergences.push({
 			setting: "",
-			silkValue: String(base),
-			childValue: String(local),
+			managedValue: String(base),
+			localValue: String(local),
 			detail: `Shortens the release-age quarantine from ${base} to ${local} minutes.`,
 			kind: "security",
 		});

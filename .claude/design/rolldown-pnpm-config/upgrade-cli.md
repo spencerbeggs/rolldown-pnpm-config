@@ -3,12 +3,13 @@ status: current
 module: rolldown-pnpm-config
 category: architecture
 created: 2026-06-27
-updated: 2026-06-28
-last-synced: 2026-06-28
-completeness: 92
+updated: 2026-06-29
+last-synced: 2026-06-29
+completeness: 95
 related:
   - architecture.md
   - settings-coverage.md
+  - export-cli.md
   - specs/2026-06-26-catalog-upgrade-cli-design.md
   - specs/2026-06-27-interop-peer-strategy-design.md
 dependencies:
@@ -40,7 +41,7 @@ It lives entirely under `package/src/cli/` and is published via the `bin` entry 
 
 ## Current state
 
-Built across phases B1 (non-interactive core), B2 (interactive Ink walk + drift + dry-run + catalog filter) and B3 (peer materialization + config autodetect), then extended on `feat/peer-interop` with the `interop` catalog peer strategy (`interop.ts`) and a `minimumReleaseAge` gate on all version resolution (`release-age.ts`). The implementation records are the dated plan docs under `plans/`; the interop/release-age design is recorded in [the interop peer strategy spec](specs/2026-06-27-interop-peer-strategy-design.md). The pure units (`discover`, `plan`, `peer-range`, `drift`, `walk-plan`, `walk-reducer`, `edits`, `summary`, `select-file`, `interop`, `release-age`) are unit-tested; the Ink render shell, the `pnpm`-shelling resolver and the `@effect/cli` wiring are integration-tested under `package/__test__/cli/`.
+Built across phases B1 (non-interactive core), B2 (interactive Ink walk + drift + dry-run + catalog filter) and B3 (peer materialization + config autodetect), then extended on `feat/peer-interop` with the `interop` catalog peer strategy (`interop.ts`) and a `minimumReleaseAge` gate on all version resolution (`release-age.ts`). Extended further on `feat/ui-updates` with colorized output (shared `StyledLine`/`toAnsi` render layer), `--preview`/`--full` flags and a non-TTY fallback. The implementation records are the dated plan docs under `plans/`; the interop/release-age design is recorded in [the interop peer strategy spec](specs/2026-06-27-interop-peer-strategy-design.md). The pure units (`discover`, `plan`, `peer-range`, `drift`, `walk-plan`, `walk-reducer`, `edits`, `summary`, `select-file`, `interop`, `release-age`) are unit-tested; the Ink render shell, the `pnpm`-shelling resolver and the `@effect/cli` wiring are integration-tested under `package/__test__/cli/`.
 
 ## Pipeline
 
@@ -100,7 +101,11 @@ The two modes surface conflicts differently. Non-interactive (`--yes`) applies t
 
 ## Command surface
 
-`rolldown-pnpm-config upgrade [file]` (`commands/upgrade.ts`). The file arg is optional: when omitted, `select-file.ts` scans the cwd for a `.ts` file containing a usable `PnpmConfigPlugin(...)` call and errors on zero or multiple candidates. Flags: `--yes`/`-y` (non-interactive latest-in-range), `--dry-run` (print the confirmation diff, write nothing) and `--catalog <name>` (restrict to one catalog). The default path is the interactive walk. A confirmation diff (`summary.ts`) is rendered before any write, even interactively; it reports interop adjustments and any remaining `InteropConflict`s alongside the range/peer edits.
+`rolldown-pnpm-config upgrade [file]` (`commands/upgrade.ts`). The file arg is optional: when omitted, `select-file.ts` scans the cwd for a `.ts` file containing a usable `PnpmConfigPlugin(...)` call and errors on zero or multiple candidates. Flags: `--yes`/`-y` (non-interactive latest-in-range), `--dry-run` (print the confirmation diff, write nothing), `--catalog <name>` (restrict to one catalog), `--preview` (non-interactive projection: discover → resolve → plan → take default picks → print colored summary → exit; no walk, no write) and `--full` (include up-to-date packages in the output, applicable to both `--preview` and `--dry-run`). The default path is the interactive walk. A confirmation diff (`summary.ts`, now returning `StyledLine[]` and rendered via the shared `toAnsi`) is printed before any write; it reports interop adjustments and any remaining `InteropConflict`s alongside the range/peer edits. Output is colorized when the terminal supports it (detected via `ui/env.ts`).
+
+Non-TTY/CI fallback: when the terminal is not interactive (`hasTTY && !isCI && !isAgent` is false), the command automatically skips the walk and prints the non-interactive projection instead of entering raw-mode and hanging. This is gated on `capabilities.interactive` from `cli/ui/env.ts`.
+
+`--preview` vs `--dry-run`: `--preview` never prompts (runs the full pipeline then exits); `--dry-run` runs the normal flow (interactive walk unless `--yes`) then prints without writing.
 
 The `minimumReleaseAge` gate applies on every run regardless of flag — both `--yes` and the interactive walk resolve only against versions old enough for the author's own pnpm install to accept (see [Pipeline](#pipeline)).
 
@@ -116,6 +121,7 @@ The interop pass adds its own load-bearing values in `package/src/cli/interop.ts
 
 - [architecture.md](architecture.md) — the build-to-runtime engine and the consolidated `PnpmConfigPlugin` authoring surface the CLI reads and rewrites.
 - [settings-coverage.md](settings-coverage.md) — the managed pnpm field matrix (engine-side, not CLI).
+- [export-cli.md](export-cli.md) — the `export`/`preview` commands and the shared `StyledLine`/`toAnsi`/`env.ts` render layer that `upgrade` also uses.
 - [the catalog upgrade CLI design spec](specs/2026-06-26-catalog-upgrade-cli-design.md) — the original brainstorm and the Phase A/Phase B framing.
 - [the interop peer strategy spec](specs/2026-06-27-interop-peer-strategy-design.md) — the `interop` group reconcile and the `minimumReleaseAge` gate rationale.
 - `package/src/cli/` — the implementation; `commands/upgrade.ts` is the wiring entry.
