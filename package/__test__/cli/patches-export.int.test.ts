@@ -43,4 +43,30 @@ describe("runExport patch merge", () => {
 		// the distributed .pnpm-config path must NOT leak into the local workspace file
 		expect(yaml).not.toContain(".pnpm-config");
 	});
+
+	it("respects an explicit patchedDependencies map and skips discovery", async () => {
+		// an explicit hand-authored map is the escape hatch: discovery is skipped on
+		// export just as it is on build, so public/patches/is-odd is NOT injected and
+		// the explicit entry survives — while existing siblings are still preserved.
+		writeFileSync(
+			join(root, "examples", "savvy", "savvy.build.ts"),
+			'import { PnpmConfigPlugin } from "rolldown-pnpm-config";\nPnpmConfigPlugin({ name: "@example/savvy", catalogs: {}, patchedDependencies: { "left-pad@1.3.0": "manual/left-pad.patch" } });\n',
+			"utf8",
+		);
+		const result = await Effect.runPromise(
+			runExport({
+				configFile: join(root, "examples", "savvy", "savvy.build.ts"),
+				workspacePath: join(root, "pnpm-workspace.yaml"),
+				preview: false,
+			}),
+		);
+		const yaml = readFileSync(result.path, "utf8");
+		// the explicit entry survives (previously dropped by the discovery override)
+		expect(yaml).toContain("left-pad@1.3.0: manual/left-pad.patch");
+		// discovery is skipped — the public/patches patch is NOT injected
+		expect(yaml).not.toContain("is-odd@3.0.1");
+		// existing siblings are still preserved
+		expect(yaml).toContain("foo@2.0.0: examples/rolldown/public/patches/foo@2.0.0.patch");
+		expect(yaml).toContain("bar@1.0.0: patches/bar@1.0.0.patch");
+	});
 });

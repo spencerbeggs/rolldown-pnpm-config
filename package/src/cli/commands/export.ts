@@ -3,7 +3,7 @@ import { dirname, join, relative } from "node:path";
 import { Args, Command, Options } from "@effect/cli";
 import { Data, Effect, Option } from "effect";
 import { DESCRIPTORS } from "../../descriptors/index.js";
-import { readLocalPatchesDir, withResolvedBuildPatches } from "../../patches/build.js";
+import { isRewriteDirective, readLocalPatchesDir, withResolvedBuildPatches } from "../../patches/build.js";
 import { discoverPatches } from "../../patches/discover.js";
 import type { PatchReconcileReport } from "../../patches/reconcile.js";
 import { reconcilePatches } from "../../patches/reconcile.js";
@@ -93,25 +93,39 @@ export function runExport(opts: {
 		const localCfg =
 			config.local && typeof config.local === "object" ? (config.local as Record<string, unknown>) : undefined;
 		const effective = effectiveManaged(managed, localCfg, parsed, manifest, rootName);
-		// patchedDependencies is special-cased: write LOCAL on-disk paths for every
-		// owned patch, merged over existing entries so sibling plugins' and the
-		// repo's own patch registrations survive (the distributed .pnpm-config
-		// paths in `base` are for consumers, not this repo).
-		const localPatchesDir = readLocalPatchesDir(config as unknown as Parameters<typeof readLocalPatchesDir>[0]);
-		const owned = discoverPatches({
-			baseDir: dirname(opts.configFile),
-			name: typeof config.name === "string" ? config.name : "",
-			...(localPatchesDir !== undefined ? { localPatchesDir } : {}),
-		});
-		if (owned.length > 0) {
+		// patchedDependencies is special-cased on export. This plugin's patches —
+		// the hand-authored explicit map as-is, or the discovered owned patches
+		// rewritten to LOCAL on-disk paths — are merged OVER the existing workspace
+		// entries so sibling plugins' and the repo's own registrations survive
+		// (`overlayWorkspace` replaces this field wholesale, so the merge must
+		// happen here). An explicit map skips discovery entirely, mirroring the
+		// build side (withResolvedBuildPatches) so the escape hatch behaves the
+		// same on build and export; the distributed `.pnpm-config` paths in `base`
+		// are for consumers, never this repo.
+		const rawPatched = (config as { patchedDependencies?: unknown }).patchedDependencies;
+		const explicitPatchMap = rawPatched !== undefined && !isRewriteDirective(rawPatched);
+		const contributed: Record<string, string> = {};
+		if (explicitPatchMap) {
+			const explicit = effective.patchedDependencies;
+			if (explicit !== null && typeof explicit === "object" && !Array.isArray(explicit)) {
+				Object.assign(contributed, explicit as Record<string, string>);
+			}
+		} else {
+			const localPatchesDir = readLocalPatchesDir(config as unknown as Parameters<typeof readLocalPatchesDir>[0]);
+			const owned = discoverPatches({
+				baseDir: dirname(opts.configFile),
+				name: typeof config.name === "string" ? config.name : "",
+				...(localPatchesDir !== undefined ? { localPatchesDir } : {}),
+			});
 			const workspaceRoot = dirname(path);
+			for (const p of owned) contributed[p.key] = relative(workspaceRoot, p.absPath).split(/[\\/]/).join("/");
+		}
+		if (Object.keys(contributed).length > 0) {
 			const existing =
 				parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)
 					? ((parsed as Record<string, unknown>).patchedDependencies as Record<string, string> | undefined)
 					: undefined;
-			const mergedPatches: Record<string, string> = { ...(existing ?? {}) };
-			for (const p of owned) mergedPatches[p.key] = relative(workspaceRoot, p.absPath).split(/[\\/]/).join("/");
-			effective.patchedDependencies = mergedPatches;
+			effective.patchedDependencies = { ...(existing ?? {}), ...contributed };
 		}
 		const report: PatchReconcileReport = reconcilePatches({
 			parsedPatched: (effective.patchedDependencies as Record<string, string> | undefined) ?? {},
