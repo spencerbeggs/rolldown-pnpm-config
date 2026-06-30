@@ -23,6 +23,7 @@ export interface FieldOptions {
 
 /** One managed pnpm field. The single source of truth for schema + merge policy. @internal */
 export interface FieldDescriptor<A = unknown> {
+	// biome-ignore lint/suspicious/noExplicitAny: heterogeneous per-field encoded types; `unknown` breaks Schema invariance.
 	readonly schema: Schema.Schema<A, any>;
 	readonly kind: FieldKind;
 	readonly strategy: string;
@@ -38,4 +39,5 @@ export interface FieldDescriptor<A = unknown> {
 
 /** Wide map type for the derivation helpers. `any` (not `unknown`) sidesteps
  *  Schema's invariance so narrow per-field entries stay assignable. @internal */
+// biome-ignore lint/suspicious/noExplicitAny: see above — `any` keeps narrow per-field descriptors assignable.
 export type FieldDescriptors = Record<string, FieldDescriptor<any>>;

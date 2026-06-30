@@ -1,5 +1,18 @@
 {
 	"$schema": "https://biomejs.dev/schemas/2.5.1/schema.json",
 	"extends": ["@savvy-web/silk/biome"],
-	"root": true
+	"root": true,
+	"overrides": [
+		{
+			// Tests legitimately reach into known-present values and mirror the
+			// `FieldDescriptor<any>` source design; both rules are noise here.
+			"includes": ["**/__test__/**"],
+			"linter": {
+				"rules": {
+					"style": { "noNonNullAssertion": "off" },
+					"suspicious": { "noExplicitAny": "off" }
+				}
+			}
+		}
+	]
 }

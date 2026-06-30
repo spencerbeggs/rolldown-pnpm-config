@@ -36,11 +36,7 @@
 		"node": ">=24.11.0"
 	},
 	"publishConfig": {
-		"access": "public",
 		"directory": "dist/dev/pkg",
-		"linkDirectory": true,
-		"targets": {
-			"npm": true
-		}
+		"linkDirectory": true
 	}
 }

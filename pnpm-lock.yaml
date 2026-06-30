@@ -77,6 +77,7 @@ importers:
       typescript:
         specifier: catalog:silk
         version: 6.0.3
+    publishDirectory: dist/dev/pkg
 
   examples/savvy:
     devDependencies:
