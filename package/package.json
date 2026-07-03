@@ -47,7 +47,7 @@
 		"yaml": "^2.9.0"
 	},
 	"devDependencies": {
-		"@savvy-web/bundler": "^1.0.1",
+		"@savvy-web/bundler": "^1.1.4",
 		"@types/node": "^26.0.0",
 		"@types/react": "^19.2.17",
 		"@typescript/native-preview": "catalog:silk",
