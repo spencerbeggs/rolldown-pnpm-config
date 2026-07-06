@@ -3,8 +3,8 @@ status: current
 module: rolldown-pnpm-config
 category: architecture
 created: 2026-06-25
-updated: 2026-06-30
-last-synced: 2026-06-30
+updated: 2026-07-06
+last-synced: 2026-07-06
 completeness: 95
 related:
   - settings-coverage.md
@@ -75,6 +75,10 @@ The build-time authoring surface plus the runtime entry are `@public`; everythin
 The user's framing was "compile Effect away". Statically erasing Effect's fiber runtime from arbitrary programs is infeasible, so instead Effect is fenced to `freeze` and never crosses into the bundle. The bundled output contains zero Effect, verified because the runtime imports nothing external.
 
 This is why `EnforcementError` is a plain `Error` subclass rather than an Effect tagged error — it must survive bundling into a dependency-free pnpmfile. See `package/src/runtime/enforcement.ts`.
+
+### Effect peer closure declared as regular dependencies
+
+`package/package.json` declares the full non-optional peer closure of `@effect/platform-node` and `@effect/cli` (`@effect/cluster`, `@effect/experimental`, `@effect/printer`, `@effect/printer-ansi`, `@effect/rpc`, `@effect/sql`, `@effect/typeclass` and `@effect/workflow`) as regular `dependencies`, even though nothing in `package/src/` imports them. Left undeclared, pnpm's `autoInstallPeers` resolves these peers inside every consuming workspace, polluting consumer lockfiles (savvy-web/systems#228). Declaring them pins resolution to this package's own subtree. Do not prune them as unused — unused-dependency tooling will flag them falsely, and removing them reintroduces the pollution. This is a build-time/CLI manifest concern only; the shipped pnpmfile remains zero-dependency.
 
 ### Detection separated from response
 
