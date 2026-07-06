@@ -26,9 +26,9 @@
 		"types:check": "tsgo --noEmit"
 	},
 	"devDependencies": {
-		"@types/node": "^26.0.0",
+		"@types/node": "catalog:silk",
 		"@typescript/native-preview": "catalog:silk",
-		"rolldown": "^1.1.2",
+		"rolldown": "^1.1.4",
 		"rolldown-pnpm-config": "workspace:*",
 		"typescript": "catalog:silk"
 	},

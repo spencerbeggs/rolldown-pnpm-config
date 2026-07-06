@@ -26,8 +26,8 @@
 		"types:check": "tsgo --noEmit"
 	},
 	"devDependencies": {
-		"@savvy-web/bundler": "^1.1.6",
-		"@types/node": "^26.0.0",
+		"@savvy-web/bundler": "^1.1.7",
+		"@types/node": "catalog:silk",
 		"@typescript/native-preview": "catalog:silk",
 		"rolldown-pnpm-config": "workspace:*",
 		"typescript": "catalog:silk"
