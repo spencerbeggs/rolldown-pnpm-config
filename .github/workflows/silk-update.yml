@@ -65,7 +65,7 @@ jobs:
             oxc-parser
             semver-effect
             std-env
-            std-ocs8
+            std-osc8
             yaml
           peer-minor: |
             rolldown
