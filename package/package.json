@@ -50,17 +50,17 @@
 		"oxc-parser": "^0.139.0",
 		"react": "catalog:silk",
 		"semver-effect": "^0.3.1",
-		"std-env": "^4.1.0",
+		"std-env": "^4.2.0",
 		"std-osc8": "^0.2.0",
 		"yaml": "^2.9.0"
 	},
 	"devDependencies": {
-		"@savvy-web/bundler": "^1.1.8",
+		"@savvy-web/bundler": "^1.1.9",
 		"@types/node": "catalog:silk",
 		"@types/react": "catalog:silk",
 		"@typescript/native-preview": "catalog:silk",
 		"ink-testing-library": "^4.0.0",
-		"rolldown": "^1.1.4",
+		"rolldown": "^1.1.5",
 		"typescript": "catalog:silk"
 	},
 	"peerDependencies": {
