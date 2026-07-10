@@ -28,7 +28,7 @@
 	"devDependencies": {
 		"@types/node": "catalog:silk",
 		"@typescript/native-preview": "catalog:silk",
-		"rolldown": "^1.1.4",
+		"rolldown": "^1.1.5",
 		"rolldown-pnpm-config": "workspace:*",
 		"typescript": "catalog:silk"
 	},
