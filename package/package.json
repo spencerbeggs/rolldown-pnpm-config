@@ -30,7 +30,7 @@
 		"build:dev": "node savvy.build.ts --target dev",
 		"build:prod": "node savvy.build.ts --target prod",
 		"prepare": "turbo run build:dev",
-		"types:check": "tsgo --noEmit"
+		"types:check": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@effect/cli": "catalog:silk",
@@ -58,13 +58,12 @@
 		"@savvy-web/bundler": "^1.1.11",
 		"@types/node": "catalog:silk",
 		"@types/react": "catalog:silk",
-		"@typescript/native-preview": "catalog:silk",
 		"ink-testing-library": "^4.0.0",
-		"rolldown": "^1.1.5",
+		"rolldown": "catalog:silk",
 		"typescript": "catalog:silk"
 	},
 	"peerDependencies": {
-		"rolldown": "^1.1.0"
+		"rolldown": "catalog:silkPeers"
 	},
 	"peerDependenciesMeta": {
 		"rolldown": {

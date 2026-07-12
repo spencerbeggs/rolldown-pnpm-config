@@ -58,7 +58,6 @@ jobs:
           dependencies: |
             @savvy-web/*
             @vitest-agent/*
-            rolldown
             ink
             ink-tab
             ink-testing-library
