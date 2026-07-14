@@ -22,6 +22,9 @@
 	"scripts": {
 		"build:dev": "node savvy.build.ts --target dev",
 		"build:prod": "node savvy.build.ts --target prod",
+		"pnpm:export": "rolldown-pnpm-config export --dry-run",
+		"pnpm:preview": "rolldown-pnpm-config preview",
+		"pnpm:up": "rolldown-pnpm-config upgrade savvy.build.ts --dry-run",
 		"prepare": "turbo run build:dev",
 		"types:check": "tsc --noEmit"
 	},

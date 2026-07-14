@@ -22,23 +22,31 @@ export function planEntry(
 ): Effect.Effect<Candidate[], PeerRangeError> {
 	return Effect.gen(function* () {
 		const range = yield* Range.parse(entry.currentRange).pipe(Effect.catchAll(() => Effect.succeed(null)));
-		const parsed: SemVer[] = [];
-		for (const v of versions) {
-			const sv = yield* parseOrNull(v);
-			if (sv?.isStable) parsed.push(sv);
-		}
-		parsed.sort((a, b) => a.compare(b)); // ascending
-		const maxOf = (list: SemVer[]) => (list.length ? list[list.length - 1] : null);
 
 		const currentStripped = entry.currentRange.replace(/^[\^~]/, "");
 		const current = yield* parseOrNull(currentStripped);
 		const currentMajor = current?.major ?? 0;
+
+		// When the entry is itself pinned to a prerelease, candidates include
+		// prereleases on the SAME named track (e.g. "next"), so a next.8 pin can
+		// advance to next.9. A stable entry never sees a prerelease.
+		const track = current && current.prerelease.length > 0 ? String(current.prerelease[0]) : null;
+		const onTrack = (v: SemVer) => track !== null && v.prerelease.length > 0 && String(v.prerelease[0]) === track;
+
+		const parsed: SemVer[] = [];
+		for (const v of versions) {
+			const sv = yield* parseOrNull(v);
+			if (sv && (sv.isStable || onTrack(sv))) parsed.push(sv);
+		}
+		parsed.sort((a, b) => a.compare(b)); // ascending
+		const maxOf = (list: SemVer[]) => (list.length ? list[list.length - 1] : null);
+
 		const inRangeMax = range ? maxOf(parsed.filter((v) => range.test(v))) : null;
 		const overallMax = maxOf(parsed);
 
 		const withPeer = (version: string): Effect.Effect<string | undefined, PeerRangeError> =>
 			entry.strategy && entry.strategy !== "interop"
-				? derivePeerRange(`${entry.operator}${version}`, entry.strategy)
+				? derivePeerRange(`${entry.operator}${version}`, entry.strategy).pipe(Effect.map((d) => d.range))
 				: Effect.succeed(undefined);
 
 		const candidates: Candidate[] = [];

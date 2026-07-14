@@ -31,3 +31,12 @@ export interface Edit {
 	readonly span: readonly [number, number];
 	readonly text: string;
 }
+
+/** A span replacement that remembers which package and range it came from, for validation. */
+export interface PlannedEdit extends Edit {
+	readonly pkg: string;
+	/** Whether this edit rewrites the package's range literal or its peer literal. */
+	readonly kind: "range" | "peer";
+	/** The unquoted range being written, e.g. "^5.9.3". */
+	readonly value: string;
+}

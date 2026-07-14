@@ -79,7 +79,7 @@ describe("resolveGatedVersions (concurrency)", () => {
 		const entries = makeEntries(PACKAGE_COUNT);
 
 		// When: resolveGatedVersions is called
-		const result = await Effect.runPromise(resolveGatedVersions(entries, resolver, gate, Date.now()));
+		const { gated: result } = await Effect.runPromise(resolveGatedVersions(entries, resolver, gate, Date.now()));
 
 		// Then: every package resolved to its correct version list
 		expect(result.size).toBe(PACKAGE_COUNT);
@@ -128,11 +128,34 @@ describe("resolveGatedVersions (fail-closed semantics)", () => {
 		];
 
 		// When
-		const result = await Effect.runPromise(resolveGatedVersions(entries, resolver, gate, Date.now()));
+		const { gated: result } = await Effect.runPromise(resolveGatedVersions(entries, resolver, gate, Date.now()));
 
 		// Then: good-pkg has its versions, bad-pkg gets an empty array (fail-closed)
 		expect(result.get("good-pkg")).toEqual(["1.0.0"]);
 		expect(result.get("bad-pkg")).toEqual([]);
+	});
+
+	it("should return the UNGATED version list as `raw` alongside the gated one", async () => {
+		// Given: 2.0.0 was published one minute ago and the gate is 24h — it must be
+		// absent from `gated` (never proposed) but PRESENT in `raw`, which is the list
+		// validation runs against: a range satisfied only by a version inside the gate
+		// window is still perfectly satisfiable and must not be rejected.
+		const iso = (msAgo: number) => new Date(Date.now() - msAgo).toISOString();
+		const resolver = {
+			versions: (_pkg: string) => Effect.succeed(["1.0.0", "2.0.0"]),
+			times: (_pkg: string) =>
+				Effect.succeed<Record<string, string>>({ "1.0.0": iso(30 * 86_400_000), "2.0.0": iso(60_000) }),
+			pnpmConfig: (_key: string) => Effect.succeed<string | null>(null),
+			peerDependencies: (_pkg: string, _version: string) => Effect.succeed<Record<string, string>>({}),
+		};
+		const gate: ReleaseAgeGate = { ageMinutes: 1440, exclude: [] };
+
+		// When
+		const { gated, raw } = await Effect.runPromise(resolveGatedVersions(makeEntries(1), resolver, gate, Date.now()));
+
+		// Then
+		expect(gated.get("pkg-0"), "the young 2.0.0 must be gated out of the candidate list").toEqual(["1.0.0"]);
+		expect(raw.get("pkg-0"), "raw must carry every published version, ungated").toEqual(["1.0.0", "2.0.0"]);
 	});
 
 	it("should drop all versions when the times fetch fails (gate > 0)", async () => {
@@ -156,7 +179,7 @@ describe("resolveGatedVersions (fail-closed semantics)", () => {
 		];
 
 		// When
-		const result = await Effect.runPromise(resolveGatedVersions(entries, resolver, gate, Date.now()));
+		const { gated: result } = await Effect.runPromise(resolveGatedVersions(entries, resolver, gate, Date.now()));
 
 		// Then: fail-closed — empty times map makes filterByReleaseAge drop every version
 		expect(result.get("some-pkg")).toEqual([]);

@@ -1,55 +1,141 @@
 import { describe, expect, it } from "vitest";
 import type { Candidate, CatalogEntry } from "../../src/cli/types.js";
-import { initWalk, walkStep } from "../../src/cli/walk-reducer.js";
+import { cellColor, displayCandidates, initTable, tableDecisions, tableStep } from "../../src/cli/walk-reducer.js";
 import type { WalkItem } from "../../src/cli/walk-types.js";
 
 const entry = (pkg: string): CatalogEntry => ({
-	catalog: "silk",
+	catalog: "default",
 	pkg,
-	currentRange: "^5.9.0",
+	currentRange: "^1.0.0",
 	operator: "^",
 	rangeSpan: [0, 8],
 });
-const C = (kind: Candidate["kind"], range: string): Candidate => ({
-	kind,
-	range,
-	version: range.replace(/^[\^~]/, ""),
-	isMajor: false,
-});
-const item = (pkg: string, upToDate: boolean, candidates: Candidate[]): WalkItem => ({
+
+const keep: Candidate = { kind: "keep", range: "^1.0.0", version: "1.0.0", isMajor: false };
+const inRange: Candidate = { kind: "in-range", range: "^1.2.0", version: "1.2.0", isMajor: false };
+const latest: Candidate = { kind: "latest", range: "^2.0.0", version: "2.0.0", isMajor: true };
+
+const item = (pkg: string, candidates: readonly Candidate[]): WalkItem => ({
 	entry: entry(pkg),
 	candidates,
-	upToDate,
+	upToDate: candidates.length === 1,
 	driftPeer: null,
 	materializePeer: null,
+	peerWarning: null,
 });
 
-const ts = item("typescript", false, [C("in-range", "^5.9.3"), C("latest", "^7.1.0"), C("keep", "^5.9.0")]);
-const ok = item("eslint", true, [C("keep", "^9.0.0")]);
-const vi = item("vitest", false, [C("in-range", "^4.2.3"), C("keep", "^4.0.0")]);
-
-describe("walk reducer", () => {
-	it("starts on the first non-up-to-date item", () => {
-		const s = initWalk([ok, ts, vi]);
-		expect(s.index).toBe(1); // skips eslint (up to date)
-		expect(s.done).toBe(false);
+describe("displayCandidates", () => {
+	it("puts keep first, then in-range, then latest", () => {
+		const kinds = displayCandidates(item("a", [inRange, latest, keep])).map((c) => c.kind);
+		expect(kinds).toEqual(["keep", "in-range", "latest"]);
 	});
 
-	it("down moves the cursor, enter records the choice and advances", () => {
-		let s = initWalk([ts, vi]);
-		s = walkStep(s, [ts, vi], "down"); // cursor 0 → 1 (latest)
+	it("returns a single keep for an up-to-date row", () => {
+		expect(displayCandidates(item("a", [keep])).map((c) => c.kind)).toEqual(["keep"]);
+	});
+});
+
+describe("initTable", () => {
+	it("selects keep on every row and starts the cursor at the first row", () => {
+		const items = [item("a", [inRange, keep]), item("b", [inRange, latest, keep])];
+		const state = initTable(items);
+		expect(state).toEqual({ cursor: 0, picks: [0, 0], done: false, cancelled: false });
+	});
+});
+
+describe("tableStep", () => {
+	const items = [item("a", [inRange, keep]), item("b", [inRange, latest, keep])];
+
+	it("down and up move the cursor between rows, clamped at the ends", () => {
+		let s = initTable(items);
+		s = tableStep(s, items, "down");
 		expect(s.cursor).toBe(1);
-		s = walkStep(s, [ts, vi], "enter"); // record latest for ts, advance to vitest
-		expect(s.decisions).toHaveLength(1);
-		expect(s.decisions[0].chosen.kind).toBe("latest");
-		expect(s.index).toBe(1);
+		s = tableStep(s, items, "down");
+		expect(s.cursor).toBe(1);
+		s = tableStep(s, items, "up");
 		expect(s.cursor).toBe(0);
-		s = walkStep(s, [ts, vi], "enter"); // record in-range for vitest, done
-		expect(s.done).toBe(true);
-		expect(s.decisions.map((d) => d.chosen.kind)).toEqual(["latest", "in-range"]);
+		s = tableStep(s, items, "up");
+		expect(s.cursor).toBe(0);
 	});
 
-	it("is done immediately when all items are up to date", () => {
-		expect(initWalk([ok]).done).toBe(true);
+	it("right and left move the selection within a row, clamped at the ends", () => {
+		let s = initTable(items);
+		s = tableStep(s, items, "right");
+		expect(s.picks[0]).toBe(1);
+		s = tableStep(s, items, "right");
+		expect(s.picks[0]).toBe(1); // row "a" has only keep + in-range
+		s = tableStep(s, items, "left");
+		expect(s.picks[0]).toBe(0);
+		s = tableStep(s, items, "left");
+		expect(s.picks[0]).toBe(0);
+	});
+
+	it("moves only the row under the cursor", () => {
+		let s = initTable(items);
+		s = tableStep(s, items, "down");
+		s = tableStep(s, items, "right");
+		expect(s.picks).toEqual([0, 1]);
+	});
+
+	it("submit ends the walk without cancelling", () => {
+		const s = tableStep(initTable(items), items, "submit");
+		expect(s.done).toBe(true);
+		expect(s.cancelled).toBe(false);
+	});
+
+	it("cancel ends the walk and marks it cancelled", () => {
+		const s = tableStep(initTable(items), items, "cancel");
+		expect(s.done).toBe(true);
+		expect(s.cancelled).toBe(true);
+	});
+
+	it("ignores further keys once done", () => {
+		const done = tableStep(initTable(items), items, "submit");
+		expect(tableStep(done, items, "down")).toBe(done);
+	});
+});
+
+describe("tableDecisions", () => {
+	const items = [item("a", [inRange, keep]), item("b", [inRange, latest, keep])];
+
+	it("maps each row's pick to its chosen candidate", () => {
+		let s = initTable(items);
+		s = tableStep(s, items, "right"); // row a → in-range
+		s = tableStep(s, items, "down");
+		s = tableStep(s, items, "right");
+		s = tableStep(s, items, "right"); // row b → latest
+		const decisions = tableDecisions(s, items);
+		expect(decisions.map((d) => d.chosen.kind)).toEqual(["in-range", "latest"]);
+		expect(decisions.map((d) => d.item.entry.pkg)).toEqual(["a", "b"]);
+	});
+
+	it("defaults every row to keep", () => {
+		const decisions = tableDecisions(initTable(items), items);
+		expect(decisions.map((d) => d.chosen.kind)).toEqual(["keep", "keep"]);
+	});
+
+	it("returns no decisions when cancelled", () => {
+		const s = tableStep(initTable(items), items, "cancel");
+		expect(tableDecisions(s, items)).toEqual([]);
+	});
+});
+
+describe("cellColor", () => {
+	// A selected KEEP must NOT be colored. It is the current value, not a change,
+	// and dimming it made the leftmost column — the one the eye lands on first —
+	// read as disabled. Regression guard: this returned "gray" before.
+	it("leaves a selected keep uncolored", () => {
+		expect(cellColor(keep, true)).toBeNull();
+	});
+
+	it("colors a selected in-range upgrade green and a selected major yellow", () => {
+		expect(cellColor(inRange, true)).toBe("green");
+		expect(cellColor(latest, true)).toBe("yellow");
+	});
+
+	it("leaves every unselected candidate uncolored", () => {
+		expect(cellColor(keep, false)).toBeNull();
+		expect(cellColor(inRange, false)).toBeNull();
+		expect(cellColor(latest, false)).toBeNull();
 	});
 });

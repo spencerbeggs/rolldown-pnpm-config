@@ -8,14 +8,35 @@ await build({
 			catalogs: {
 				silk: {
 					packages: {
-						typescript: { range: "^5.9.0", peer: "^5.9.0", strategy: "lock-minor" },
-						vitest: { range: "^4.0.0", peer: "^4.0.0", strategy: "lock-minor" },
+						"@changesets/cli": {
+							range: "^3.0.0-next.8",
+							peer: "^3.0.0-next.8",
+							strategy: "lock",
+						},
+						typescript: {
+							range: "^5.9.0",
+							peer: "^5.9.0",
+							strategy: "lock-minor",
+						},
+						vitest: {
+							range: "^4.0.0",
+							peer: "^4.0.0",
+							strategy: "lock-minor",
+						},
 					},
 				},
 				effect: {
 					packages: {
-						effect: { range: "^3.15.0", peer: "^3.15.0", strategy: "interop" },
-						"@effect/platform": { range: "^0.75.0", peer: "^0.75.0", strategy: "interop" },
+						unrealldgfsg: {
+							range: "^3.15.0",
+							peer: "^3.15.0",
+							strategy: "interop",
+						},
+						"@effect/platform": {
+							range: "^0.75.0",
+							peer: "^0.75.0",
+							strategy: "interop",
+						},
 					},
 				},
 			},

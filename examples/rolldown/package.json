@@ -22,6 +22,9 @@
 	"scripts": {
 		"build:dev": "rolldown -c",
 		"build:prod": "rolldown -c",
+		"pnpm:export": "rolldown-pnpm-config export --dry-run",
+		"pnpm:preview": "rolldown-pnpm-config preview",
+		"pnpm:up": "rolldown-pnpm-config upgrade rolldown.config.ts --dry-run",
 		"prepare": "turbo run build:dev",
 		"types:check": "tsc --noEmit"
 	},

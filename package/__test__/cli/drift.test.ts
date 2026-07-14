@@ -30,4 +30,29 @@ describe("detectPeerDrift", () => {
 		await expect(run(entry({ peer: { value: "^4.2.0", span: [10, 18] } }))).resolves.toBeNull();
 		await expect(run(entry({ strategy: "lock-minor" }))).resolves.toBeNull();
 	});
+
+	it("returns null for an interop entry (its peer is derived group-wise, never per-package)", async () => {
+		// An interop peer is the FLOOR the group's peerDependencies resolve to, computed
+		// by interop.ts across the whole catalog group. Deriving one here would fall
+		// through to the lock-minor branch and report a bogus resync (^3.17.0), which
+		// projectDecisions would then surface in --preview/--dry-run.
+		const e = entry({
+			pkg: "effect",
+			currentRange: "^3.17.0",
+			peer: { value: "^3.16.0", span: [10, 18] },
+			strategy: "interop",
+		});
+		await expect(run(e)).resolves.toBeNull();
+	});
+
+	it("reports NO drift when a prerelease peer already matches its lock strategy", async () => {
+		const e = entry({
+			pkg: "@changesets/cli",
+			currentRange: "^3.0.0-next.8",
+			rangeSpan: [0, 15],
+			peer: { value: "^3.0.0-next.8", span: [20, 35] },
+			strategy: "lock",
+		});
+		await expect(run(e)).resolves.toBeNull();
+	});
 });

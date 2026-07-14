@@ -22,8 +22,8 @@
 		{
 			"source": "CLAUDE.md",
 			"target": ".claude/design/rolldown-pnpm-config/upgrade-cli.md",
-			"hash": "1f64ab85aa9e4ebd0b026c3cf6c353e1270560a4684ec56446db987a2f02bd35",
-			"recordedAt": "2026-06-30"
+			"hash": "8a7d887e8fadb6863013ae666b62d89a708d673270662f16e3b0395e7df3d594",
+			"recordedAt": "2026-07-14"
 		}
 	]
 }

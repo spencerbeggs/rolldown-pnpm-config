@@ -4,15 +4,18 @@ import { join } from "node:path";
 import { Effect, Option } from "effect";
 import { describe, expect, it } from "vitest";
 import {
-	applyDecisions,
 	applyInteropAndDecisions,
+	countChangedDecisions,
 	resolveGatedVersions,
 	resolveTargetFile,
 	runUpgrade,
 } from "../../src/cli/commands/upgrade.js";
 import { discoverCatalogEntries } from "../../src/cli/discover.js";
+import { buildEdits } from "../../src/cli/edits.js";
 import type { GroupMember } from "../../src/cli/interop.js";
 import { buildInteropEdits, capVersions, reentryCandidates, runInterop } from "../../src/cli/interop.js";
+import { renderSummary } from "../../src/cli/summary.js";
+import { validateEdits } from "../../src/cli/validate.js";
 import { buildWalkItems } from "../../src/cli/walk-plan.js";
 import type { Decision } from "../../src/cli/walk-types.js";
 import { makeStubResolver } from "./utils/stub-resolver.js";
@@ -52,13 +55,14 @@ describe("interactive apply (headless)", () => {
 			Effect.gen(function* () {
 				const source = readFileSync(file, "utf8");
 				const { entries } = discoverCatalogEntries(source, file);
-				const versions = yield* resolveGatedVersions(entries, resolver, ZERO_GATE, Date.now());
+				const { gated: versions } = yield* resolveGatedVersions(entries, resolver, ZERO_GATE, Date.now());
 				const items = yield* buildWalkItems(entries, versions);
 				// Simulate: choose the in-range candidate for every actionable item.
 				const decisions: Decision[] = items
 					.filter((i) => !i.upToDate)
 					.map((i) => ({ item: i, chosen: i.candidates.find((c) => c.kind === "in-range")! }));
-				return yield* applyDecisions(file, source, decisions);
+				yield* applyInteropAndDecisions(file, source, buildEdits(decisions), []);
+				return countChangedDecisions(decisions);
 			}),
 		);
 		const out = readFileSync(file, "utf8");
@@ -83,12 +87,13 @@ export const plugin = PnpmConfigPlugin({
 			Effect.gen(function* () {
 				const source = readFileSync(file, "utf8");
 				const { entries } = discoverCatalogEntries(source, file);
-				const versions = yield* resolveGatedVersions(entries, resolver, ZERO_GATE, Date.now());
+				const { gated: versions } = yield* resolveGatedVersions(entries, resolver, ZERO_GATE, Date.now());
 				const items = yield* buildWalkItems(entries, versions);
 				const decisions: Decision[] = items
 					.filter((i) => !i.upToDate)
 					.map((i) => ({ item: i, chosen: i.candidates.find((c) => c.kind === "in-range") ?? i.candidates[0] }));
-				return yield* applyDecisions(file, source, decisions);
+				yield* applyInteropAndDecisions(file, source, buildEdits(decisions), []);
+				return countChangedDecisions(decisions);
 			}),
 		);
 		const result = readFileSync(file, "utf8");
@@ -103,7 +108,7 @@ export const plugin = PnpmConfigPlugin({
 			Effect.gen(function* () {
 				const source = readFileSync(file, "utf8");
 				const { entries } = discoverCatalogEntries(source, file);
-				const versions = yield* resolveGatedVersions(entries, driftResolver, ZERO_GATE, Date.now());
+				const { gated: versions } = yield* resolveGatedVersions(entries, driftResolver, ZERO_GATE, Date.now());
 				const items = yield* buildWalkItems(entries, versions);
 				// Drifted item must be actionable (not up-to-date) despite being newest.
 				const vitestItem = items.find((i) => i.entry.pkg === "vitest")!;
@@ -112,7 +117,8 @@ export const plugin = PnpmConfigPlugin({
 				const decisions: Decision[] = items
 					.filter((i) => !i.upToDate)
 					.map((i) => ({ item: i, chosen: i.candidates.find((c) => c.kind === "keep")! }));
-				return yield* applyDecisions(file, source, decisions);
+				yield* applyInteropAndDecisions(file, source, buildEdits(decisions), []);
+				return countChangedDecisions(decisions);
 			}),
 		);
 		const out = readFileSync(file, "utf8");
@@ -120,7 +126,7 @@ export const plugin = PnpmConfigPlugin({
 		expect(out).toContain('range: "^4.2.3"');
 		// Peer must be resynced to lock-minor of 4.2.3.
 		expect(out).toContain('peer: "^4.2.0"');
-		// applyDecisions must count the resync as a change.
+		// countChangedDecisions must count the resync as a change.
 		expect(result).toBe(1);
 	});
 });
@@ -163,6 +169,156 @@ export const plugin = PnpmConfigPlugin({
 	});
 });
 
+describe("interactive apply (rejected edits)", () => {
+	// left-pad's exact-pinned lock-minor peer derives to "3.4.0", never published.
+	// typescript's bump is perfectly good. Interactively the bad edit is DROPPED and
+	// REPORTED — it must not block the good one (unlike --yes, which fails hard).
+	const SOURCE = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
+export const plugin = PnpmConfigPlugin({
+ name: "@test/cfg",
+ catalogs: { silk: { packages: {
+  typescript: "^5.9.0",
+  "left-pad": { range: "3.4.1", peer: "3.4.1", strategy: "lock-minor" },
+ } } },
+});
+`;
+
+	it("drops a rejected edit, applies the rest, and reports it in the summary", async () => {
+		const file = writeTmpConfig(SOURCE);
+		const rejectResolver = makeStubResolver({
+			versions: { typescript: ["5.9.0", "5.9.3"], "left-pad": ["3.4.1"] },
+		});
+
+		const summary = await Effect.runPromise(
+			Effect.gen(function* () {
+				const source = readFileSync(file, "utf8");
+				const { entries } = discoverCatalogEntries(source, file);
+				const versions = yield* resolveGatedVersions(entries, rejectResolver, ZERO_GATE, Date.now());
+				const items = yield* buildWalkItems(entries, versions.gated);
+				// The walk: take every actionable item (typescript bumps, left-pad resyncs).
+				const decisions: Decision[] = items.map((i) => ({
+					item: i,
+					chosen: i.candidates.find((c) => c.kind === "in-range") ?? i.candidates.find((c) => c.kind === "keep")!,
+				}));
+				const { accepted, rejected } = yield* validateEdits(buildEdits(decisions), versions.raw);
+				yield* applyInteropAndDecisions(file, source, accepted, []);
+				return renderSummary(decisions, undefined, undefined, rejected);
+			}),
+		);
+
+		const out = readFileSync(file, "utf8");
+		expect(out).toContain('typescript: "^5.9.3"'); // the good bump still landed
+		expect(out).toContain('peer: "3.4.1"'); // the unsatisfiable "3.4.0" was NOT written
+		expect(summary).toContain("Rejected");
+		expect(summary).toContain("no published version of left-pad satisfies 3.4.0");
+	});
+});
+
+describe("interactive apply (atomic per-package rejection)", () => {
+	// left-pad is exact-pinned with no in-range candidate distinct from "keep", so
+	// planEntry offers only a "latest" bump to 3.4.2 — accepting it produces BOTH a
+	// range edit (3.4.1 -> 3.4.2, satisfiable) and a recomputed lock-minor peer edit
+	// (floors to 3.4.0, never published, unsatisfiable). The two edits share one
+	// package and must be accepted or rejected together.
+	const PAIR_SOURCE = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
+export const plugin = PnpmConfigPlugin({
+ name: "@test/cfg",
+ catalogs: { silk: { packages: {
+  typescript: "^5.9.0",
+  "left-pad": { range: "3.4.1", peer: "3.4.1", strategy: "lock-minor" },
+  vitest: { range: "^4.0.0", peer: "^4.0.0", strategy: "lock-minor" },
+ } } },
+});
+`;
+	const pairResolver = makeStubResolver({
+		versions: {
+			typescript: ["5.9.0", "5.9.3"],
+			"left-pad": ["3.4.1", "3.4.2"],
+			vitest: ["4.0.0", "4.2.3"],
+		},
+	});
+
+	/** Drive discover -> plan -> pick every actionable candidate -> validate, without writing. */
+	const planAndValidate = (file: string) =>
+		Effect.gen(function* () {
+			const source = readFileSync(file, "utf8");
+			const { entries } = discoverCatalogEntries(source, file);
+			const versions = yield* resolveGatedVersions(entries, pairResolver, ZERO_GATE, Date.now());
+			const items = yield* buildWalkItems(entries, versions.gated);
+			const decisions: Decision[] = items
+				.filter((i) => !i.upToDate)
+				.map((i) => ({
+					item: i,
+					chosen:
+						i.candidates.find((c) => c.kind === "in-range") ??
+						i.candidates.find((c) => c.kind === "latest") ??
+						i.candidates.find((c) => c.kind === "keep")!,
+				}));
+			const { accepted, rejected } = yield* validateEdits(buildEdits(decisions), versions.raw);
+			return { source, accepted, rejected };
+		});
+
+	it("drops a satisfiable range edit alongside its paired unsatisfiable peer edit — writes NEITHER", async () => {
+		const file = writeTmpConfig(PAIR_SOURCE);
+		const { source, accepted, rejected } = await Effect.runPromise(planAndValidate(file));
+
+		// Both of left-pad's edits are rejected, none accepted for it.
+		expect(accepted.some((e) => e.pkg === "left-pad")).toBe(false);
+		const leftPadRejected = rejected.filter((r) => r.pkg === "left-pad");
+		expect(leftPadRejected).toHaveLength(2);
+		expect(leftPadRejected.map((r) => r.kind).sort()).toEqual(["peer", "range"]);
+
+		await Effect.runPromise(applyInteropAndDecisions(file, source, accepted, []));
+		const out = readFileSync(file, "utf8");
+		// left-pad's range AND peer are byte-identical to the source — a half-written
+		// package (new range, stale peer) is exactly the bug this test guards against.
+		expect(out).toContain('"left-pad": { range: "3.4.1", peer: "3.4.1", strategy: "lock-minor" }');
+	});
+
+	it("does not let left-pad's rejection block either of the two good packages in the same run", async () => {
+		const file = writeTmpConfig(PAIR_SOURCE);
+		const { source, accepted } = await Effect.runPromise(planAndValidate(file));
+
+		await Effect.runPromise(applyInteropAndDecisions(file, source, accepted, []));
+		const out = readFileSync(file, "utf8");
+		expect(out).toContain('typescript: "^5.9.3"'); // simple package: fully applied
+		expect(out).toContain('range: "^4.2.3"'); // vitest: range + peer both applied
+		expect(out).toContain('peer: "^4.2.0"');
+		expect(out).toContain('"left-pad": { range: "3.4.1", peer: "3.4.1", strategy: "lock-minor" }'); // untouched
+	});
+});
+
+describe("dry run", () => {
+	// --dry-run runs the IDENTICAL flow and skips only the write. The command
+	// expresses that as `if (!dryRun) applyInteropAndDecisions(...)`, so the
+	// guarantee under test is: the very edits an apply would have written leave
+	// the file byte-identical when the write is skipped.
+	it("computes real edits but leaves the file byte-identical when the write is skipped", async () => {
+		const file = writeTmpConfig(SOURCE);
+		const before = readFileSync(file, "utf8");
+
+		const { accepted } = await Effect.runPromise(
+			Effect.gen(function* () {
+				const source = readFileSync(file, "utf8");
+				const { entries } = discoverCatalogEntries(source, file);
+				const { gated, raw } = yield* resolveGatedVersions(entries, resolver, ZERO_GATE, Date.now());
+				const items = yield* buildWalkItems(entries, gated);
+				const decisions: Decision[] = items
+					.filter((i) => !i.upToDate)
+					.map((i) => ({ item: i, chosen: i.candidates.find((c) => c.kind === "in-range")! }));
+				return yield* validateEdits(buildEdits(decisions), raw);
+			}),
+		);
+
+		// The run produced real, applicable edits — this is not a vacuous no-op.
+		expect(accepted.length).toBeGreaterThan(0);
+		expect(accepted.some((e) => e.value === "^5.9.3")).toBe(true);
+
+		// ...and skipping the write (what --dry-run does) leaves the source untouched.
+		expect(readFileSync(file, "utf8")).toBe(before);
+	});
+});
+
 describe("interactive interop apply (headless)", () => {
 	const INTEROP_SOURCE = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
 export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: { effect: { packages: {
@@ -186,7 +342,7 @@ export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: { effect: 
 			Effect.gen(function* () {
 				const source = readFileSync(file, "utf8");
 				const { entries } = discoverCatalogEntries(source, file);
-				const versions = yield* resolveGatedVersions(entries, interopResolver, ZERO_GATE, Date.now());
+				const { gated: versions } = yield* resolveGatedVersions(entries, interopResolver, ZERO_GATE, Date.now());
 				const items = yield* buildWalkItems(entries, versions);
 
 				// Simulate the user's walk: keep each interop entry at its current
@@ -247,7 +403,7 @@ export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: {
 			Effect.gen(function* () {
 				const source = readFileSync(file, "utf8");
 				const { entries } = discoverCatalogEntries(source, file);
-				const versions = yield* resolveGatedVersions(entries, mixedResolver, ZERO_GATE, Date.now());
+				const { gated: versions } = yield* resolveGatedVersions(entries, mixedResolver, ZERO_GATE, Date.now());
 				const items = yield* buildWalkItems(entries, versions);
 				const decisions: Decision[] = items.map((i) => ({
 					item: i,
@@ -262,7 +418,7 @@ export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: {
 				}));
 				const result = yield* runInterop(members, mixedResolver);
 				const interopEdits = buildInteropEdits(group, result);
-				yield* applyInteropAndDecisions(file, source, nonInteropDecisions, interopEdits);
+				yield* applyInteropAndDecisions(file, source, buildEdits(nonInteropDecisions), interopEdits);
 			}),
 		);
 
