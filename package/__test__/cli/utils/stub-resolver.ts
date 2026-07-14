@@ -5,12 +5,17 @@ export interface StubSpec {
 	readonly times?: Record<string, Record<string, string>>;
 	readonly peerDependencies?: Record<string, Record<string, Record<string, string>>>; // pkg -> version -> peerDeps
 	readonly pnpmConfig?: Record<string, string | null>;
+	/** Packages whose versions fetch FAILS outright (registry error / no such package). */
+	readonly failVersions?: readonly string[];
 }
 
 /** Build a RegistryResolver-shaped stub for integration tests. */
 export function makeStubResolver(spec: StubSpec) {
 	return {
-		versions: (pkg: string) => Effect.succeed(spec.versions?.[pkg] ?? []),
+		versions: (pkg: string) =>
+			spec.failVersions?.includes(pkg)
+				? Effect.fail(new Error(`404 Not Found - GET https://registry.npmjs.org/${pkg}`))
+				: Effect.succeed(spec.versions?.[pkg] ?? []),
 		times: (pkg: string) => Effect.succeed(spec.times?.[pkg] ?? {}),
 		peerDependencies: (pkg: string, version: string) => Effect.succeed(spec.peerDependencies?.[pkg]?.[version] ?? {}),
 		pnpmConfig: (key: string) => Effect.succeed(spec.pnpmConfig?.[key] ?? null),

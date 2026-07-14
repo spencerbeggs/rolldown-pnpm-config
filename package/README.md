@@ -77,11 +77,11 @@ The bundled `rolldown-pnpm-config upgrade` command rewrites the version ranges i
 
 ```bash
 npx rolldown-pnpm-config upgrade
-# walks each catalog package, then:
+# opens a radio-group table, one row per package, then on <Enter>:
 # Applied <n> change(s).
 ```
 
-The walk is interactive by default. `--yes` takes the latest in-range version without prompting, `--dry-run` prints the planned changes without writing and `--catalog <name>` restricts the walk to one catalog. Pass `--preview` for a non-interactive projection of what the walk would do, with `--full` to show the full tree without context collapsing. The output is colorized in a supporting terminal. For packages that declare a `strategy`, the command also resyncs their materialized peer range. See [upgrading catalogs](https://github.com/spencerbeggs/rolldown-pnpm-config/blob/main/docs/05-upgrading-catalogs.md) for the full surface.
+The command shows an interactive table by default — every catalog package at once, one row per package, `●`/`○` bubbles, modeled on `pnpm up -i`. `--yes` takes the latest in-range version for every package without prompting and fails hard on any warning or unresolvable package name; `--dry-run` runs the identical table and skips only the write; `--catalog <name>` restricts the table to one catalog. Pass `--preview` for a non-interactive projection of what an upgrade would do, with `--full` to show up-to-date entries too. The output is colorized in a supporting terminal. For packages that declare a `strategy`, the command also resyncs their materialized peer range, preserving any prerelease identifier rather than rebuilding it from parsed version parts. See [upgrading catalogs](https://github.com/spencerbeggs/rolldown-pnpm-config/blob/main/docs/05-upgrading-catalogs.md) for the full surface.
 
 ## Exporting to pnpm-workspace.yaml
 

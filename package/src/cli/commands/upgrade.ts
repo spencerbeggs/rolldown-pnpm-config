@@ -17,9 +17,11 @@ import { applyEdits } from "../rewrite.js";
 import { filterEntriesByCatalog, findConfigFiles, pickConfigCandidate } from "../select-file.js";
 import type { InteropAdjustment } from "../summary.js";
 import { renderSummary } from "../summary.js";
-import type { CatalogEntry, Edit } from "../types.js";
+import type { CatalogEntry, Edit, PlannedEdit } from "../types.js";
 import { detectCapabilities } from "../ui/env.js";
 import { runWalk } from "../ui/run-walk.js";
+import type { RejectedEdit } from "../validate.js";
+import { validateEdits } from "../validate.js";
 import { buildWalkItems } from "../walk-plan.js";
 import type { Decision, WalkItem } from "../walk-types.js";
 
@@ -76,7 +78,7 @@ export function resolveGatedVersions(
 	gate: ReleaseAgeGate,
 	now: number,
 	onProgress?: (resolved: number, total: number) => void,
-): Effect.Effect<Map<string, string[]>, never> {
+): Effect.Effect<{ gated: Map<string, string[]>; raw: Map<string, string[]>; unresolved: string[] }, never> {
 	const uniquePkgs = [...new Set(entries.map((e) => e.pkg))];
 	const total = uniquePkgs.length;
 	// Counter is captured in the closure; only one JS thread increments it so it
@@ -90,7 +92,7 @@ export function resolveGatedVersions(
 				const vr = yield* resolver.versions(pkg).pipe(Effect.either);
 				if (vr._tag === "Left") {
 					onProgress?.(++resolved, total);
-					return [pkg, [] as string[]] as const;
+					return [pkg, [] as string[], [] as string[]] as const;
 				}
 				// Fail-closed: if the publish-times fetch fails, an empty map makes
 				// filterByReleaseAge drop every version (all timestamps unknown). This is a
@@ -104,10 +106,27 @@ export function resolveGatedVersions(
 						? yield* resolver.times(pkg).pipe(Effect.catchAll(() => Effect.succeed({} as Record<string, string>)))
 						: ({} as Record<string, string>);
 				onProgress?.(++resolved, total);
-				return [pkg, filterByReleaseAge(vr.right, times, gate, pkg, now)] as const;
+				return [pkg, filterByReleaseAge(vr.right, times, gate, pkg, now), vr.right] as const;
 			}),
 		{ concurrency: RESOLVE_CONCURRENCY },
-	).pipe(Effect.map((pairs) => new Map(pairs)));
+	).pipe(
+		Effect.map((triples) => ({
+			// `gated` is the only candidate source — it keeps the fail-closed semantics
+			// above. `raw` is ONLY a validation input: validating a derived range against
+			// the gated list would spuriously reject a package whose satisfying version
+			// was published inside the gate window.
+			gated: new Map(triples.map(([pkg, gated]) => [pkg, gated])),
+			raw: new Map(triples.map(([pkg, , raw]) => [pkg, raw])),
+			// Packages the registry could not resolve AT ALL — a misspelt name, a package
+			// that does not exist, an auth failure. DISTINCT from a package whose versions
+			// all fell to the release-age gate (raw non-empty, gated empty), which is a
+			// legitimate "nothing old enough to offer yet", not an error.
+			// Without this, a typo'd name produced an empty version list, planned to
+			// keep-only, counted as up to date, and was hidden from the table entirely —
+			// the author never learned the package does not exist.
+			unresolved: triples.filter(([, , raw]) => raw.length === 0).map(([pkg]) => pkg),
+		})),
+	);
 }
 
 /**
@@ -139,6 +158,12 @@ export function writeResolveProgress(resolved: number, total: number): void {
  * is treated as a skip, except that a strategy entry can still resync or
  * materialize its managed peer offline from the current range.
  *
+ * This path runs UNATTENDED (`--yes`, i.e. CI), so it fails hard rather than
+ * degrading: any peer-strategy warning, or any planned edit no published
+ * version satisfies, aborts the run and writes NOTHING. A warning that scrolls
+ * past unread in a CI log is a bad range in a published artifact. The
+ * interactive path is deliberately more forgiving (see `upgradeCommand`).
+ *
  * @internal
  */
 export function runUpgrade(opts: {
@@ -146,7 +171,12 @@ export function runUpgrade(opts: {
 	resolver: Resolver;
 	/** Optional progress callback; pass `writeResolveProgress` when caps.interactive. */
 	onProgress?: (resolved: number, total: number) => void;
-}): Effect.Effect<{ updated: number; skipped: string[]; conflicts: InteropConflict[] }, UpgradeError> {
+	/** Compute everything, report it, but skip the write. Honors `--yes --dry-run`. */
+	dryRun?: boolean;
+}): Effect.Effect<
+	{ updated: number; skipped: string[]; conflicts: InteropConflict[]; rejected: RejectedEdit[] },
+	UpgradeError
+> {
 	return Effect.gen(function* () {
 		const source = yield* Effect.try({
 			try: () => readFileSync(opts.file, "utf8"),
@@ -158,12 +188,54 @@ export function runUpgrade(opts: {
 		});
 		const gate = yield* computeGate(source, opts.file, opts.resolver);
 		const versionsByPkg = yield* resolveGatedVersions(entries, opts.resolver, gate, Date.now(), opts.onProgress);
-		const edits: Edit[] = [];
+
+		// A package the registry cannot resolve is almost always a typo in the config.
+		// Under --yes there is nobody to read a warning, and silently skipping it would
+		// leave a name that will never resolve sitting in the catalog forever. Fail.
+		if (versionsByPkg.unresolved.length > 0) {
+			return yield* Effect.fail(new UpgradeError({ message: unresolvedMessage(versionsByPkg.unresolved) }));
+		}
+
+		const edits: PlannedEdit[] = [];
+		const interopEdits: Edit[] = [];
+		const warnings: string[] = [];
 		const changedSpans = new Set<number>();
 
 		for (const entry of entries) {
 			if (entry.strategy === "interop") continue;
-			const versions = versionsByPkg.get(entry.pkg) ?? [];
+			const versions = versionsByPkg.gated.get(entry.pkg) ?? [];
+			const pkg = entry.pkg;
+			const rangeEdit = (span: readonly [number, number], value: string): PlannedEdit => ({
+				span,
+				text: JSON.stringify(value),
+				pkg,
+				kind: "range",
+				value,
+			});
+			const peerEdit = (span: readonly [number, number], value: string): PlannedEdit => ({
+				span,
+				text: JSON.stringify(value),
+				pkg,
+				kind: "peer",
+				value,
+			});
+			const peerInsert = (at: number, value: string): PlannedEdit => ({
+				span: [at, at],
+				text: `, peer: ${JSON.stringify(value)}`,
+				pkg,
+				kind: "peer",
+				value,
+			});
+
+			// Derive the entry's peer ONCE, up front, so the incompatibility warning is
+			// collected wherever the entry lands below — range bump, offline resync, or
+			// materialize — not only on the peer-only paths. A derivation FAILURE stays a
+			// silent skip (the entry simply gets no peer edit); only a WARNING is fatal.
+			const derived = entry.strategy
+				? yield* derivePeerRange(entry.currentRange, entry.strategy).pipe(Effect.catchAll(() => Effect.succeed(null)))
+				: null;
+			if (derived?.warning) warnings.push(`${entry.pkg}: ${derived.warning.message}`);
+
 			if (versions.length === 0) {
 				// No fetchable versions, but a strategy entry can still resync a drifted
 				// peer or materialize a missing one offline from the current range
@@ -172,19 +244,14 @@ export function runUpgrade(opts: {
 				if (entry.peer && entry.strategy) {
 					const expected = yield* detectPeerDrift(entry).pipe(Effect.catchAll(() => Effect.succeed(null)));
 					if (expected !== null) {
-						edits.push({ span: entry.peer.span, text: JSON.stringify(expected) });
+						edits.push(peerEdit(entry.peer.span, expected));
 						changedSpans.add(entry.rangeSpan[0]);
 						continue;
 					}
-				} else if (!entry.peer && entry.strategy) {
-					const peerRange = yield* derivePeerRange(entry.currentRange, entry.strategy).pipe(
-						Effect.catchAll(() => Effect.succeed(null)),
-					);
-					if (peerRange !== null) {
-						edits.push({ span: [at, at], text: `, peer: ${JSON.stringify(peerRange)}` });
-						changedSpans.add(entry.rangeSpan[0]);
-						continue;
-					}
+				} else if (!entry.peer && entry.strategy && derived !== null) {
+					edits.push(peerInsert(at, derived.range));
+					changedSpans.add(entry.rangeSpan[0]);
+					continue;
 				}
 				skipped.push(`${entry.catalog}.${entry.pkg}`);
 				continue;
@@ -193,29 +260,24 @@ export function runUpgrade(opts: {
 			const inRange = candidates.find((c) => c.kind === "in-range");
 			const at = entry.rangeSpan[1];
 			if (inRange) {
-				edits.push({ span: entry.rangeSpan, text: JSON.stringify(inRange.range) });
+				edits.push(rangeEdit(entry.rangeSpan, inRange.range));
 				changedSpans.add(entry.rangeSpan[0]);
 				if (entry.peer && inRange.peerRange) {
-					edits.push({ span: entry.peer.span, text: JSON.stringify(inRange.peerRange) });
+					edits.push(peerEdit(entry.peer.span, inRange.peerRange));
 				} else if (!entry.peer && entry.strategy && inRange.peerRange) {
-					edits.push({ span: [at, at], text: `, peer: ${JSON.stringify(inRange.peerRange)}` });
+					edits.push(peerInsert(at, inRange.peerRange));
 				}
-			} else if (!entry.peer && entry.strategy) {
+			} else if (!entry.peer && entry.strategy && derived !== null) {
 				// Already at newest, but the strategy declares a managed peer that does not exist yet:
 				// materialize it from the current range.
-				const peerRange = yield* derivePeerRange(entry.currentRange, entry.strategy).pipe(
-					Effect.catchAll(() => Effect.succeed(null)),
-				);
-				if (peerRange !== null) {
-					edits.push({ span: [at, at], text: `, peer: ${JSON.stringify(peerRange)}` });
-					changedSpans.add(entry.rangeSpan[0]);
-				}
+				edits.push(peerInsert(at, derived.range));
+				changedSpans.add(entry.rangeSpan[0]);
 			} else if (entry.peer && entry.strategy) {
 				// Already at newest, but an existing peer literal may have drifted from
 				// the strategy: resync it (parity with the interactive walk).
 				const expected = yield* detectPeerDrift(entry).pipe(Effect.catchAll(() => Effect.succeed(null)));
 				if (expected !== null) {
-					edits.push({ span: entry.peer.span, text: JSON.stringify(expected) });
+					edits.push(peerEdit(entry.peer.span, expected));
 					changedSpans.add(entry.rangeSpan[0]);
 				}
 			}
@@ -233,20 +295,48 @@ export function runUpgrade(opts: {
 		for (const [, group] of byCatalog) {
 			const members: GroupMember[] = [];
 			for (const e of group) {
-				const versions = versionsByPkg.get(e.pkg) ?? [];
+				const versions = versionsByPkg.gated.get(e.pkg) ?? [];
 				const cands = yield* planEntry(e, versions).pipe(Effect.catchAll(() => Effect.succeed([])));
 				const inRange = cands.find((c) => c.kind === "in-range");
 				const ceiling = inRange ? inRange.version : e.currentRange.replace(/^[\^~]/, "");
 				members.push({ pkg: e.pkg, ceiling, candidates: versions });
 			}
 			const result = yield* runInterop(members, opts.resolver);
-			edits.push(...buildInteropEdits(group, result));
+			interopEdits.push(...buildInteropEdits(group, result));
 			for (const e of group) if (interopEntryChanged(e, result)) changedSpans.add(e.rangeSpan[0]);
 			conflicts.push(...result.conflicts);
 		}
 
-		if (edits.length > 0) {
-			const next = applyEdits(source, edits);
+		if (warnings.length > 0) {
+			return yield* Effect.fail(
+				new UpgradeError({
+					message: `Refusing to apply with an incompatible peer strategy:\n${warnings.map((w) => `  ${w}`).join("\n")}`,
+				}),
+			);
+		}
+
+		// Validate against the UNGATED list: the release-age gate hides recently
+		// published versions, and an entry whose only satisfying version is inside the
+		// gate window is still perfectly satisfiable.
+		const { accepted, rejected } = yield* validateEdits(edits, versionsByPkg.raw);
+		if (rejected.length > 0) {
+			return yield* Effect.fail(
+				new UpgradeError({
+					message: `Refusing to write unsatisfiable range(s):\n${rejected.map((r) => `  ${r.reason}`).join("\n")}`,
+				}),
+			);
+		}
+
+		// Interop peers are derived group-wise from versions runInterop just resolved,
+		// so they are satisfiable by construction and skip validation.
+		const allEdits: Edit[] = [...accepted, ...interopEdits];
+		// `--dry-run` composes with `--yes`: everything above ran for real (resolve,
+		// plan, interop reconcile, validation, the hard failures), so the reported
+		// counts are exactly what an apply would have written. Only the write is
+		// skipped. Ignoring dryRun here would make `--yes --dry-run` WRITE — the
+		// precise opposite of what someone adding the flag in CI is asking for.
+		if (allEdits.length > 0 && !opts.dryRun) {
+			const next = applyEdits(source, allEdits);
 			yield* Effect.try({
 				try: () => writeFileSync(opts.file, next, "utf8"),
 				catch: () => new UpgradeError({ message: `Cannot write ${opts.file}` }),
@@ -254,56 +344,39 @@ export function runUpgrade(opts: {
 		}
 
 		const updated = changedSpans.size;
-		return { updated, skipped, conflicts };
+		return { updated, skipped, conflicts, rejected };
 	});
 }
 
+/** Count the decisions that actually change the file (a bump, a peer resync, or a materialize). @internal */
+export function countChangedDecisions(decisions: readonly Decision[]): number {
+	return decisions.filter(
+		(d) =>
+			d.chosen.kind !== "keep" ||
+			(d.item.entry.peer !== undefined && d.item.driftPeer !== null) ||
+			(d.item.entry.peer === undefined && d.item.materializePeer !== null),
+	).length;
+}
+
 /**
- * Apply decisions to the file, returning the number of changed entries.
+ * Apply the interactive result: the (already validated) non-interop edits plus
+ * the interop members' separately-computed span edits. Interop members are
+ * EXCLUDED from `buildEdits` upstream so the two never emit a range edit over
+ * the same span (which `applyEdits` would reject as overlapping).
  *
- * @internal
- */
-export function applyDecisions(
-	file: string,
-	source: string,
-	decisions: readonly Decision[],
-): Effect.Effect<number, UpgradeError> {
-	return Effect.gen(function* () {
-		const edits = buildEdits(decisions);
-		if (edits.length > 0) {
-			const next = applyEdits(source, edits);
-			yield* Effect.try({
-				try: () => writeFileSync(file, next, "utf8"),
-				catch: () => new UpgradeError({ message: `Cannot write ${file}` }),
-			});
-		}
-		const changedCount = decisions.filter(
-			(d) =>
-				d.chosen.kind !== "keep" ||
-				(d.item.entry.peer !== undefined && d.item.driftPeer !== null) ||
-				(d.item.entry.peer === undefined && d.item.materializePeer !== null),
-		).length;
-		return changedCount;
-	});
-}
-
-/**
- * Apply the interactive result when interop members are present: the
- * non-interop decisions go through `buildEdits`, the interop members through
- * their separately-computed span edits. Interop members are EXCLUDED from
- * `buildEdits` so the two never emit a range edit over the same span (which
- * `applyEdits` would reject as overlapping).
+ * Edits arrive pre-validated so the caller can report what was dropped rather
+ * than failing the whole run.
  *
  * @internal
  */
 export function applyInteropAndDecisions(
 	file: string,
 	source: string,
-	nonInteropDecisions: readonly Decision[],
+	nonInteropEdits: readonly Edit[],
 	interopEdits: readonly Edit[],
 ): Effect.Effect<void, UpgradeError> {
 	return Effect.gen(function* () {
-		const edits = [...buildEdits(nonInteropDecisions), ...interopEdits];
+		const edits = [...nonInteropEdits, ...interopEdits];
 		if (edits.length === 0) return;
 		const next = applyEdits(source, edits);
 		yield* Effect.try({
@@ -311,6 +384,45 @@ export function applyInteropAndDecisions(
 			catch: () => new UpgradeError({ message: `Cannot write ${file}` }),
 		});
 	});
+}
+
+/**
+ * Filter walk items down to the ones the interactive table should show: a row
+ * is actionable when it is anything but up-to-date (a range bump, a peer
+ * drift resync, or a peer materialization), unless `--full` asks for every
+ * row including inert up-to-date ones. Parity with the old walk's
+ * `nextActionable` auto-skip, now applied as an upfront filter instead of a
+ * per-step cursor advance.
+ *
+ * @internal
+ */
+export function actionableWalkItems(items: readonly WalkItem[], full: boolean): WalkItem[] {
+	return full ? [...items] : items.filter((i) => !i.upToDate);
+}
+
+/**
+ * The message printed instead of entering the interactive table when nothing
+ * is actionable: either no catalog packages were discovered at all, or every
+ * discovered package is already up to date.
+ *
+ * @internal
+ */
+export function nothingToUpgradeMessage(totalItems: number): string {
+	return totalItems === 0
+		? "Nothing to upgrade — no catalog packages found.\n"
+		: `Nothing to upgrade — ${totalItems} package(s) already up to date.\n`;
+}
+
+/**
+ * The message for packages the registry could not resolve. Almost always a
+ * misspelt name in the config; occasionally a private package the current
+ * .npmrc cannot authenticate against.
+ *
+ * @internal
+ */
+export function unresolvedMessage(unresolved: readonly string[]): string {
+	const list = unresolved.map((p) => `  ${p}`).join("\n");
+	return `Could not resolve ${unresolved.length} package(s) from the registry — check the name(s) for typos, or your registry auth:\n${list}`;
 }
 
 /** Project walk items to the non-interactive default decisions (latest-in-range, plus peer-only keeps). @internal */
@@ -355,10 +467,13 @@ export function runUpgradePreview(opts: {
 		});
 		const gate = yield* computeGate(source, opts.file, opts.resolver);
 		const versions = yield* resolveGatedVersions(discovered.entries, opts.resolver, gate, Date.now());
-		const items = yield* buildWalkItems(discovered.entries, versions).pipe(
+		const items = yield* buildWalkItems(discovered.entries, versions.gated).pipe(
 			Effect.catchAll((e) => Effect.fail(new UpgradeError({ message: e.message }))),
 		);
-		return renderSummary(projectDecisions(items, opts.full), undefined, { color: opts.color ?? false });
+		const text = renderSummary(projectDecisions(items, opts.full), undefined, { color: opts.color ?? false });
+		// --preview must not hide a typo either: an unresolvable package renders as
+		// up-to-date and would otherwise be invisible in the projection.
+		return versions.unresolved.length > 0 ? `${text}\n⚠ ${unresolvedMessage(versions.unresolved)}` : text;
 	});
 }
 
@@ -386,9 +501,10 @@ const previewFlag = Options.boolean("preview").pipe(Options.withDefault(false));
 const fullFlag = Options.boolean("full").pipe(Options.withDefault(false));
 
 /**
- * The "upgrade" command. The default path runs the interactive walk;
- * --yes applies latest-in-range non-interactively; --dry-run prints the
- * summary without writing; --catalog restricts to a single catalog by name.
+ * The "upgrade" command. The default path runs the interactive table;
+ * --yes applies latest-in-range non-interactively; --dry-run runs the identical
+ * interactive flow and reports what it would have written, but writes nothing;
+ * --catalog restricts to a single catalog by name.
  *
  * @internal
  */
@@ -409,10 +525,15 @@ export const upgradeCommand = Command.make(
 				const result = yield* runUpgrade({
 					file,
 					resolver,
+					dryRun,
 					...(caps.interactive ? { onProgress: writeResolveProgress } : {}),
 				});
 				yield* Effect.sync(() =>
-					process.stdout.write(`Updated ${result.updated} package(s); skipped ${result.skipped.length}.\n`),
+					process.stdout.write(
+						dryRun
+							? `Dry run — no changes written. ${result.updated} package(s) would be updated; skipped ${result.skipped.length}.\n`
+							: `Updated ${result.updated} package(s); skipped ${result.skipped.length}.\n`,
+					),
 				);
 				if (result.conflicts.length > 0) {
 					const lines = result.conflicts
@@ -440,31 +561,37 @@ export const upgradeCommand = Command.make(
 				Date.now(),
 				caps.interactive ? writeResolveProgress : undefined,
 			);
-			const items = yield* buildWalkItems(entries, versions).pipe(
+			const items = yield* buildWalkItems(entries, versions.gated).pipe(
 				Effect.catchAll((e) => Effect.fail(new UpgradeError({ message: e.message }))),
 			);
-			// --dry-run: preview what the non-interactive apply would do — in-range bumps,
-			// plus peer-only resyncs/materializations (rendered via a keep decision).
-			// NOTE: --dry-run does NOT preview interop reconciliation — it returns before
-			// the network peerDeps resolve, so interop members show as raw in-range bumps
-			// in this summary rather than their reconciled (possibly held-back) versions.
-			if (dryRun) {
-				const decisions = projectDecisions(items, false);
-				yield* Effect.sync(() =>
-					process.stdout.write(`${renderSummary(decisions, undefined, { color: caps.color })}\n`),
-				);
-				return;
-			}
+			// --dry-run is NOT a separate code path: it runs the identical interactive
+			// flow (table → picks → interop reconcile → validate → summary) and skips
+			// only the final write. Short-circuiting here instead would show a table of
+			// auto-picked defaults the user never got to choose, and would silently skip
+			// the interop reconcile — so the "preview" would not match what an apply does.
 			if (!caps.interactive) {
 				const text = renderSummary(projectDecisions(items, full), undefined, { color: caps.color });
-				yield* Effect.sync(() =>
-					process.stdout.write(
-						`${text}\n\n(non-interactive terminal — run with --yes to apply, or in a TTY to choose)\n`,
-					),
-				);
+				const note = dryRun
+					? "(dry run — nothing written)"
+					: "(non-interactive terminal — run with --yes to apply, or in a TTY to choose)";
+				const warn = versions.unresolved.length > 0 ? `\n⚠ ${unresolvedMessage(versions.unresolved)}\n` : "";
+				yield* Effect.sync(() => process.stdout.write(`${text}${warn}\n\n${note}\n`));
 				return;
 			}
-			const decisions = yield* runWalk(items);
+			// Up-to-date rows are hidden from the interactive table by default (parity
+			// with the old walk's auto-skip) and only shown with --full. A peer-only
+			// row (drift resync / materialize) is NOT up-to-date — see buildWalkItems —
+			// so it stays actionable and visible even without --full.
+			const actionable = actionableWalkItems(items, full);
+			if (actionable.length === 0) {
+				// An unresolvable package plans to keep-only and so counts as "up to date".
+				// Reporting only "nothing to upgrade" here would hide the typo completely —
+				// the exact silent-omission this warning exists to prevent.
+				const warn = versions.unresolved.length > 0 ? `⚠ ${unresolvedMessage(versions.unresolved)}\n\n` : "";
+				yield* Effect.sync(() => process.stdout.write(`${warn}${nothingToUpgradeMessage(items.length)}`));
+				return;
+			}
+			const decisions = yield* runWalk(actionable, dryRun, versions.unresolved);
 
 			// Reconcile interop catalog groups against the user's picks. A member
 			// pulled below its pick re-enters the walk (bounded) until the group is
@@ -492,7 +619,7 @@ export const upgradeCommand = Command.make(
 				let members: GroupMember[] = group.map((e) => ({
 					pkg: e.pkg,
 					ceiling: pickOf(e.pkg),
-					candidates: versions.get(e.pkg) ?? [],
+					candidates: versions.gated.get(e.pkg) ?? [],
 				}));
 				const originalPick = new Map(members.map((m) => [m.pkg, m.ceiling]));
 				// One peerDeps cache shared across every re-entry round: a (pkg, version)
@@ -508,7 +635,7 @@ export const upgradeCommand = Command.make(
 					const capEntries = group.filter((e) => reentry.some((rc) => rc.pkg === e.pkg));
 					const cappedVersions = new Map<string, readonly string[]>();
 					for (const rc of reentry) {
-						const all = versions.get(rc.pkg) ?? [];
+						const all = versions.gated.get(rc.pkg) ?? [];
 						cappedVersions.set(rc.pkg, rc.cap === null ? all : yield* capVersions(all, rc.cap));
 					}
 					const reItems = yield* buildWalkItems(capEntries, cappedVersions).pipe(
@@ -546,18 +673,40 @@ export const upgradeCommand = Command.make(
 				}
 			}
 
+			// Validate the planned edits against the UNGATED version list. Interactively a
+			// rejection is DROPPED and REPORTED — one bad package must not block an
+			// otherwise-good upgrade, and the user can see the warning and go fix their
+			// config. (`--yes` fails hard instead; see runUpgrade.)
+			const planned = buildEdits(nonInteropDecisions);
+			const { accepted, rejected } = yield* validateEdits(planned, versions.raw);
+			const acceptedPkgs = new Set(accepted.map((e) => e.pkg));
+
 			yield* Effect.sync(() =>
 				process.stdout.write(
-					`${renderSummary(decisions, { adjustments, conflicts: allConflicts }, { color: caps.color })}\n`,
+					`${renderSummary(decisions, { adjustments, conflicts: allConflicts }, { color: caps.color }, rejected)}\n`,
 				),
 			);
-			yield* applyInteropAndDecisions(file, source, nonInteropDecisions, interopEdits);
-			const nonInteropChanged = nonInteropDecisions.filter(
-				(d) =>
-					d.chosen.kind !== "keep" ||
-					(d.item.entry.peer !== undefined && d.item.driftPeer !== null) ||
-					(d.item.entry.peer === undefined && d.item.materializePeer !== null),
-			).length;
-			yield* Effect.sync(() => process.stdout.write(`Applied ${nonInteropChanged + interopChanged} change(s).\n`));
+			// The ONLY thing --dry-run skips. Everything above ran for real, so the
+			// summary reports exactly what an apply would have written.
+			if (!dryRun) {
+				yield* applyInteropAndDecisions(file, source, accepted, interopEdits);
+			}
+			// A decision whose every edit was rejected wrote nothing, so it is not counted.
+			const nonInteropChanged = countChangedDecisions(
+				nonInteropDecisions.filter((d) => acceptedPkgs.has(d.item.entry.pkg)),
+			);
+			const changed = nonInteropChanged + interopChanged;
+			yield* Effect.sync(() =>
+				process.stdout.write(
+					dryRun
+						? `Dry run — no changes written. ${changed} change(s) would be applied.\n`
+						: `Applied ${changed} change(s).\n`,
+				),
+			);
+			// Repeat the unresolved warning after the run: the in-table banner scrolls out
+			// of view once Ink tears down, and this is the last thing the author reads.
+			if (versions.unresolved.length > 0) {
+				yield* Effect.sync(() => process.stdout.write(`\n⚠ ${unresolvedMessage(versions.unresolved)}\n`));
+			}
 		}).pipe(Effect.provide(RegistryResolverLive), Effect.provide(NodeContext.layer)),
 ).pipe(Command.withDescription("Upgrade catalog versions in a config file"));

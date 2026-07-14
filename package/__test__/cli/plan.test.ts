@@ -58,4 +58,71 @@ describe("planEntry", () => {
 		const candidates = await Effect.runPromise(planEntry(entry, ["3.16.0", "3.17.0"]));
 		expect(candidates.every((c) => c.peerRange === undefined)).toBe(true);
 	});
+
+	it("offers same-track prerelease candidates when the entry is already on a prerelease", async () => {
+		const candidates = await run(entry({ pkg: "@changesets/cli", currentRange: "^3.0.0-next.8", rangeSpan: [0, 15] }), [
+			"2.29.0",
+			"3.0.0-next.8",
+			"3.0.0-next.9",
+			"3.0.0-alpha.1",
+		]);
+		const inRange = candidates.find((c) => c.kind === "in-range");
+		expect(inRange?.range).toBe("^3.0.0-next.9");
+	});
+
+	it("does not offer an off-track prerelease", async () => {
+		// "zzz" sorts above "next" lexically, so the off-track candidate would win
+		// the in-range slot if `onTrack` were not filtering it out. This fails
+		// pre-fix (no in-range candidate at all) and fails if `onTrack` is removed
+		// (in-range becomes ^3.0.0-zzz.1 instead of ^3.0.0-next.9).
+		const candidates = await run(entry({ pkg: "@changesets/cli", currentRange: "^3.0.0-next.8", rangeSpan: [0, 15] }), [
+			"3.0.0-next.8",
+			"3.0.0-next.9",
+			"3.0.0-zzz.1",
+		]);
+		const inRange = candidates.find((c) => c.kind === "in-range");
+		expect(inRange?.range).toBe("^3.0.0-next.9");
+	});
+
+	it("prefers the stable line once it ships over a same-track prerelease", async () => {
+		const withStable = await run(entry({ pkg: "@changesets/cli", currentRange: "^3.0.0-next.8", rangeSpan: [0, 15] }), [
+			"3.0.0-next.8",
+			"3.0.0-next.9",
+			"3.0.0",
+		]);
+		expect(withStable.find((c) => c.kind === "in-range")?.range).toBe("^3.0.0");
+
+		// Same entry with the stable version removed: the same-track prerelease
+		// must win, proving the stable line above outranks it rather than merely
+		// being the only survivor.
+		const withoutStable = await run(
+			entry({ pkg: "@changesets/cli", currentRange: "^3.0.0-next.8", rangeSpan: [0, 15] }),
+			["3.0.0-next.8", "3.0.0-next.9"],
+		);
+		expect(withoutStable.find((c) => c.kind === "in-range")?.range).toBe("^3.0.0-next.9");
+	});
+
+	it("marks a same-track prerelease candidate as non-major and a stable cross-major candidate as major", async () => {
+		const candidates = await run(entry({ pkg: "@changesets/cli", currentRange: "^3.0.0-next.8", rangeSpan: [0, 15] }), [
+			"3.0.0-next.8",
+			"3.0.0-next.9",
+			"4.0.0",
+		]);
+		const inRange = candidates.find((c) => c.kind === "in-range");
+		expect(inRange?.range).toBe("^3.0.0-next.9");
+		expect(inRange?.isMajor).toBe(false);
+		const latest = candidates.find((c) => c.kind === "latest");
+		expect(latest?.range).toBe("^4.0.0");
+		expect(latest?.isMajor).toBe(true);
+	});
+
+	it("never offers a prerelease to an entry on a stable range", async () => {
+		const candidates = await run(entry({ pkg: "effect", currentRange: "^3.21.4", rangeSpan: [0, 9] }), [
+			"3.21.4",
+			"3.21.5",
+			"3.22.0-next.1",
+		]);
+		expect(candidates.map((c) => c.range)).not.toContain("^3.22.0-next.1");
+		expect(candidates.find((c) => c.kind === "in-range")?.range).toBe("^3.21.5");
+	});
 });

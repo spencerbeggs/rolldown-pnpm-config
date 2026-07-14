@@ -16,6 +16,29 @@ Monorepo for `rolldown-pnpm-config`, a rolldown plugin that compiles your catalo
 - [`docs/`](./docs) — user guide: getting started, using `@savvy-web/bundler`, the concepts behind the emitted pnpmfile, the full pnpm settings coverage reference, upgrading catalogs, exporting to `pnpm-workspace.yaml` and distributing dependency patches.
 - Architecture and design notes live in `.claude/design/rolldown-pnpm-config/`.
 
+## Try it out
+
+Run `pnpm install` and `pnpm build` once first — the scripts below proxy to the built `rolldown-pnpm-config` CLI binary, which does not exist until after a build.
+
+Each example package (`examples/savvy/`, `examples/rolldown/`) exposes `pnpm:export`, `pnpm:preview` and `pnpm:up` scripts that run the CLI against its own config. The root re-exposes all six as `pnpm <script>:savvy` / `pnpm <script>:rolldown`:
+
+| Root script | Proxies to | Example config |
+| ----------- | ---------- | -------------- |
+| `pnpm:export:savvy` | `rolldown-pnpm-config export --dry-run` | `examples/savvy/savvy.build.ts` |
+| `pnpm:preview:savvy` | `rolldown-pnpm-config preview` | `examples/savvy/savvy.build.ts` |
+| `pnpm:up:savvy` | `rolldown-pnpm-config upgrade savvy.build.ts --dry-run` | `examples/savvy/savvy.build.ts` |
+| `pnpm:export:rolldown` | `rolldown-pnpm-config export --dry-run` | `examples/rolldown/rolldown.config.ts` |
+| `pnpm:preview:rolldown` | `rolldown-pnpm-config preview` | `examples/rolldown/rolldown.config.ts` |
+| `pnpm:up:rolldown` | `rolldown-pnpm-config upgrade rolldown.config.ts --dry-run` | `examples/rolldown/rolldown.config.ts` |
+
+```bash
+pnpm pnpm:up:savvy
+# runs the interactive upgrade table against examples/savvy/savvy.build.ts;
+# --dry-run means Esc or Enter never rewrites the file
+```
+
+`export` and `upgrade` are wired with `--dry-run`, and `preview` never writes in the first place — every one of the six scripts above is safe to run, and re-run, without touching either example config.
+
 ## Requirements
 
 - Node.js >=24.11.0

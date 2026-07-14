@@ -5,18 +5,24 @@ import type { Decision, WalkItem } from "../walk-types.js";
 import { Walk } from "./Walk.js";
 
 /**
- * Render the interactive Walk inside an Effect, resolving with the collected
- * decisions once the user finishes (or immediately when nothing is actionable),
- * after Ink has fully exited.
+ * Render the interactive table inside an Effect, resolving with the collected
+ * decisions once the user submits (or with an empty list when they cancel with
+ * Esc, or when no rows are actionable), after Ink has fully exited.
  *
  * @internal
  */
-export function runWalk(items: readonly WalkItem[]): Effect.Effect<Decision[]> {
+export function runWalk(
+	items: readonly WalkItem[],
+	dryRun = false,
+	unresolved: readonly string[] = [],
+): Effect.Effect<Decision[]> {
 	return Effect.async<Decision[]>((resume) => {
 		let collected: readonly Decision[] = [];
 		const instance = render(
 			createElement(Walk, {
 				items,
+				dryRun,
+				unresolved,
 				onDone: (d: readonly Decision[]) => {
 					collected = d;
 				},
