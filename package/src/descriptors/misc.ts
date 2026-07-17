@@ -6,7 +6,7 @@ import type { FieldDescriptors } from "./types.js";
 /** The 14 resolution/misc preference fields. @internal */
 export const misc = {
 	resolutionMode: {
-		schema: Schema.Literal("highest", "time-based", "lowest-direct"),
+		schema: Schema.Literals(["highest", "time-based", "lowest-direct"]),
 		kind: "enum",
 		strategy: "scalar",
 		enforcement: "absent",
@@ -16,7 +16,7 @@ export const misc = {
 		samples: { valid: ["highest"], invalid: ["x"] },
 	},
 	savePrefix: {
-		schema: Schema.Literal("^", "~", ""),
+		schema: Schema.Literals(["^", "~", ""]),
 		kind: "enum",
 		strategy: "scalar",
 		enforcement: "absent",

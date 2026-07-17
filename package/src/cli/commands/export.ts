@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
-import { Args, Command, Options } from "@effect/cli";
 import { Data, Effect, Option } from "effect";
+import { Argument, Command, Flag } from "effect/unstable/cli";
 import { DESCRIPTORS } from "../../descriptors/index.js";
 import { isRewriteDirective, readLocalPatchesDir, withResolvedBuildPatches } from "../../patches/build.js";
 import { discoverPatches } from "../../patches/discover.js";
@@ -153,9 +153,9 @@ export function runExport(opts: {
 	});
 }
 
-const pathArg = Args.file({ name: "path" }).pipe(Args.optional);
-const dryRunFlag = Options.boolean("dry-run").pipe(Options.withDefault(false));
-const fullFlag = Options.boolean("full").pipe(Options.withDefault(false));
+const pathArg = Argument.file("path").pipe(Argument.optional);
+const dryRunFlag = Flag.boolean("dry-run").pipe(Flag.withDefault(false));
+const fullFlag = Flag.boolean("full").pipe(Flag.withDefault(false));
 
 /**
  * The "export" command. Materializes the plugin config into pnpm-workspace.yaml.

@@ -15,7 +15,7 @@ export function runPreview(views: {
 	full: readonly StyledLine[];
 	simulated: readonly StyledLine[];
 }): Effect.Effect<void> {
-	return Effect.async<void>((resume) => {
+	return Effect.callback<void>((resume) => {
 		const instance = render(createElement(Preview, { views, onExit: () => {} }));
 		void instance.waitUntilExit().then(() => resume(Effect.void));
 	});

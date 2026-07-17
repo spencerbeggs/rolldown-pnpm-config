@@ -53,7 +53,7 @@ function makeEntries(count: number): CatalogEntry[] {
 describe("resolveGatedVersions (concurrency)", () => {
 	it("should fetch packages concurrently and respect the concurrency bound", async () => {
 		// Given: a deferred resolver that tracks how many fetches are in-flight simultaneously.
-		// Effect.async defers resume to the next event loop iteration via setImmediate so
+		// Effect.callback defers resume to the next event loop iteration via setImmediate so
 		// the runtime can start all N concurrent fibers before any of them resolves.
 		// With the current sequential for...of the peak stays at 1; after the concurrent
 		// Effect.forEach refactor it must reach > 1 (and stay ≤ RESOLVE_CONCURRENCY).
@@ -62,7 +62,7 @@ describe("resolveGatedVersions (concurrency)", () => {
 		const resolver = {
 			versions: (_pkg: string) => {
 				tracker.enter();
-				return Effect.async<string[], never>((resume) => {
+				return Effect.callback<string[], never>((resume) => {
 					setImmediate(() => {
 						tracker.exit();
 						resume(Effect.succeed(["1.0.0"]));
@@ -211,7 +211,7 @@ export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: {} });`;
 			peerDependencies: (_pkg: string, _version: string) => Effect.succeed<Record<string, string>>({}),
 			pnpmConfig: (_key: string) => {
 				tracker.enter();
-				return Effect.async<string | null, never>((resume) => {
+				return Effect.callback<string | null, never>((resume) => {
 					setImmediate(() => {
 						tracker.exit();
 						resume(Effect.succeed(null));
@@ -254,7 +254,7 @@ describe("runInterop (peerDependencies concurrency)", () => {
 			peerDependencies: (_pkg: string, _version: string) => {
 				tracker.enter();
 				fetchCount++;
-				return Effect.async<Record<string, string>, never>((resume) => {
+				return Effect.callback<Record<string, string>, never>((resume) => {
 					setImmediate(() => {
 						tracker.exit();
 						resume(Effect.succeed({}));

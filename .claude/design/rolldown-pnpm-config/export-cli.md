@@ -3,8 +3,8 @@ status: current
 module: rolldown-pnpm-config
 category: architecture
 created: 2026-06-29
-updated: 2026-06-30
-last-synced: 2026-06-30
+updated: 2026-07-17
+last-synced: 2026-07-17
 completeness: 90
 related:
   - architecture.md
@@ -53,6 +53,8 @@ Key design decisions made during this phase:
 - `local.<field>` can now be a directive object `{ preserve?, value?, strategy? }` rather than a bare value; the old pre-freeze `local-overlay.ts` shallow-replace was removed.
 - `file:`, `link:`, `workspace:` and `portal:` overrides are preserved by default on every `export` run, fixing a data-loss bug where managed-field writes silently dropped local protocol-prefixed override entries.
 - Array fields in the canonical format are sorted lexicographically so the written file matches what the diff shows.
+
+Since migrated to Effect v4 on `feat/effected`: the `export`/`preview` command layer moved from `@effect/cli` to `effect/unstable/cli` (`Args`→`Argument`, `Options`→`Flag`), and `workspace-file.ts`'s YAML read/write moved from `yaml` to `@effected/yaml` (a drop-in over the parse/stringify surface used here, `Yaml`/`YamlStringifyOptions`). Neither the pipeline, the local-merge semantics, the render layer nor the canonical format changed. See [architecture.md](architecture.md) for the migration's dependency-level rationale.
 
 ## Command surface
 
@@ -144,7 +146,7 @@ The descriptor table is unchanged: `patchedDependencies`/`patchesDir`/`configDep
 
 `package/src/cli/ui/run-preview.ts` provides `runPreview(views): Effect<void>` — the `render` + `waitUntilExit` bridge, mirroring `run-walk.ts`.
 
-`package/src/cli/commands/preview.ts` exports `runPreviewViews(opts)` (the testable pure core) and `previewCommand` (the `@effect/cli` command).
+`package/src/cli/commands/preview.ts` exports `runPreviewViews(opts)` (the testable pure core) and `previewCommand` (the `effect/unstable/cli` command).
 
 ## Rationale
 

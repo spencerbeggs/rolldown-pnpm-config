@@ -105,7 +105,7 @@ export const build = {
 		anchor: "nodeoptions",
 	},
 	verifyDepsBeforeRun: {
-		schema: Schema.Union(Schema.Literal("install", "warn", "error", "prompt"), Schema.Boolean),
+		schema: Schema.Union([Schema.Literals(["install", "warn", "error", "prompt"]), Schema.Boolean]),
 		kind: "union",
 		strategy: "scalar",
 		enforcement: "absent",

@@ -1,9 +1,11 @@
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { parse, stringify } from "yaml";
+import { Yaml, YamlStringifyOptions } from "@effected/yaml";
+import { Effect } from "effect";
 
 const FILENAME = "pnpm-workspace.yaml";
-const STRINGIFY_OPTIONS = { indent: 2, lineWidth: 0, singleQuote: false } as const;
+// lineWidth 0 disables wrapping (parity with the previous `yaml` renderer).
+const STRINGIFY_OPTIONS = YamlStringifyOptions.make({ indent: 2, lineWidth: 0 });
 
 /** True when every element is a string/number/boolean (safe to sort). */
 function allPrimitive(arr: readonly unknown[]): boolean {
@@ -51,11 +53,16 @@ export function findWorkspaceFile(startDir: string): string | null {
 
 /** Parse pnpm-workspace.yaml source; empty/whitespace yields an empty object. @internal */
 export function parseWorkspace(source: string): Record<string, unknown> {
-	const parsed = parse(source) as unknown;
+	// Yaml.parse is pure (string in, value out; no IO), so runSync is safe here
+	// and keeps this helper's synchronous contract for its many sync callers.
+	// A malformed document throws (YamlParseError), matching the previous
+	// `yaml` parser's throw-on-error behavior.
+	const parsed = Effect.runSync(Yaml.parse(source));
 	return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
 }
 
 /** Render a workspace object: deterministic key sort + yaml.stringify. @internal */
 export function renderWorkspace(obj: Record<string, unknown>): string {
-	return stringify(canonicalize(obj), STRINGIFY_OPTIONS);
+	// Pure computation — see parseWorkspace for the runSync rationale.
+	return Effect.runSync(Yaml.stringify(canonicalize(obj), STRINGIFY_OPTIONS));
 }

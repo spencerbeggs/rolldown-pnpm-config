@@ -38,17 +38,17 @@ describe("parseVersions", () => {
 	});
 
 	it("returns a ResolveError for malformed JSON", async () => {
-		const result = await Effect.runPromise(Effect.either(parseVersions("bad-pkg", "not-json")));
-		expect(result._tag).toBe("Left");
-		if (result._tag === "Left") {
-			expect(result.left).toBeInstanceOf(ResolveError);
-			expect(result.left.pkg).toBe("bad-pkg");
+		const result = await Effect.runPromise(Effect.result(parseVersions("bad-pkg", "not-json")));
+		expect(result._tag).toBe("Failure");
+		if (result._tag === "Failure") {
+			expect(result.failure).toBeInstanceOf(ResolveError);
+			expect(result.failure.pkg).toBe("bad-pkg");
 		}
 	});
 
 	it("returns a ResolveError for an unexpected JSON shape (number)", async () => {
-		const result = await Effect.runPromise(Effect.either(parseVersions("num-pkg", "42")));
-		expect(result._tag).toBe("Left");
+		const result = await Effect.runPromise(Effect.result(parseVersions("num-pkg", "42")));
+		expect(result._tag).toBe("Failure");
 	});
 });
 
@@ -61,8 +61,8 @@ describe("parseTimes", () => {
 	});
 
 	it("returns a ResolveError on malformed JSON", async () => {
-		const r = await Effect.runPromise(Effect.either(parseTimes("p", "nope")));
-		expect(r._tag).toBe("Left");
+		const r = await Effect.runPromise(Effect.result(parseTimes("p", "nope")));
+		expect(r._tag).toBe("Failure");
 	});
 });
 

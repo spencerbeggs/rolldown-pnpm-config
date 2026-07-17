@@ -26,8 +26,8 @@ export const DESCRIPTORS = {
 } satisfies FieldDescriptors;
 
 /** Derive the per-field validation schemas consumed by freeze(). @internal */
-export function deriveSchemas(d: FieldDescriptors): Record<string, Schema.Schema<unknown, unknown>> {
-	const out: Record<string, Schema.Schema<unknown, unknown>> = {};
+export function deriveSchemas(d: FieldDescriptors): Record<string, Schema.Codec<unknown, unknown>> {
+	const out: Record<string, Schema.Codec<unknown, unknown>> = {};
 	for (const [field, desc] of Object.entries(d)) out[field] = desc.schema;
 	return out;
 }

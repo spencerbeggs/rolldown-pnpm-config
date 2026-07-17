@@ -1,5 +1,5 @@
+import { Range, SemVer } from "@effected/semver";
 import { Effect } from "effect";
-import { Range, SemVer } from "semver-effect";
 import type { CatalogEntry, Edit } from "./types.js";
 
 /** Maximum number of concurrent peerDependencies fetches inside runInterop. @internal */
@@ -52,7 +52,7 @@ export function deriveFloors(
 				const parsed = yield* Effect.forEach(declared, (f) =>
 					SemVer.parse(f).pipe(
 						Effect.map((sv) => ({ f, sv })),
-						Effect.catchAll(() => Effect.succeed(null)),
+						Effect.catch(() => Effect.succeed(null)),
 					),
 				);
 				const valid = parsed.filter((x): x is { f: string; sv: SemVer } => x !== null);
@@ -84,9 +84,9 @@ export interface GroupResolution {
 /** Does `version` satisfy `range`? Unparseable input is treated as not-satisfied. */
 function satisfies(version: string, range: string): Effect.Effect<boolean, never> {
 	return Effect.gen(function* () {
-		const r = yield* Range.parse(range).pipe(Effect.catchAll(() => Effect.succeed(null)));
+		const r = yield* Range.parse(range).pipe(Effect.catch(() => Effect.succeed(null)));
 		if (!r) return false;
-		const v = yield* SemVer.parse(version).pipe(Effect.catchAll(() => Effect.succeed(null)));
+		const v = yield* SemVer.parse(version).pipe(Effect.catch(() => Effect.succeed(null)));
 		return v ? r.test(v) : false;
 	});
 }
@@ -133,8 +133,8 @@ export function resolveGroup(
 
 		const leq = (a: string, b: string): Effect.Effect<boolean, never> =>
 			Effect.gen(function* () {
-				const av = yield* SemVer.parse(a).pipe(Effect.catchAll(() => Effect.succeed(null)));
-				const bv = yield* SemVer.parse(b).pipe(Effect.catchAll(() => Effect.succeed(null)));
+				const av = yield* SemVer.parse(a).pipe(Effect.catch(() => Effect.succeed(null)));
+				const bv = yield* SemVer.parse(b).pipe(Effect.catch(() => Effect.succeed(null)));
 				return av && bv ? av.compare(bv) <= 0 : false;
 			});
 
@@ -185,7 +185,7 @@ function sortDesc(versions: readonly string[]): Effect.Effect<string[], never> {
 		const parsed = yield* Effect.forEach(versions, (v) =>
 			SemVer.parse(v).pipe(
 				Effect.map((sv) => ({ v, sv })),
-				Effect.catchAll(() => Effect.succeed({ v, sv: null })),
+				Effect.catch(() => Effect.succeed({ v, sv: null })),
 			),
 		);
 		parsed.sort((a, b) => (a.sv && b.sv ? b.sv.compare(a.sv) : a.sv ? -1 : 1));
@@ -242,7 +242,7 @@ export function runInterop(
 			if (cached !== undefined) return Effect.succeed(cached);
 			return resolver
 				.peerDependencies(pkg, v)
-				.pipe(Effect.catchAll(() => Effect.succeed({} as Record<string, string>)))
+				.pipe(Effect.catch(() => Effect.succeed({} as Record<string, string>)))
 				.pipe(
 					Effect.map((deps) => {
 						cache.set(k, deps);
@@ -359,11 +359,11 @@ export function buildInteropEdits(entries: readonly CatalogEntry[], result: Inte
  */
 export function capVersions(list: readonly string[], max: string): Effect.Effect<string[], never> {
 	return Effect.gen(function* () {
-		const mv = yield* SemVer.parse(max).pipe(Effect.catchAll(() => Effect.succeed(null)));
+		const mv = yield* SemVer.parse(max).pipe(Effect.catch(() => Effect.succeed(null)));
 		if (!mv) return [...list];
 		const out: string[] = [];
 		for (const v of list) {
-			const sv = yield* SemVer.parse(v).pipe(Effect.catchAll(() => Effect.succeed(null)));
+			const sv = yield* SemVer.parse(v).pipe(Effect.catch(() => Effect.succeed(null)));
 			if (sv && sv.compare(mv) <= 0) out.push(v);
 		}
 		return out;

@@ -6,7 +6,7 @@ import type { FieldDescriptors } from "./types.js";
 /** The 10 catalog + workspace + audit fields. @internal */
 export const workspace = {
 	catalogMode: {
-		schema: Schema.Literal("strict", "prefer", "manual"),
+		schema: Schema.Literals(["strict", "prefer", "manual"]),
 		kind: "enum",
 		strategy: "scalar",
 		enforcement: "absent",
@@ -25,7 +25,7 @@ export const workspace = {
 		anchor: "cleanupunusedcatalogs",
 	},
 	linkWorkspacePackages: {
-		schema: Schema.Union(Schema.Boolean, Schema.Literal("deep")),
+		schema: Schema.Union([Schema.Boolean, Schema.Literals(["deep"])]),
 		kind: "union",
 		strategy: "scalar",
 		enforcement: "absent",
@@ -44,7 +44,7 @@ export const workspace = {
 		anchor: "preferworkspacepackages",
 	},
 	saveWorkspaceProtocol: {
-		schema: Schema.Union(Schema.Boolean, Schema.Literal("rolling")),
+		schema: Schema.Union([Schema.Boolean, Schema.Literals(["rolling"])]),
 		kind: "union",
 		strategy: "scalar",
 		enforcement: "absent",
@@ -90,7 +90,7 @@ export const workspace = {
 		anchor: "workspaceconcurrency",
 	},
 	auditLevel: {
-		schema: Schema.Literal("low", "moderate", "high", "critical"),
+		schema: Schema.Literals(["low", "moderate", "high", "critical"]),
 		kind: "enum",
 		strategy: "scalar",
 		enforcement: "absent",

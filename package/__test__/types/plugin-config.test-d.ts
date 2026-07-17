@@ -1,10 +1,9 @@
 // package/__test__/types/plugin-config.test-d.ts
-import type { Schema } from "effect";
 import type { FieldInput, PluginConfig } from "../../src/define-plugin.js";
 import type { DESCRIPTORS } from "../../src/descriptors/index.js";
 
 type Descriptors = typeof DESCRIPTORS;
-type SchemaType<K extends keyof Descriptors> = Schema.Schema.Type<Descriptors[K]["schema"]>;
+type SchemaType<K extends keyof Descriptors> = Descriptors[K]["schema"]["Type"];
 
 // Keys checked for key-coverage only (value type intentionally not compared).
 type ValueExcluded = "catalogs" | "publicHoistPattern";

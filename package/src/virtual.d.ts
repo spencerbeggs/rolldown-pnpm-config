@@ -9,8 +9,18 @@
 // per-module boilerplate.
 
 declare module "rolldown-pnpm-config/virtual/pnpmfile" {
-	import type { PnpmHooks } from "rolldown-pnpm-config/runtime";
-	export const hooks: PnpmHooks;
+	// Inlined rather than imported from "rolldown-pnpm-config/runtime": this file is
+	// shipped byte-for-byte (never compiled), so any cross-module import here resolves
+	// against this package's own *source* `exports` map during the build's declaration
+	// pass and pulls a raw .ts file into API Extractor's analysis (ae-wrong-input-file-type).
+	// Keep this shape in sync with `PnpmConfig`/`PnpmHooks` in `src/runtime/types.ts`.
+	interface PnpmConfig {
+		catalogs?: Record<string, Record<string, string>>;
+		[key: string]: unknown;
+	}
+	export const hooks: {
+		updateConfig(config: PnpmConfig): PnpmConfig;
+	};
 }
 
 declare module "rolldown-pnpm-config/virtual/catalogs" {
