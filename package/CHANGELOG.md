@@ -1,5 +1,47 @@
 # rolldown-pnpm-config
 
+## 0.4.0
+
+### Features
+
+* Migrated the runtime dependency stack from Effect v3 to Effect v4 (`effect` and `@effect/platform-node` now resolve via `catalog:effect`). The entire v3 satellite closure — `@effect/cli`, `@effect/cluster`, `@effect/experimental`, `@effect/platform`, `@effect/printer`, `@effect/printer-ansi`, `@effect/rpc`, `@effect/sql`, `@effect/typeclass`, `@effect/workflow` — is no longer part of the published dependency tree, since v4 folds that functionality into `effect` itself and `@effect/platform-node` v4 peers only on `effect`. Consumers get a substantially smaller dependency tree on install.
+* Replaced `yaml` with `@effected/yaml` and `semver-effect` with `@effected/semver` — drop-in replacements for the surface this package uses.
+
+### Bug Fixes
+
+* Fixed an `ae-wrong-input-file-type` API Extractor diagnostic by making `virtual.d.ts` self-contained — the `PnpmHooks`/`PnpmConfig` shape is now inlined instead of imported from the package's own runtime types, which previously pulled a raw `.ts` file into the declaration-file analysis pass [#35][#35]
+
+### Refactoring
+
+* CLI command parsing was ported from the now-unmaintained `@effect/cli` to `effect/unstable/cli`, and process spawning moved to `effect/unstable/process`. Commands, flags, and output are unchanged — this is an internal migration only.
+
+### Dependencies
+
+* | Dependency            | Type       | Action  | From         | To             |                                                                     |
+  | --------------------- | ---------- | ------- | ------------ | -------------- | ------------------------------------------------------------------- |
+  | @effect/cli           | dependency | removed | catalog:silk | —              |                                                                     |
+  | @effect/cluster       | dependency | removed | catalog:silk | —              |                                                                     |
+  | @effect/experimental  | dependency | removed | catalog:silk | —              |                                                                     |
+  | @effect/platform      | dependency | removed | catalog:silk | —              |                                                                     |
+  | @effect/printer       | dependency | removed | catalog:silk | —              |                                                                     |
+  | @effect/printer-ansi  | dependency | removed | catalog:silk | —              |                                                                     |
+  | @effect/rpc           | dependency | removed | catalog:silk | —              |                                                                     |
+  | @effect/sql           | dependency | removed | catalog:silk | —              |                                                                     |
+  | @effect/typeclass     | dependency | removed | catalog:silk | —              |                                                                     |
+  | @effect/workflow      | dependency | removed | catalog:silk | —              |                                                                     |
+  | semver-effect         | dependency | removed | ^0.3.1       | —              |                                                                     |
+  | yaml                  | dependency | removed | ^2.9.0       | —              |                                                                     |
+  | @effect/platform-node | dependency | updated | catalog:silk | catalog:effect |                                                                     |
+  | effect                | dependency | updated | catalog:silk | catalog:effect |                                                                     |
+  | @effected/semver      | dependency | added   | —            | ^0.1.0         |                                                                     |
+  | @effected/yaml        | dependency | added   | —            | ^0.1.0         | [#35][#35] Thanks [@spencerbeggs](https://github.com/spencerbeggs)! |
+
+### Patch Changes
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#35]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/35
+
 ## 0.3.0
 
 ### Features
