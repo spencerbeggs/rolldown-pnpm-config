@@ -42,7 +42,7 @@ export const hoisting = {
 		anchor: "shamefullyhoist",
 	},
 	hoistingLimits: {
-		schema: Schema.Literal("none", "workspaces", "dependencies"),
+		schema: Schema.Literals(["none", "workspaces", "dependencies"]),
 		kind: "enum",
 		strategy: "scalar",
 		enforcement: "absent",
@@ -61,7 +61,7 @@ export const hoisting = {
 		anchor: "modulesdir",
 	},
 	nodeLinker: {
-		schema: Schema.Literal("isolated", "hoisted", "pnp"),
+		schema: Schema.Literals(["isolated", "hoisted", "pnp"]),
 		kind: "enum",
 		strategy: "scalar",
 		enforcement: "absent",
@@ -116,7 +116,7 @@ export const hoisting = {
 		anchor: "virtualstoreonly",
 	},
 	packageImportMethod: {
-		schema: Schema.Literal("auto", "hardlink", "copy", "clone", "clone-or-copy"),
+		schema: Schema.Literals(["auto", "hardlink", "copy", "clone", "clone-or-copy"]),
 		kind: "enum",
 		strategy: "scalar",
 		enforcement: "absent",

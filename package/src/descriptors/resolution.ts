@@ -30,7 +30,7 @@ const PeerRulesSchema = Schema.Struct({
  */
 export const resolution = {
 	catalogs: {
-		schema: Schema.Record({ key: Str, value: StringRecord }),
+		schema: Schema.Record(Str, StringRecord),
 		kind: "object",
 		strategy: "catalogs",
 		enforcement: "warn",
@@ -204,7 +204,7 @@ export const resolution = {
 		anchor: "minimumreleaseageignoremissingtime",
 	},
 	trustPolicy: {
-		schema: Schema.Literal("off", "no-downgrade"),
+		schema: Schema.Literals(["off", "no-downgrade"]),
 		kind: "enum",
 		strategy: "scalar",
 		enforcement: "warn",

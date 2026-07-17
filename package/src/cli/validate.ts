@@ -1,5 +1,5 @@
+import { Range, SemVer } from "@effected/semver";
 import { Effect } from "effect";
-import { Range, SemVer } from "semver-effect";
 import type { PlannedEdit } from "./types.js";
 
 /** An edit dropped because no published version satisfies its range. @internal */
@@ -29,10 +29,10 @@ export interface RejectedEdit {
 export function rangeIsSatisfiable(range: string, versions: readonly string[]): Effect.Effect<boolean, never> {
 	return Effect.gen(function* () {
 		if (versions.length === 0) return true;
-		const parsedRange = yield* Range.parse(range).pipe(Effect.catchAll(() => Effect.succeed(null)));
+		const parsedRange = yield* Range.parse(range).pipe(Effect.catch(() => Effect.succeed(null)));
 		if (parsedRange === null) return true;
 		for (const v of versions) {
-			const sv = yield* SemVer.parse(v).pipe(Effect.catchAll(() => Effect.succeed(null)));
+			const sv = yield* SemVer.parse(v).pipe(Effect.catch(() => Effect.succeed(null)));
 			if (sv && parsedRange.test(sv)) return true;
 		}
 		return false;

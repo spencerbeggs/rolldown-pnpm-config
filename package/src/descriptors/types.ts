@@ -23,8 +23,8 @@ export interface FieldOptions {
 
 /** One managed pnpm field. The single source of truth for schema + merge policy. @internal */
 export interface FieldDescriptor<A = unknown> {
-	// biome-ignore lint/suspicious/noExplicitAny: heterogeneous per-field encoded types; `unknown` breaks Schema invariance.
-	readonly schema: Schema.Schema<A, any>;
+	// biome-ignore lint/suspicious/noExplicitAny: heterogeneous per-field encoded types.
+	readonly schema: Schema.Codec<A, any>;
 	readonly kind: FieldKind;
 	readonly strategy: string;
 	readonly enforcement: Enforcement;

@@ -33,7 +33,7 @@ export const runtimeCfg = {
 		anchor: "managepackagemanagerversions",
 	},
 	pmOnFail: {
-		schema: Schema.Literal("download", "error", "warn", "ignore"),
+		schema: Schema.Literals(["download", "error", "warn", "ignore"]),
 		kind: "enum",
 		strategy: "scalar",
 		enforcement: "absent",
@@ -43,7 +43,7 @@ export const runtimeCfg = {
 		samples: { valid: ["download"], invalid: ["x"] },
 	},
 	runtimeOnFail: {
-		schema: Schema.Literal("download", "error", "warn", "ignore"),
+		schema: Schema.Literals(["download", "error", "warn", "ignore"]),
 		kind: "enum",
 		strategy: "scalar",
 		enforcement: "absent",

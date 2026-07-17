@@ -1,5 +1,5 @@
+import { SemVer } from "@effected/semver";
 import { Data, Effect } from "effect";
-import { SemVer } from "semver-effect";
 import type { PeerStrategy } from "../catalogs.js";
 
 /**

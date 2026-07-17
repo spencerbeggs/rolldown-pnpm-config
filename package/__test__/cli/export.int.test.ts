@@ -3,9 +3,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Effect, Exit } from "effect";
 import { describe, expect, it } from "vitest";
-import { parse } from "yaml";
 import { runExport } from "../../src/cli/commands/export.js";
 import { toAnsi } from "../../src/cli/ui/ansi.js";
+import { parseWorkspace } from "../../src/cli/workspace-file.js";
 
 it("resolves excludeByRepo from the workspace dir's package.json name, not cwd", async () => {
 	const dir = mkdtempSync(join(tmpdir(), "rpc-exrepo-"));
@@ -25,7 +25,7 @@ export const plugin = PnpmConfigPlugin({
 	const workspacePath = join(dir, "pnpm-workspace.yaml");
 	writeFileSync(workspacePath, "packages:\n  - pkg/*\n", "utf8");
 	await Effect.runPromise(runExport({ configFile, workspacePath, preview: false }));
-	const out = parse(readFileSync(workspacePath, "utf8")) as Record<string, unknown>;
+	const out = parseWorkspace(readFileSync(workspacePath, "utf8")) as Record<string, unknown>;
 	// @x/cli dropped for "my-mono"; resolution must come from the temp dir's package.json,
 	// NOT the test process cwd (which is the rolldown-pnpm-config repo).
 	expect(out.publicHoistPattern).toEqual(["@types/*"]);
@@ -58,7 +58,7 @@ describe("runExport", () => {
 			'packages:\n  - pkg/*\ncatalogs:\n  tsdown:\n    tsdown: "^2.0.0"\nautoInstallPeers: true\n',
 		);
 		const res = await Effect.runPromise(runExport({ configFile, workspacePath, preview: false }));
-		const out = parse(readFileSync(workspacePath, "utf8")) as Record<string, unknown>;
+		const out = parseWorkspace(readFileSync(workspacePath, "utf8")) as Record<string, unknown>;
 		expect(res.written).toBe(true);
 		expect(out.packages).toEqual(["pkg/*"]); // preserved
 		expect(out.autoInstallPeers).toBe(true); // preserved
@@ -73,7 +73,7 @@ describe("runExport", () => {
 		const { configFile, workspacePath } = setup();
 		const res = await Effect.runPromise(runExport({ configFile, workspacePath, preview: false }));
 		expect(res.written).toBe(true);
-		const out = parse(readFileSync(workspacePath, "utf8")) as Record<string, unknown>;
+		const out = parseWorkspace(readFileSync(workspacePath, "utf8")) as Record<string, unknown>;
 		expect((out.catalogs as Record<string, unknown>).silk).toEqual({ typescript: "^5.9.0" });
 	});
 
@@ -112,7 +112,7 @@ describe("runExport", () => {
 		);
 		const res = await Effect.runPromise(runExport({ configFile, workspacePath, preview: false }));
 		expect(res.written).toBe(true);
-		const out = parse(readFileSync(workspacePath, "utf8")) as Record<string, unknown>;
+		const out = parseWorkspace(readFileSync(workspacePath, "utf8")) as Record<string, unknown>;
 		const overrides = out.overrides as Record<string, string>;
 		// the local file: link survives the managed-overrides overlay
 		expect(overrides["rolldown-pnpm-config"]).toBe("file:/abs/pkg");

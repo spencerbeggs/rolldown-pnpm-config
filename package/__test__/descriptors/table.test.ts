@@ -14,12 +14,12 @@ describe("descriptor table integrity", () => {
 			});
 			it("accepts valid samples", async () => {
 				for (const v of samplesFor(desc).valid) {
-					await expect(Effect.runPromise(Schema.decodeUnknown(desc.schema)(v))).resolves.toBeDefined();
+					await expect(Effect.runPromise(Schema.decodeUnknownEffect(desc.schema)(v))).resolves.toBeDefined();
 				}
 			});
 			it("rejects invalid samples", async () => {
 				for (const v of samplesFor(desc).invalid) {
-					await expect(Effect.runPromise(Schema.decodeUnknown(desc.schema)(v))).rejects.toBeTruthy();
+					await expect(Effect.runPromise(Schema.decodeUnknownEffect(desc.schema)(v))).rejects.toBeTruthy();
 				}
 			});
 			it("declares workspaceYaml as a boolean", () => {

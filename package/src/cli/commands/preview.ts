@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { Args, Command } from "@effect/cli";
 import { Data, Effect, Option } from "effect";
+import { Argument, Command } from "effect/unstable/cli";
 import { freeze } from "../../plugin/freeze.js";
 import { resolveRootName } from "../../runtime/ctx.js";
 import { evaluatePluginConfig } from "../evaluate.js";
@@ -59,7 +59,7 @@ export function runPreviewViews(opts: { configFile: string; workspacePath?: stri
 	});
 }
 
-const pathArg = Args.file({ name: "path" }).pipe(Args.optional);
+const pathArg = Argument.file("path").pipe(Argument.optional);
 
 /**
  * The "preview" command: interactive ink-tab explorer of the export diff

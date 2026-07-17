@@ -1,5 +1,11 @@
-import { Command, CommandExecutor } from "@effect/platform";
 import { Context, Data, Effect, Layer } from "effect";
+// The unstable/process index re-exports its modules as namespaces, so the
+// ChildProcessSpawner service class lives at ChildProcessSpawner.ChildProcessSpawner
+// (deep subpath imports are not in the package's exports map).
+import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
+
+type Spawner = ChildProcessSpawner.ChildProcessSpawner;
+const Spawner = ChildProcessSpawner.ChildProcessSpawner;
 
 /**
  * Typed failure raised when a package's versions cannot be resolved.
@@ -18,7 +24,7 @@ export class ResolveError extends Data.TaggedError("ResolveError")<{
  *
  * @internal
  */
-export class RegistryResolver extends Context.Tag("RegistryResolver")<
+export class RegistryResolver extends Context.Service<
 	RegistryResolver,
 	{
 		readonly versions: (pkg: string) => Effect.Effect<string[], ResolveError>;
@@ -26,7 +32,7 @@ export class RegistryResolver extends Context.Tag("RegistryResolver")<
 		readonly peerDependencies: (pkg: string, version: string) => Effect.Effect<Record<string, string>, ResolveError>;
 		readonly pnpmConfig: (key: string) => Effect.Effect<string | null, ResolveError>;
 	}
->() {}
+>()("RegistryResolver") {}
 
 /** Parse `pnpm view ... versions --json` stdout: a JSON array, or a single JSON string. */
 export function parseVersions(pkg: string, stdout: string): Effect.Effect<string[], ResolveError> {
@@ -80,41 +86,41 @@ export function parsePeerDeps(pkg: string, stdout: string): Effect.Effect<Record
  *
  * @internal
  */
-export const RegistryResolverLive: Layer.Layer<RegistryResolver, never, CommandExecutor.CommandExecutor> = Layer.effect(
+export const RegistryResolverLive: Layer.Layer<RegistryResolver, never, Spawner> = Layer.effect(
 	RegistryResolver,
 	Effect.gen(function* () {
-		const executor = yield* CommandExecutor.CommandExecutor;
+		const spawner = yield* Spawner;
 		return {
 			versions: (pkg: string) =>
 				Effect.gen(function* () {
-					const cmd = Command.make("pnpm", "view", pkg, "versions", "--json");
-					const stdout = yield* executor
+					const cmd = ChildProcess.make("pnpm", ["view", pkg, "versions", "--json"]);
+					const stdout = yield* spawner
 						.string(cmd)
 						.pipe(Effect.mapError((e) => new ResolveError({ pkg, message: String(e) })));
 					return yield* parseVersions(pkg, stdout);
 				}),
 			times: (pkg: string) =>
 				Effect.gen(function* () {
-					const cmd = Command.make("pnpm", "view", pkg, "time", "--json");
-					const stdout = yield* executor
+					const cmd = ChildProcess.make("pnpm", ["view", pkg, "time", "--json"]);
+					const stdout = yield* spawner
 						.string(cmd)
 						.pipe(Effect.mapError((e) => new ResolveError({ pkg, message: String(e) })));
 					return yield* parseTimes(pkg, stdout);
 				}),
 			peerDependencies: (pkg: string, version: string) =>
 				Effect.gen(function* () {
-					const cmd = Command.make("pnpm", "view", `${pkg}@${version}`, "peerDependencies", "--json");
-					const stdout = yield* executor
+					const cmd = ChildProcess.make("pnpm", ["view", `${pkg}@${version}`, "peerDependencies", "--json"]);
+					const stdout = yield* spawner
 						.string(cmd)
 						.pipe(Effect.mapError((e) => new ResolveError({ pkg, message: String(e) })));
 					return yield* parsePeerDeps(pkg, stdout);
 				}),
 			pnpmConfig: (key: string) =>
 				Effect.gen(function* () {
-					const cmd = Command.make("pnpm", "config", "get", key);
-					return yield* executor.string(cmd).pipe(
+					const cmd = ChildProcess.make("pnpm", ["config", "get", key]);
+					return yield* spawner.string(cmd).pipe(
 						Effect.map((s) => s.trim()),
-						Effect.catchAll(() => Effect.succeed<string | null>(null)),
+						Effect.catch(() => Effect.succeed<string | null>(null)),
 					);
 				}),
 		};

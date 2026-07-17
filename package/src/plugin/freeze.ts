@@ -60,7 +60,7 @@ export function freeze(
 		const manifest: Manifest = {};
 		// catalogs is always present and special: normalize the inline declarations into
 		// the resolved map (incl. materialized peer catalogs), then validate the shape.
-		base.catalogs = yield* Schema.decodeUnknown(CatalogsSchema)(normalizeCatalogs(config.catalogs)).pipe(
+		base.catalogs = yield* Schema.decodeUnknownEffect(CatalogsSchema)(normalizeCatalogs(config.catalogs)).pipe(
 			Effect.mapError((error) => new ConfigError({ message: `Invalid catalogs: ${String(error)}` })),
 		);
 		manifest.catalogs = { strategy: "catalogs", enforcement: "warn" };
@@ -76,7 +76,7 @@ export function freeze(
 			const decl = normalizeField(raw);
 			const schema = FIELD_SCHEMAS[field];
 			base[field] = schema
-				? yield* Schema.decodeUnknown(schema)(decl.value).pipe(
+				? yield* Schema.decodeUnknownEffect(schema)(decl.value).pipe(
 						Effect.mapError((error) => new ConfigError({ message: `Invalid ${field}: ${String(error)}` })),
 					)
 				: decl.value;

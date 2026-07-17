@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
-import { Args, Command, Options } from "@effect/cli";
-import { NodeContext } from "@effect/platform-node";
-import { Data, Effect, Option } from "effect";
+import { NodeServices } from "@effect/platform-node";
+import { Data, Effect, Option, Result } from "effect";
+import { Argument, Command, Flag } from "effect/unstable/cli";
 import { discoverCatalogEntries } from "../discover.js";
 import { detectPeerDrift } from "../drift.js";
 import { buildEdits } from "../edits.js";
@@ -45,14 +45,14 @@ export function computeGate(source: string, file: string, resolver: Resolver): E
 		// Defensive: a thrown evaluation (malformed source/AST) degrades to a null
 		// config gate rather than escaping as an Effect defect.
 		const { config } = yield* Effect.try(() => evaluatePluginConfig(source, file)).pipe(
-			Effect.catchAll(() => Effect.succeed({ config: null })),
+			Effect.catch(() => Effect.succeed({ config: null })),
 		);
 		const cfg = readConfigReleaseAge(config);
 		// The two pnpmConfig reads are independent — fetch them concurrently.
 		const [age, exc] = yield* Effect.all(
 			[
-				resolver.pnpmConfig("minimumReleaseAge").pipe(Effect.catchAll(() => Effect.succeed(null))),
-				resolver.pnpmConfig("minimumReleaseAgeExclude").pipe(Effect.catchAll(() => Effect.succeed(null))),
+				resolver.pnpmConfig("minimumReleaseAge").pipe(Effect.catch(() => Effect.succeed(null))),
+				resolver.pnpmConfig("minimumReleaseAgeExclude").pipe(Effect.catch(() => Effect.succeed(null))),
 			],
 			{ concurrency: "unbounded" },
 		);
@@ -89,8 +89,8 @@ export function resolveGatedVersions(
 		uniquePkgs,
 		(pkg) =>
 			Effect.gen(function* () {
-				const vr = yield* resolver.versions(pkg).pipe(Effect.either);
-				if (vr._tag === "Left") {
+				const vr = yield* resolver.versions(pkg).pipe(Effect.result);
+				if (Result.isFailure(vr)) {
 					onProgress?.(++resolved, total);
 					return [pkg, [] as string[], [] as string[]] as const;
 				}
@@ -103,10 +103,10 @@ export function resolveGatedVersions(
 				// wasted work.
 				const times =
 					gate.ageMinutes > 0
-						? yield* resolver.times(pkg).pipe(Effect.catchAll(() => Effect.succeed({} as Record<string, string>)))
+						? yield* resolver.times(pkg).pipe(Effect.catch(() => Effect.succeed({} as Record<string, string>)))
 						: ({} as Record<string, string>);
 				onProgress?.(++resolved, total);
-				return [pkg, filterByReleaseAge(vr.right, times, gate, pkg, now), vr.right] as const;
+				return [pkg, filterByReleaseAge(vr.success, times, gate, pkg, now), vr.success] as const;
 			}),
 		{ concurrency: RESOLVE_CONCURRENCY },
 	).pipe(
@@ -232,7 +232,7 @@ export function runUpgrade(opts: {
 			// materialize — not only on the peer-only paths. A derivation FAILURE stays a
 			// silent skip (the entry simply gets no peer edit); only a WARNING is fatal.
 			const derived = entry.strategy
-				? yield* derivePeerRange(entry.currentRange, entry.strategy).pipe(Effect.catchAll(() => Effect.succeed(null)))
+				? yield* derivePeerRange(entry.currentRange, entry.strategy).pipe(Effect.catch(() => Effect.succeed(null)))
 				: null;
 			if (derived?.warning) warnings.push(`${entry.pkg}: ${derived.warning.message}`);
 
@@ -242,7 +242,7 @@ export function runUpgrade(opts: {
 				// (parity with the interactive walk); otherwise the entry is a skip.
 				const at = entry.rangeSpan[1];
 				if (entry.peer && entry.strategy) {
-					const expected = yield* detectPeerDrift(entry).pipe(Effect.catchAll(() => Effect.succeed(null)));
+					const expected = yield* detectPeerDrift(entry).pipe(Effect.catch(() => Effect.succeed(null)));
 					if (expected !== null) {
 						edits.push(peerEdit(entry.peer.span, expected));
 						changedSpans.add(entry.rangeSpan[0]);
@@ -256,7 +256,7 @@ export function runUpgrade(opts: {
 				skipped.push(`${entry.catalog}.${entry.pkg}`);
 				continue;
 			}
-			const candidates = yield* planEntry(entry, versions).pipe(Effect.catchAll(() => Effect.succeed([])));
+			const candidates = yield* planEntry(entry, versions).pipe(Effect.catch(() => Effect.succeed([])));
 			const inRange = candidates.find((c) => c.kind === "in-range");
 			const at = entry.rangeSpan[1];
 			if (inRange) {
@@ -275,7 +275,7 @@ export function runUpgrade(opts: {
 			} else if (entry.peer && entry.strategy) {
 				// Already at newest, but an existing peer literal may have drifted from
 				// the strategy: resync it (parity with the interactive walk).
-				const expected = yield* detectPeerDrift(entry).pipe(Effect.catchAll(() => Effect.succeed(null)));
+				const expected = yield* detectPeerDrift(entry).pipe(Effect.catch(() => Effect.succeed(null)));
 				if (expected !== null) {
 					edits.push(peerEdit(entry.peer.span, expected));
 					changedSpans.add(entry.rangeSpan[0]);
@@ -296,7 +296,7 @@ export function runUpgrade(opts: {
 			const members: GroupMember[] = [];
 			for (const e of group) {
 				const versions = versionsByPkg.gated.get(e.pkg) ?? [];
-				const cands = yield* planEntry(e, versions).pipe(Effect.catchAll(() => Effect.succeed([])));
+				const cands = yield* planEntry(e, versions).pipe(Effect.catch(() => Effect.succeed([])));
 				const inRange = cands.find((c) => c.kind === "in-range");
 				const ceiling = inRange ? inRange.version : e.currentRange.replace(/^[\^~]/, "");
 				members.push({ pkg: e.pkg, ceiling, candidates: versions });
@@ -468,7 +468,7 @@ export function runUpgradePreview(opts: {
 		const gate = yield* computeGate(source, opts.file, opts.resolver);
 		const versions = yield* resolveGatedVersions(discovered.entries, opts.resolver, gate, Date.now());
 		const items = yield* buildWalkItems(discovered.entries, versions.gated).pipe(
-			Effect.catchAll((e) => Effect.fail(new UpgradeError({ message: e.message }))),
+			Effect.catch((e) => Effect.fail(new UpgradeError({ message: e.message }))),
 		);
 		const text = renderSummary(projectDecisions(items, opts.full), undefined, { color: opts.color ?? false });
 		// --preview must not hide a typo either: an unresolvable package renders as
@@ -493,12 +493,12 @@ export function resolveTargetFile(fileOpt: Option.Option<string>): Effect.Effect
 	});
 }
 
-const fileArg = Args.file({ name: "file", exists: "yes" }).pipe(Args.optional);
-const yesFlag = Options.boolean("yes").pipe(Options.withAlias("y"), Options.withDefault(false));
-const dryRunFlag = Options.boolean("dry-run").pipe(Options.withDefault(false));
-const catalogOption = Options.text("catalog").pipe(Options.optional);
-const previewFlag = Options.boolean("preview").pipe(Options.withDefault(false));
-const fullFlag = Options.boolean("full").pipe(Options.withDefault(false));
+const fileArg = Argument.file("file", { mustExist: true }).pipe(Argument.optional);
+const yesFlag = Flag.boolean("yes").pipe(Flag.withAlias("y"), Flag.withDefault(false));
+const dryRunFlag = Flag.boolean("dry-run").pipe(Flag.withDefault(false));
+const catalogOption = Flag.string("catalog").pipe(Flag.optional);
+const previewFlag = Flag.boolean("preview").pipe(Flag.withDefault(false));
+const fullFlag = Flag.boolean("full").pipe(Flag.withDefault(false));
 
 /**
  * The "upgrade" command. The default path runs the interactive table;
@@ -562,7 +562,7 @@ export const upgradeCommand = Command.make(
 				caps.interactive ? writeResolveProgress : undefined,
 			);
 			const items = yield* buildWalkItems(entries, versions.gated).pipe(
-				Effect.catchAll((e) => Effect.fail(new UpgradeError({ message: e.message }))),
+				Effect.catch((e) => Effect.fail(new UpgradeError({ message: e.message }))),
 			);
 			// --dry-run is NOT a separate code path: it runs the identical interactive
 			// flow (table → picks → interop reconcile → validate → summary) and skips
@@ -639,7 +639,7 @@ export const upgradeCommand = Command.make(
 						cappedVersions.set(rc.pkg, rc.cap === null ? all : yield* capVersions(all, rc.cap));
 					}
 					const reItems = yield* buildWalkItems(capEntries, cappedVersions).pipe(
-						Effect.catchAll((err) => Effect.fail(new UpgradeError({ message: err.message }))),
+						Effect.catch((err) => Effect.fail(new UpgradeError({ message: err.message }))),
 					);
 					const reDecisions = yield* runWalk(reItems);
 					const before = new Map(members.map((m) => [m.pkg, m.ceiling]));
@@ -708,5 +708,5 @@ export const upgradeCommand = Command.make(
 			if (versions.unresolved.length > 0) {
 				yield* Effect.sync(() => process.stdout.write(`\n⚠ ${unresolvedMessage(versions.unresolved)}\n`));
 			}
-		}).pipe(Effect.provide(RegistryResolverLive), Effect.provide(NodeContext.layer)),
+		}).pipe(Effect.provide(RegistryResolverLive), Effect.provide(NodeServices.layer)),
 ).pipe(Command.withDescription("Upgrade catalog versions in a config file"));

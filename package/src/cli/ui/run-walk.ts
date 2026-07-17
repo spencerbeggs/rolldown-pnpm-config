@@ -16,7 +16,7 @@ export function runWalk(
 	dryRun = false,
 	unresolved: readonly string[] = [],
 ): Effect.Effect<Decision[]> {
-	return Effect.async<Decision[]>((resume) => {
+	return Effect.callback<Decision[]>((resume) => {
 		let collected: readonly Decision[] = [];
 		const instance = render(
 			createElement(Walk, {

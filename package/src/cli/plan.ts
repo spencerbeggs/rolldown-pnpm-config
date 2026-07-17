@@ -1,11 +1,11 @@
+import { Range, SemVer } from "@effected/semver";
 import { Effect } from "effect";
-import { Range, SemVer } from "semver-effect";
 import type { PeerRangeError } from "./peer-range.js";
 import { derivePeerRange } from "./peer-range.js";
 import type { Candidate, CatalogEntry } from "./types.js";
 
 /** Parse a version, returning null instead of failing (filters junk tags). */
-const parseOrNull = (v: string) => SemVer.parse(v).pipe(Effect.catchAll(() => Effect.succeed(null)));
+const parseOrNull = (v: string) => SemVer.parse(v).pipe(Effect.catch(() => Effect.succeed(null)));
 
 /**
  * Compute the candidate versions for one catalog entry against the list of
@@ -21,7 +21,7 @@ export function planEntry(
 	versions: readonly string[],
 ): Effect.Effect<Candidate[], PeerRangeError> {
 	return Effect.gen(function* () {
-		const range = yield* Range.parse(entry.currentRange).pipe(Effect.catchAll(() => Effect.succeed(null)));
+		const range = yield* Range.parse(entry.currentRange).pipe(Effect.catch(() => Effect.succeed(null)));
 
 		const currentStripped = entry.currentRange.replace(/^[\^~]/, "");
 		const current = yield* parseOrNull(currentStripped);
