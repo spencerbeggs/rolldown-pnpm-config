@@ -29,7 +29,7 @@
 		"types:check": "tsc --noEmit"
 	},
 	"devDependencies": {
-		"@savvy-web/bundler": "^1.1.14",
+		"@savvy-web/bundler": "^2.0.3",
 		"@types/node": "catalog:silk",
 		"rolldown-pnpm-config": "workspace:*",
 		"typescript": "catalog:silk"
