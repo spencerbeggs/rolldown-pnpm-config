@@ -37,7 +37,7 @@
 		"@effected/semver": "^0.1.0",
 		"@effected/yaml": "^0.3.0",
 		"effect": "catalog:effect",
-		"ink": "^7.1.0",
+		"ink": "^7.1.1",
 		"ink-tab": "^5.2.0",
 		"oxc-parser": "^0.140.0",
 		"react": "catalog:silk",
