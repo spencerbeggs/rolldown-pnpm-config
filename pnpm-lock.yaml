@@ -116,7 +116,7 @@ importers:
         specifier: ^0.1.0
         version: 0.1.0(effect@4.0.0-beta.98)
       '@effected/yaml':
-        specifier: ^0.3.0
+        specifier: ^0.3.1
         version: 0.3.1(effect@4.0.0-beta.98)
       effect:
         specifier: catalog:effect
