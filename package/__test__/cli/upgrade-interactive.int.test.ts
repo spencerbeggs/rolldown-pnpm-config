@@ -1,6 +1,7 @@
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { ReleaseAgeGate } from "@effected/npm";
 import { Effect, Option } from "effect";
 import { describe, expect, it } from "vitest";
 import {
@@ -46,7 +47,7 @@ const resolver = makeStubResolver({
 
 const driftResolver = makeStubResolver({ versions: { vitest: ["4.2.3"] } });
 
-const ZERO_GATE = { ageMinutes: 0, exclude: [] as string[] };
+const ZERO_GATE = ReleaseAgeGate.combine();
 
 describe("interactive apply (headless)", () => {
 	it("applies chosen decisions to the file, range + recomputed peer", async () => {

@@ -112,6 +112,9 @@ importers:
       '@effect/platform-node':
         specifier: catalog:effect
         version: 4.0.0-beta.99(effect@4.0.0-beta.99)(ioredis@5.11.1(supports-color@8.1.1))
+      '@effected/npm':
+        specifier: ^0.3.0
+        version: 0.3.0(@effected/semver@0.2.0(effect@4.0.0-beta.99))(effect@4.0.0-beta.99)
       '@effected/semver':
         specifier: ^0.2.0
         version: 0.2.0(effect@4.0.0-beta.99)

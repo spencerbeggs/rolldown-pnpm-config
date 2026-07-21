@@ -1,5 +1,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { NodeServices } from "@effect/platform-node";
+import type { PartialReleaseAgeGate } from "@effected/npm";
+import { ReleaseAgeGate } from "@effected/npm";
 import { Data, Effect, Option, Result } from "effect";
 import { Argument, Command, Flag } from "effect/unstable/cli";
 import { discoverCatalogEntries } from "../discover.js";
@@ -12,8 +14,7 @@ import type { GroupModel } from "../interop-live.js";
 import { buildGroupModel, computeGroupPeers } from "../interop-live.js";
 import { derivePeerRange } from "../peer-range.js";
 import { planEntry } from "../plan.js";
-import type { ReleaseAgeGate } from "../release-age.js";
-import { combineReleaseAge, filterByReleaseAge, parsePnpmGate, readConfigReleaseAge } from "../release-age.js";
+import { parsePnpmGate, readConfigReleaseAge } from "../release-age.js";
 import { RegistryResolver, RegistryResolverLive } from "../resolve.js";
 import { applyEdits } from "../rewrite.js";
 import { filterEntriesByCatalog, findConfigFiles, pickConfigCandidate } from "../select-file.js";
@@ -57,7 +58,8 @@ export function computeGate(source: string, file: string, resolver: Resolver): E
 			],
 			{ concurrency: "unbounded" },
 		);
-		return combineReleaseAge(cfg, parsePnpmGate(age, exc));
+		const contributions = [cfg, parsePnpmGate(age, exc)].filter((g): g is PartialReleaseAgeGate => g !== null);
+		return ReleaseAgeGate.combine(...contributions);
 	});
 }
 
@@ -96,10 +98,10 @@ export function resolveGatedVersions(
 					return [pkg, [] as string[], [] as string[]] as const;
 				}
 				// Fail-closed: if the publish-times fetch fails, an empty map makes
-				// filterByReleaseAge drop every version (all timestamps unknown). This is a
+				// gate.filterVersions drop every version (all timestamps unknown). This is a
 				// safe skip, consistent with the version-fetch Left→[] path above, honoring
 				// the contract of never proposing a version younger than the gate.
-				// Skip times fetch entirely when no age gate is active — filterByReleaseAge
+				// Skip times fetch entirely when no age gate is active — gate.filterVersions
 				// returns all versions unchanged when ageMinutes === 0, so the fetch is
 				// wasted work.
 				const times =
@@ -107,7 +109,8 @@ export function resolveGatedVersions(
 						? yield* resolver.times(pkg).pipe(Effect.catch(() => Effect.succeed({} as Record<string, string>)))
 						: ({} as Record<string, string>);
 				onProgress?.(++resolved, total);
-				return [pkg, filterByReleaseAge(vr.success, times, gate, pkg, now), vr.success] as const;
+				const gated: string[] = [...gate.filterVersions(vr.success, times, pkg, now)];
+				return [pkg, gated, vr.success] as const;
 			}),
 		{ concurrency: RESOLVE_CONCURRENCY },
 	).pipe(
