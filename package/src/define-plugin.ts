@@ -1,4 +1,5 @@
 import type { CatalogDeclaration } from "./catalogs.js";
+import type { AllowedVersionsFromCatalogs } from "./plugin/allowed-versions.js";
 import type { Enforcement } from "./runtime/types.js";
 
 /**
@@ -94,6 +95,12 @@ export interface PluginConfig {
 		readonly allowedVersions?: Record<string, string>;
 		readonly ignoreMissing?: string[];
 		readonly allowAny?: string[];
+		/**
+		 * Derive version-qualified `allowedVersions` rules from a catalog (or several).
+		 * Resolved and merged into `allowedVersions` at build time, then stripped; a
+		 * manually authored `allowedVersions` entry wins on a key clash.
+		 */
+		readonly allowedVersionsFromCatalogs?: AllowedVersionsFromCatalogs | readonly AllowedVersionsFromCatalogs[];
 	}>;
 	/** Whether dependency build scripts are blocked unless explicitly allowed. */
 	readonly strictDepBuilds?: FieldInput<boolean>;

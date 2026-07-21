@@ -17,6 +17,7 @@ import { evaluatePluginConfig } from "../evaluate.js";
 import { findConfigFiles, pickConfigCandidate } from "../select-file.js";
 import { toAnsi } from "../ui/ansi.js";
 import { detectCapabilities } from "../ui/env.js";
+import { legendLines } from "../ui/legend.js";
 import type { StyledLine } from "../ui/styled.js";
 import { canonicalize, findWorkspaceFile, parseWorkspace, renderWorkspace } from "../workspace-file.js";
 import { overlayWorkspace } from "../workspace-overlay.js";
@@ -184,8 +185,8 @@ export const exportCommand = Command.make(
 				if (dryRun) {
 					const caps = detectCapabilities();
 					process.stdout.write(`${result.path} (dry run — not written)\n\n`);
-					process.stdout.write(`${toAnsi(result.diff, { color: caps.color })}\n`);
-					process.stdout.write("\n+ added  ~ changed  - removed   (local) local override  (unmanaged) not managed\n");
+					const legend = caps.color ? `${toAnsi(legendLines(), { color: caps.color })}\n\n` : "";
+					process.stdout.write(`${legend}${toAnsi(result.diff, { color: caps.color })}\n`);
 				} else process.stdout.write(`Exported to ${result.path}\n`);
 				for (const k of result.report.staleEntries)
 					process.stderr.write(`warning: patch entry "${k}" has no file on disk\n`);

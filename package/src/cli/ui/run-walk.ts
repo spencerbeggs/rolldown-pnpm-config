@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { render } from "ink";
 import { createElement } from "react";
+import type { GroupModel } from "../interop-live.js";
 import type { Decision, WalkItem } from "../walk-types.js";
 import { Walk } from "./Walk.js";
 
@@ -15,6 +16,7 @@ export function runWalk(
 	items: readonly WalkItem[],
 	dryRun = false,
 	unresolved: readonly string[] = [],
+	interopModels: ReadonlyMap<string, GroupModel> = new Map(),
 ): Effect.Effect<Decision[]> {
 	return Effect.callback<Decision[]>((resume) => {
 		let collected: readonly Decision[] = [];
@@ -23,13 +25,19 @@ export function runWalk(
 				items,
 				dryRun,
 				unresolved,
+				interopModels,
 				onDone: (d: readonly Decision[]) => {
 					collected = d;
 				},
 			}),
 		);
-		void instance.waitUntilExit().then(() => {
-			resume(Effect.succeed([...collected]));
-		});
+		// Resume on both paths: a normal exit succeeds with the collected
+		// decisions, but if Ink crashes or unmounts with an error
+		// `waitUntilExit()` rejects — resume with a defect so the fiber fails
+		// instead of hanging suspended forever (unhandled rejection).
+		void instance
+			.waitUntilExit()
+			.then(() => resume(Effect.succeed([...collected])))
+			.catch((err) => resume(Effect.die(err)));
 	});
 }

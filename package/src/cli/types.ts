@@ -13,9 +13,14 @@ export interface CatalogEntry {
 	readonly strategy?: PeerStrategy;
 }
 
-/** A version choice computed for a CatalogEntry. */
+/**
+ * A version choice computed for a CatalogEntry. Tiers: `keep` (current),
+ * `in-range` (latest within the caret range), `minor` (latest within the current
+ * major line but beyond the caret — the meaningful intermediate for 0.x packages
+ * whose caret locks the minor), and `latest` (latest overall, may cross a major).
+ */
 export interface Candidate {
-	readonly kind: "in-range" | "latest" | "keep";
+	readonly kind: "in-range" | "minor" | "latest" | "keep";
 	/** Operator-preserved range, e.g. "^5.9.3". */
 	readonly range: string;
 	/** Bare version, e.g. "5.9.3". */

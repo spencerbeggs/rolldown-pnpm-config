@@ -24,7 +24,7 @@ npx rolldown-pnpm-config export --dry-run
 # + added  ~ changed  - removed   (local) local override  (unmanaged) not managed
 ```
 
-By default the diff collapses unchanged context lines. Pass `--full` alongside `--dry-run` to emit the entire canonical tree:
+When color is on, a swatch legend (added, removed, modified, unchanged, unmanaged) is printed above the diff. By default the diff collapses unchanged context lines. Pass `--full` alongside `--dry-run` to emit the entire canonical tree:
 
 ```bash
 npx rolldown-pnpm-config export --dry-run --full
@@ -45,9 +45,9 @@ The explorer has three tabs:
 
 - **Changes** — the diff between the current file and what export would write, with context collapsing.
 - **Full** — the same diff with every line shown.
-- **Simulated** — the diff a fresh consuming repo would see: no local overrides applied, showing what the managed config contributes on its own.
+- **Simulated** — the calculated config a fresh consuming repo would get, with no local overrides applied. It renders as a plain `pnpm-workspace.yaml` listing rather than a diff. Each top-level field is annotated with how the plugin combines it (`merge` or `overwrite`) and how it is enforced (`· warn` or `· error`; unenforced fields carry no suffix).
 
-In a non-interactive terminal (CI, piped output) the `preview` command falls back to printing the Changes diff and exiting — it never hangs.
+A color legend sits below the tab bar and tracks the active tab: Changes and Full show the diff legend (added, removed, modified, unchanged, unmanaged), Simulated shows its own (merge, overwrite, warn, error). The legend is drawn only when color is on. In a non-interactive terminal (CI, piped output) the `preview` command falls back to printing the Changes diff and exiting — it never hangs.
 
 ## What export preserves
 

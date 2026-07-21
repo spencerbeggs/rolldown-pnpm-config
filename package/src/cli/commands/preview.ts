@@ -9,6 +9,7 @@ import { buildPreviewViews } from "../preview-views.js";
 import { findConfigFiles, pickConfigCandidate } from "../select-file.js";
 import { toAnsi } from "../ui/ansi.js";
 import { detectCapabilities } from "../ui/env.js";
+import { legendLines } from "../ui/legend.js";
 import { runPreview } from "../ui/run-preview.js";
 import { findWorkspaceFile, parseWorkspace } from "../workspace-file.js";
 import { WORKSPACE_FIELDS } from "./export.js";
@@ -82,7 +83,10 @@ export const previewCommand = Command.make("preview", { path: pathArg }, ({ path
 		if (caps.interactive) {
 			yield* runPreview(views);
 		} else {
-			yield* Effect.sync(() => process.stdout.write(`${toAnsi(views.changes, { color: caps.color })}\n`));
+			yield* Effect.sync(() => {
+				const legend = caps.color ? `${toAnsi(legendLines(), { color: caps.color })}\n\n` : "";
+				process.stdout.write(`${legend}${toAnsi(views.changes, { color: caps.color })}\n`);
+			});
 		}
 	}),
 ).pipe(Command.withDescription("Interactively preview how pnpm-workspace.yaml would change"));

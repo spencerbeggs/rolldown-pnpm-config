@@ -3,8 +3,8 @@ status: current
 module: rolldown-pnpm-config
 category: architecture
 created: 2026-06-25
-updated: 2026-07-17
-last-synced: 2026-07-17
+updated: 2026-07-21
+last-synced: 2026-07-21
 completeness: 95
 related:
   - settings-coverage.md
@@ -12,6 +12,7 @@ related:
   - export-cli.md
   - specs/2026-06-26-pnpm-settings-coverage-design.md
   - specs/2026-06-30-patch-distribution-design.md
+  - specs/2026-07-20-peer-colon-and-preview-colors-design.md
 dependencies: []
 ---
 
@@ -52,7 +53,7 @@ The build-to-runtime pipeline has three stages, each on one side of the build / 
 
 Authoring API (`@public`, build time): authors call `PnpmConfigPlugin({...})` to declare catalogs plus the managed pnpm fields in one canonical, statically analyzable call. Catalogs are inline — `catalogs: { <name>: { packages: { <pkg>: range | { range, peer?, strategy? } } } }`, keyed by catalog name. The `PluginConfig` shape is a hand-authored interface (one `FieldInput<T>` per field, for rich per-field JSDoc and DX), kept in lockstep with the descriptor table by the compile-time drift guard described below. `defineCatalogs` and `definePlugin` were removed; the catalog types and a pure `normalizeCatalogs` now live in `package/src/catalogs.ts`, and the `PluginConfig`/`FieldInput` types in `package/src/define-plugin.ts`.
 
-Build step (`freeze`, the only place Effect runs, `@internal`): `freeze` first validates `config.name` — a missing or empty `name` is a `ConfigError`. It then validates each declared field against its descriptor-derived Schema and emits three plain-data values — `base` (field to frozen value), `manifest` (field to `{ strategy, enforcement, options? }`) and `name` (the validated string). The schema map (`FIELD_SCHEMAS`) is derived from `DESCRIPTORS`; `catalogs` is special-cased — `freeze` runs `normalizeCatalogs(config.catalogs)` to resolve the inline declarations (including any materialized `<name>Peers` catalogs) before validating. See `package/src/plugin/freeze.ts` and `package/src/catalogs.ts`.
+Build step (`freeze`, the only place Effect runs, `@internal`): `freeze` first validates `config.name` — a missing or empty `name` is a `ConfigError`. It then validates each declared field against its descriptor-derived Schema and emits three plain-data values — `base` (field to frozen value), `manifest` (field to `{ strategy, enforcement, options? }`) and `name` (the validated string). The schema map (`FIELD_SCHEMAS`) is derived from `DESCRIPTORS`; `catalogs` is special-cased — `freeze` runs `normalizeCatalogs(config.catalogs)` to resolve the inline declarations (including any materialized `<name>Peers` catalogs) before validating. `peerDependencyRules` is likewise special-cased: `freeze` resolves an optional `allowedVersionsFromCatalogs` directive against the declared catalogs into concrete `allowedVersions` rules and strips the directive before validating, baking the result into `base` so it reaches both the runtime pnpmfile and `export`. See `package/src/plugin/freeze.ts`, `package/src/catalogs.ts` and `package/src/plugin/allowed-versions.ts`.
 
 Runtime (`createHooks`, zero-dependency, `@public`): `createHooks(base, manifest, name)` returns `{ updateConfig }`. It builds the strategy table, runs each field's strategy, applies the field's enforcement, prints the warning boxes — each tagged `[<name>]` on the first line — and returns the merged config. See `package/src/runtime/index.ts`.
 
@@ -78,7 +79,7 @@ This is why `EnforcementError` is a plain `Error` subclass rather than an Effect
 
 ### Effect v4 collapses the declared peer closure
 
-The build-time/CLI dependency surface is Effect v4 (`catalog:effect`, currently `4.0.0-beta.98`): `effect` plus `@effect/platform-node`. Nothing else from the Effect org is declared.
+The build-time/CLI dependency surface is Effect v4 (`catalog:effect`, currently `4.0.0-beta.99`): `effect` plus `@effect/platform-node`. Nothing else from the Effect org is declared.
 
 This is a deliberate reversal of the v3-era arrangement. Under v3, `package/package.json` declared the full non-optional peer closure of `@effect/platform-node` and `@effect/cli` (`@effect/cluster`, `@effect/experimental`, `@effect/printer`, `@effect/printer-ansi`, `@effect/rpc`, `@effect/sql`, `@effect/typeclass`, `@effect/workflow`) as regular `dependencies` even though nothing in `package/src/` imported them — left undeclared, pnpm's `autoInstallPeers` resolved those peers inside every consuming workspace and polluted consumer lockfiles (savvy-web/systems#228). Declaring them pinned resolution to this package's own subtree.
 
@@ -88,7 +89,7 @@ This remains a build-time/CLI manifest concern only; the shipped pnpmfile is zer
 
 ### Vendored v4 source as the API authority
 
-Effect v4 is pre-release and its published docs lag the code, so `effect-smol` is vendored read-only under `.repos/` (`.gitmodules`, `.repos/config.json`), pinned to the exact `effect@4.0.0-beta.98` the catalog resolves. It is the authority for v4 API shapes during the beta and is never imported by the build — consult it when a v4 signature is in question rather than inferring from v3 memory or stale docs.
+Effect v4 is pre-release and its published docs lag the code, so the v4 source is vendored read-only under `.repos/` (`.gitmodules`, `.repos/config.json`), pinned to the exact `effect@4.0.0-beta.99` the catalog resolves. The submodule directory is still named `effect-smol`, but that upstream repo was archived and v4 development moved back to the main `Effect-TS/effect` monorepo (same layout), so the source is now vendored from there. It is the authority for v4 API shapes during the beta and is never imported by the build — consult it when a v4 signature is in question rather than inferring from v3 memory or stale docs.
 
 ### Detection separated from response
 
@@ -102,7 +103,7 @@ Each managed pnpm field is one entry in a declarative descriptor table under `pa
 
 What code consumes is **derived** from the table, not hand-listed: `deriveSchemas(DESCRIPTORS)` produces `FIELD_SCHEMAS` (consumed by `freeze`) and `deriveRegistry(DESCRIPTORS)` produces `FIELD_REGISTRY` (`package/src/registry.ts` is now three lines). Adding a field is a single descriptor entry plus its matching `PluginConfig` line — the schema, registry and table-driven tests all follow from it.
 
-The hand-authored `PluginConfig` interface is kept honest by a value-level drift guard at `package/__test__/types/plugin-config.test-d.ts`: a compile-time assertion that each authored field's type and its descriptor-derived type are mutually assignable, so widening an authored field (e.g. `string` against a `Schema.Literal(...)` union) or dropping one breaks `typecheck`. Two keys are key-checked only — `catalogs` (authored as `CatalogsResult`) and `publicHoistPattern` (carries the `excludeByRepo` refine the schema does not model). Every descriptor is also exercised by the table-driven suite at `package/__test__/descriptors/table.test.ts` (strategy exists in `STRATEGY_TABLE`; schema accepts/rejects samples).
+The hand-authored `PluginConfig` interface is kept honest by a value-level drift guard at `package/__test__/types/plugin-config.test-d.ts`: a compile-time assertion that each authored field's type and its descriptor-derived type are mutually assignable, so widening an authored field (e.g. `string` against a `Schema.Literal(...)` union) or dropping one breaks `typecheck`. Three keys are key-checked only — `catalogs` (authored as `CatalogsResult`), `publicHoistPattern` (carries the `excludeByRepo` refine the schema does not model) and `peerDependencyRules` (carries the build-time `allowedVersionsFromCatalogs` directive the schema does not model). Every descriptor is also exercised by the table-driven suite at `package/__test__/descriptors/table.test.ts` (strategy exists in `STRATEGY_TABLE`; schema accepts/rejects samples).
 
 The 14 original Silk fields were migrated into the table **parity-locked** — strategy and enforcement preserved verbatim — and were proven byte-identical `{ base, manifest }` against Silk by the differential-parity harness during development, so the descriptor refactor changed no behavior. That harness has since been removed (see [Integration points](#integration-points)); the engine is now covered by its own descriptor-table, freeze and strategy unit tests. The strategy table itself was untouched: this is purely a front-of-pipeline (authoring → freeze) change.
 
@@ -170,6 +171,7 @@ Pre-publish hardening (cross-cutting, before any release): add real publish meta
 - `package/src/descriptors/` — the descriptor table (single source of truth) and the `deriveSchemas`/`deriveRegistry` helpers.
 - `package/src/patches/` — the build/CLI-side patch discovery and path-rewrite module (`keys.ts`, `paths.ts`, `discover.ts`, `build.ts`, `reconcile.ts`); never imported by `runtime/**`.
 - `package/src/catalogs.ts` and `package/src/define-plugin.ts` — the inline catalog types plus `normalizeCatalogs`, the hand-authored `PluginConfig`/`FieldInput` and the `LocalDirective` type.
+- `package/src/plugin/allowed-versions.ts` — the `allowedVersionsFromCatalogs` authoring directive, resolved at freeze time into `peerDependencyRules.allowedVersions` and baked into `base`.
 - `package/src/registry.ts` and `package/src/runtime/strategies/table.ts` — the derived field-to-strategy registry and the strategy table.
 - `package/src/runtime/index.ts` and `package/src/runtime/enforcement.ts` — the install-time merge and the enforcement contract.
 - `package/src/runtime/warnings.ts` and `package/src/runtime/types.ts` — the warning-box formatters (now `name`-tagged) and the `Divergence` type.

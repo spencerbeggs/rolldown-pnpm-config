@@ -19,6 +19,8 @@ describe("Preview", () => {
 		expect(frame).toContain("Full");
 		expect(frame).toContain("Simulated");
 		expect(frame).toContain("CHANGES_VIEW");
+		// The color legend is rendered above the tabs.
+		expect(frame).toContain("Legend:");
 	});
 
 	it("renders tag suffixes and styled segments in the active view", () => {
@@ -36,7 +38,9 @@ describe("Preview", () => {
 		expect(frame).toContain("react: ^19");
 		expect(frame).toContain("(local)");
 		expect(frame).toContain("packages");
-		expect(frame).toContain("(unmanaged)");
+		// The `(unmanaged)` tag is dropped in the (always-colored) Ink view — the
+		// gray shade + legend convey it. Only the legend's "■ unmanaged" mentions it.
+		expect(frame).not.toContain("(unmanaged)");
 	});
 
 	it("calls onExit when Esc is pressed", async () => {
@@ -55,6 +59,26 @@ describe("Preview", () => {
 			}),
 		);
 		stdin.write("\x1b"); // Esc
+		await new Promise<void>((r) => setTimeout(r, 50));
+		expect(exited).toBe(true);
+	});
+
+	it("calls onExit when Enter is pressed", async () => {
+		let exited = false;
+		const views = {
+			changes: [line("CHANGES_VIEW")],
+			full: [line("FULL_VIEW")],
+			simulated: [line("SIMULATED_VIEW")],
+		};
+		const { stdin } = render(
+			createElement(Preview, {
+				views,
+				onExit: () => {
+					exited = true;
+				},
+			}),
+		);
+		stdin.write("\r"); // Enter
 		await new Promise<void>((r) => setTimeout(r, 50));
 		expect(exited).toBe(true);
 	});

@@ -42,6 +42,7 @@ export function planEntry(
 		const maxOf = (list: SemVer[]) => (list.length ? list[list.length - 1] : null);
 
 		const inRangeMax = range ? maxOf(parsed.filter((v) => range.test(v))) : null;
+		const sameMajorMax = maxOf(parsed.filter((v) => v.major === currentMajor));
 		const overallMax = maxOf(parsed);
 
 		const withPeer = (version: string): Effect.Effect<string | undefined, PeerRangeError> =>
@@ -61,6 +62,29 @@ export function planEntry(
 				isMajor: inRangeMax.major > currentMajor,
 				...(peerRange ? { peerRange } : {}),
 			});
+		}
+
+		// The latest within the current major line but beyond the caret range, and
+		// strictly below the overall latest — the meaningful intermediate for 0.x
+		// packages whose caret locks the minor (so the table offers 0.50.0, not just
+		// a jump from 0.49.x straight to the 1.0 major). Skipped when it coincides
+		// with the in-range pick (e.g. a `^1.x` range already spans its whole major)
+		// or the overall latest (no major bump available).
+		if (sameMajorMax !== null) {
+			const beatsCurrent = current === null || sameMajorMax.gt(current);
+			const beatsInRange = inRangeMax === null || sameMajorMax.gt(inRangeMax);
+			const belowOverall = overallMax?.gt(sameMajorMax) ?? false;
+			if (beatsCurrent && beatsInRange && belowOverall) {
+				const version = sameMajorMax.toString();
+				const peerRange = yield* withPeer(version);
+				candidates.push({
+					kind: "minor",
+					range: `${entry.operator}${version}`,
+					version,
+					isMajor: sameMajorMax.major > currentMajor,
+					...(peerRange ? { peerRange } : {}),
+				});
+			}
 		}
 
 		if (overallMax && (current === null || overallMax.gt(current)) && (!inRangeMax || overallMax.gt(inRangeMax))) {

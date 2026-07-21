@@ -5,8 +5,11 @@ import type { DESCRIPTORS } from "../../src/descriptors/index.js";
 type Descriptors = typeof DESCRIPTORS;
 type SchemaType<K extends keyof Descriptors> = Descriptors[K]["schema"]["Type"];
 
-// Keys checked for key-coverage only (value type intentionally not compared).
-type ValueExcluded = "catalogs" | "publicHoistPattern";
+// Keys checked for key-coverage only (value type intentionally not compared):
+// catalogs (authored as inline declarations), publicHoistPattern (carries the
+// excludeByRepo refine), and peerDependencyRules (carries the build-time
+// allowedVersionsFromCatalogs directive) — none of which the schema models.
+type ValueExcluded = "catalogs" | "publicHoistPattern" | "peerDependencyRules";
 
 // Derived authoring surface for the value-checked keys.
 type DerivedPluginConfig = {
@@ -42,7 +45,7 @@ type MutualExact<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : fa
 //    `local` key, and the metadata-only `name` key) exactly equal the
 //    value-checked descriptor keys plus publicHoistPattern.
 type AuthoredKeys = Exclude<keyof PluginConfig, "catalogs" | "local" | "name">;
-type DerivedKeys = keyof DerivedPluginConfig | "publicHoistPattern";
+type DerivedKeys = keyof DerivedPluginConfig | "publicHoistPattern" | "peerDependencyRules";
 type _AssertKeyCoverage = Expect<Mutual<AuthoredKeys, DerivedKeys>>;
 
 // 2) Value-level: for each value-checked key, authored and derived value types

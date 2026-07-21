@@ -1,8 +1,18 @@
 import { Box, Text, useApp, useInput } from "ink";
 import type { ReactElement } from "react";
 import { createElement, useEffect, useState } from "react";
+import type { GroupModel, GroupPeers } from "../interop-live.js";
+import { computeGroupPeers } from "../interop-live.js";
 import type { TableState } from "../walk-reducer.js";
-import { cellColor, displayCandidates, initTable, peerFor, tableDecisions, tableStep } from "../walk-reducer.js";
+import {
+	cellColor,
+	displayCandidates,
+	initTable,
+	peerFor,
+	tableDecisions,
+	tableStep,
+	truncateEnd,
+} from "../walk-reducer.js";
 import type { Decision, WalkItem } from "../walk-types.js";
 
 interface WalkProps {
@@ -12,6 +22,8 @@ interface WalkProps {
 	readonly dryRun?: boolean;
 	/** Packages the registry could not resolve — surfaced so a typo is never silently dropped. */
 	readonly unresolved?: readonly string[];
+	/** Per-catalog interop models: enable live peer-floor + conflict recompute as picks change. */
+	readonly interopModels?: ReadonlyMap<string, GroupModel>;
 }
 
 /** Rows visible at once before the viewport scrolls. */
@@ -27,7 +39,13 @@ const VIEWPORT = 20;
  *
  * @internal
  */
-export function Walk({ items, onDone, dryRun = false, unresolved = [] }: WalkProps): ReactElement {
+export function Walk({
+	items,
+	onDone,
+	dryRun = false,
+	unresolved = [],
+	interopModels = new Map(),
+}: WalkProps): ReactElement {
 	const app = useApp();
 	const [state, setState] = useState<TableState>(() => initTable(items));
 
@@ -85,9 +103,29 @@ export function Walk({ items, onDone, dryRun = false, unresolved = [] }: WalkPro
 	const BUBBLE_WIDTH = 2;
 	const blankCell = `${" ".repeat(BUBBLE_WIDTH + cellWidth)}  `;
 
+	// Columns consumed by everything left of a row's trailing annotation, so a long
+	// peer-conflict message can be truncated to the terminal width instead of
+	// wrapping and shearing the column alignment. Each cell is `bubble+space+cell+2`.
+	const termCols = process.stdout.columns ?? 100;
+	const fixedPrefix = 2 + (pkgWidth + 2) + maxCells * (cellWidth + 4) + 2;
+
 	// Scroll the viewport to keep the cursor visible.
 	const start = Math.max(0, Math.min(state.cursor - Math.floor(VIEWPORT / 2), items.length - VIEWPORT));
 	const visible = items.slice(Math.max(0, start), Math.max(0, start) + VIEWPORT);
+
+	// Live interop peer floors + conflicts, recomputed from the CURRENT picks so
+	// changing any member's version instantly updates every dependent's peer and
+	// surfaces combos that no longer satisfy an in-group peer.
+	const interopPeers = new Map<string, GroupPeers>();
+	for (const [catalog, model] of interopModels) {
+		const selected = new Map<string, string>();
+		items.forEach((it, idx) => {
+			if (it.entry.catalog !== catalog) return;
+			const cand = displayCandidates(it)[state.picks[idx] ?? 0];
+			if (cand) selected.set(it.entry.pkg, cand.version);
+		});
+		interopPeers.set(catalog, computeGroupPeers(model, selected));
+	}
 
 	const rows: ReactElement[] = [];
 	let lastCatalog: string | null = null;
@@ -121,6 +159,13 @@ export function Walk({ items, onDone, dryRun = false, unresolved = [] }: WalkPro
 			cells.push(createElement(Text, { key: `blank-${ci}` }, blankCell));
 		}
 		const chosen = candidates[pick];
+		// Interop rows show the live group-derived floor; everything else uses the
+		// entry's own recomputed/keep peer.
+		const gp = interopPeers.get(item.entry.catalog);
+		const peerText = gp?.peer.get(item.entry.pkg) ?? (chosen === undefined ? "—" : peerFor(item, chosen));
+		const conflict = gp?.conflict.get(item.entry.pkg);
+		// Room left on the line for the trailing ⚠ annotation, after the peer cell.
+		const room = Math.max(8, termCols - fixedPrefix - peerText.length - 3);
 		rows.push(
 			createElement(
 				Box,
@@ -128,8 +173,11 @@ export function Walk({ items, onDone, dryRun = false, unresolved = [] }: WalkPro
 				createElement(Text, { ...(onCursor ? { color: "cyan" } : {}) }, onCursor ? "❯ " : "  "),
 				createElement(Text, { bold: onCursor }, item.entry.pkg.padEnd(pkgWidth + 2)),
 				...cells,
-				createElement(Text, { dimColor: true }, `│ ${chosen === undefined ? "—" : peerFor(item, chosen)}`),
-				item.peerWarning ? createElement(Text, { color: "red" }, `  ⚠ ${item.peerWarning.message}`) : null,
+				createElement(Text, { dimColor: true }, `│ ${peerText}`),
+				conflict ? createElement(Text, { color: "red" }, truncateEnd(`  ⚠ needs ${conflict}`, room)) : null,
+				item.peerWarning
+					? createElement(Text, { color: "red" }, truncateEnd(`  ⚠ ${item.peerWarning.message}`, room))
+					: null,
 			),
 		);
 	});

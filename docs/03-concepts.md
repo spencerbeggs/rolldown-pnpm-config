@@ -18,7 +18,22 @@ This is how one published package can govern pnpm settings across many repos. Up
 
 A catalog is a named set of version specifiers managed in one place. The `catalogs` field of your `PnpmConfigPlugin` config declares them, and each consuming repo references a catalog entry instead of pinning a version itself. Bumping a version in the catalog updates every repo that points at it. This is the version-management half of what the emitted pnpmfile carries. The pnpm settings are the other half.
 
-Each package is a bare range or the object form `{ range, peer?, strategy? }`. The optional `peer` is a materialized range the runtime emits as a separate `<name>Peers` catalog, and `strategy` tells the [`upgrade` CLI](./05-upgrading-catalogs.md) how to recompute that peer when the range moves. Bumping these ranges over time is the job of that command.
+Each package is a bare range or the object form `{ range, peer?, strategy? }`. The optional `peer` is a materialized range the runtime emits as a separate peers catalog, and `strategy` tells the [`upgrade` CLI](./05-upgrading-catalogs.md) how to recompute that peer when the range moves. Bumping these ranges over time is the job of that command.
+
+The peers catalog is emitted under two names during the current transition: `<name>:peers` (colon-delimited, the preferred form) and `<name>Peers` (camelCase, retained for compatibility). Both point at the same materialized ranges, so a consuming repo can reference either. The camelCase name is removed in a later release; reference `<name>:peers` in new configs.
+
+## Deriving peer allowedVersions from a catalog
+
+`peerDependencyRules.allowedVersionsFromCatalogs` derives version-qualified `peerDependencyRules.allowedVersions` rules from a catalog, so you do not hand-maintain a rule per package. It is a build-time directive: the plugin resolves it, folds the result into `allowedVersions` and bakes it into the emitted pnpmfile, so it applies through both the runtime hook and `rolldown-pnpm-config export`.
+
+```ts
+peerDependencyRules: {
+  allowedVersionsFromCatalogs: { catalog: "effect", peer: "effect", prefix: null },
+  // or an array of directives to merge rules from several catalogs
+}
+```
+
+For every exact-pinned entry in `catalog` (other than `peer` itself) it emits a qualified rule `"<name>@<pin>><peer>": <peerValue>`, where `<peerValue>` is the `peer` package's own catalog range. pnpm applies each qualified rule only when the parent instance's version matches the exact pin, so a same-named satellite on a different version line keeps its real unmet-peer complaint. `prefix` transforms the value: omit it to use the peer range verbatim, set `"^"` / `">="` (etc.) to re-prefix, or set `null` / `""` to strip to an exact version. Non-exact entries are skipped rather than widened, and a manually authored `allowedVersions` entry wins on a key clash.
 
 ## Enforcement: absent, warn, error
 

@@ -29,9 +29,11 @@ export interface CatalogDeclaration {
 /**
  * Normalize declarative catalog input into the resolved `{ catalog → pkg → range }`
  * map consumed by the runtime. Pure: the base catalog uses each package's
- * `range` (or bare string); a `<name>Peers` catalog is emitted only for packages
- * carrying a materialized `peer`, using that value verbatim. `strategy` is
- * CLI-only and ignored here.
+ * `range` (or bare string); a peers catalog is emitted only for packages
+ * carrying a materialized `peer`, using that value verbatim. The peers map is
+ * emitted under BOTH `<name>Peers` (camelCase, legacy) and `<name>:peers`
+ * (colon-delimited, preferred) during this transition; the camelCase form is
+ * removed in a later branch. `strategy` is CLI-only and ignored here.
  *
  * @internal
  */
@@ -48,7 +50,10 @@ export function normalizeCatalogs(input: Record<string, CatalogDeclaration>): Re
 		}
 		out[name] = base;
 		if (Object.keys(peers).length > 0) {
+			// Emit both the legacy camelCase name and the preferred colon name,
+			// pointing at the same map. The camelCase form is dropped in a later branch.
 			out[`${name}Peers`] = peers;
+			out[`${name}:peers`] = peers;
 		}
 	}
 	return out;

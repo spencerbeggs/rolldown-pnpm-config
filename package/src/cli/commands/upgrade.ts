@@ -6,8 +6,10 @@ import { discoverCatalogEntries } from "../discover.js";
 import { detectPeerDrift } from "../drift.js";
 import { buildEdits } from "../edits.js";
 import { evaluatePluginConfig } from "../evaluate.js";
-import type { GroupMember, InteropConflict } from "../interop.js";
-import { buildInteropEdits, capVersions, interopEntryChanged, reentryCandidates, runInterop } from "../interop.js";
+import type { FetchPeer, GroupMember, InteropConflict } from "../interop.js";
+import { buildInteropEdits, interopEntryChanged, runInterop } from "../interop.js";
+import type { GroupModel } from "../interop-live.js";
+import { buildGroupModel, computeGroupPeers } from "../interop-live.js";
 import { derivePeerRange } from "../peer-range.js";
 import { planEntry } from "../plan.js";
 import type { ReleaseAgeGate } from "../release-age.js";
@@ -15,7 +17,6 @@ import { combineReleaseAge, filterByReleaseAge, parsePnpmGate, readConfigRelease
 import { RegistryResolver, RegistryResolverLive } from "../resolve.js";
 import { applyEdits } from "../rewrite.js";
 import { filterEntriesByCatalog, findConfigFiles, pickConfigCandidate } from "../select-file.js";
-import type { InteropAdjustment } from "../summary.js";
 import { renderSummary } from "../summary.js";
 import type { CatalogEntry, Edit, PlannedEdit } from "../types.js";
 import { detectCapabilities } from "../ui/env.js";
@@ -387,20 +388,6 @@ export function applyInteropAndDecisions(
 }
 
 /**
- * Filter walk items down to the ones the interactive table should show: a row
- * is actionable when it is anything but up-to-date (a range bump, a peer
- * drift resync, or a peer materialization), unless `--full` asks for every
- * row including inert up-to-date ones. Parity with the old walk's
- * `nextActionable` auto-skip, now applied as an upfront filter instead of a
- * per-step cursor advance.
- *
- * @internal
- */
-export function actionableWalkItems(items: readonly WalkItem[], full: boolean): WalkItem[] {
-	return full ? [...items] : items.filter((i) => !i.upToDate);
-}
-
-/**
  * The message printed instead of entering the interactive table when nothing
  * is actionable: either no catalog packages were discovered at all, or every
  * discovered package is already up to date.
@@ -578,25 +565,22 @@ export const upgradeCommand = Command.make(
 				yield* Effect.sync(() => process.stdout.write(`${text}${warn}\n\n${note}\n`));
 				return;
 			}
-			// Up-to-date rows are hidden from the interactive table by default (parity
-			// with the old walk's auto-skip) and only shown with --full. A peer-only
-			// row (drift resync / materialize) is NOT up-to-date — see buildWalkItems —
-			// so it stays actionable and visible even without --full.
-			const actionable = actionableWalkItems(items, full);
-			if (actionable.length === 0) {
+			// Show every discovered row — up-to-date rows included, as non-selectable
+			// context — so a fully up-to-date catalog is never hidden from the table.
+			// The cursor starts on the first actionable row (see initTable). Only bail
+			// when nothing at all was discovered.
+			if (items.length === 0) {
 				// An unresolvable package plans to keep-only and so counts as "up to date".
 				// Reporting only "nothing to upgrade" here would hide the typo completely —
 				// the exact silent-omission this warning exists to prevent.
 				const warn = versions.unresolved.length > 0 ? `⚠ ${unresolvedMessage(versions.unresolved)}\n\n` : "";
-				yield* Effect.sync(() => process.stdout.write(`${warn}${nothingToUpgradeMessage(items.length)}`));
+				yield* Effect.sync(() => process.stdout.write(`${warn}${nothingToUpgradeMessage(0)}`));
 				return;
 			}
-			const decisions = yield* runWalk(actionable, dryRun, versions.unresolved);
-
-			// Reconcile interop catalog groups against the user's picks. A member
-			// pulled below its pick re-enters the walk (bounded) until the group is
-			// stable. Interop edits are built separately and EXCLUDED from buildEdits
-			// so the two never emit a range edit over the same span.
+			// Pre-fetch peerDependencies for every interop candidate version so the live
+			// table can recompute peer floors + conflicts as picks change — the same
+			// data runInterop fetches, moved ahead of the walk. Interactively the live
+			// table IS the reconcile; --yes/CI keeps the auto-reconcile (runUpgrade).
 			const interopByCatalog = new Map<string, CatalogEntry[]>();
 			for (const e of entries) {
 				if (e.strategy !== "interop") continue;
@@ -604,72 +588,65 @@ export const upgradeCommand = Command.make(
 				list.push(e);
 				interopByCatalog.set(e.catalog, list);
 			}
+			const peerCache = new Map<string, Record<string, string>>();
+			const fetchPeer: FetchPeer = (pkg, v) => {
+				const k = `${pkg}@${v}`;
+				const cached = peerCache.get(k);
+				if (cached !== undefined) return Effect.succeed(cached);
+				return resolver.peerDependencies(pkg, v).pipe(
+					Effect.catch(() => Effect.succeed({} as Record<string, string>)),
+					Effect.map((deps) => {
+						peerCache.set(k, deps);
+						return deps;
+					}),
+				);
+			};
+			if (interopByCatalog.size > 0) {
+				yield* Effect.sync(() => process.stderr.write("Resolving peer dependencies…\n"));
+			}
+			const interopModels = new Map<string, GroupModel>();
+			for (const [catalog, group] of interopByCatalog) {
+				const candByPkg = new Map<string, string[]>();
+				for (const e of group) {
+					const it = items.find((i) => i.entry.catalog === catalog && i.entry.pkg === e.pkg);
+					candByPkg.set(e.pkg, it ? it.candidates.map((c) => c.version) : [e.currentRange.replace(/^[\^~]/, "")]);
+				}
+				interopModels.set(catalog, yield* buildGroupModel(candByPkg, fetchPeer));
+			}
+
+			const decisions = yield* runWalk(items, dryRun, versions.unresolved, interopModels);
+
+			// Interop write path: honor the user's final picks + the live-derived peer
+			// floors directly — no auto-downgrade, no re-prompt. The live table already
+			// surfaced any conflict; whatever the user left is written as picked and
+			// reported. Interop edits are built separately and EXCLUDED from buildEdits
+			// so the two never emit a range edit over the same span.
 			const nonInteropDecisions = decisions.filter((d) => d.item.entry.strategy !== "interop");
 			const interopEdits: Edit[] = [];
-			const adjustments: InteropAdjustment[] = [];
 			const allConflicts: InteropConflict[] = [];
 			let interopChanged = 0;
-			for (const [, group] of interopByCatalog) {
-				const pickOf = (pkg: string): string => {
-					const d = decisions.find((dd) => dd.item.entry.pkg === pkg);
-					if (d) return d.chosen.version;
-					const ge = group.find((g) => g.pkg === pkg);
-					return ge ? ge.currentRange.replace(/^[\^~]/, "") : "";
-				};
-				let members: GroupMember[] = group.map((e) => ({
-					pkg: e.pkg,
-					ceiling: pickOf(e.pkg),
-					candidates: versions.gated.get(e.pkg) ?? [],
-				}));
-				const originalPick = new Map(members.map((m) => [m.pkg, m.ceiling]));
-				// One peerDeps cache shared across every re-entry round: a (pkg, version)
-				// lookup is immutable, so later rounds reuse versions earlier rounds fetched.
-				const peerCache = new Map<string, Record<string, string>>();
-				let result = yield* runInterop(members, resolver, peerCache);
-				for (let round = 0; round < members.length + 1; round++) {
-					// Re-prompt the downgraded/conflicted dependents (capped at their
-					// resolved version) AND their in-group anchors (uncapped), so the user
-					// can RAISE an anchor instead of accepting the dependent's downgrade.
-					const reentry = reentryCandidates(members, result);
-					if (reentry.length === 0) break; // internally compatible — done
-					const capEntries = group.filter((e) => reentry.some((rc) => rc.pkg === e.pkg));
-					const cappedVersions = new Map<string, readonly string[]>();
-					for (const rc of reentry) {
-						const all = versions.gated.get(rc.pkg) ?? [];
-						cappedVersions.set(rc.pkg, rc.cap === null ? all : yield* capVersions(all, rc.cap));
-					}
-					const reItems = yield* buildWalkItems(capEntries, cappedVersions).pipe(
-						Effect.catch((err) => Effect.fail(new UpgradeError({ message: err.message }))),
-					);
-					const reDecisions = yield* runWalk(reItems);
-					const before = new Map(members.map((m) => [m.pkg, m.ceiling]));
-					members = members.map((m) => {
-						const rd = reDecisions.find((d) => d.item.entry.pkg === m.pkg);
-						return rd ? { ...m, ceiling: rd.chosen.version } : m;
-					});
-					// Terminate when no ceiling moved this round: a true conflict stays
-					// "affected" every pass, so re-prompting identically would spin to the
-					// bound. No change means the user accepted the remaining conflicts.
-					const changedCeiling = members.some((m) => before.get(m.pkg) !== m.ceiling);
-					if (!changedCeiling) break;
-					result = yield* runInterop(members, resolver, peerCache);
-				}
-				interopEdits.push(...buildInteropEdits(group, result));
-				allConflicts.push(...result.conflicts);
+			for (const [catalog, group] of interopByCatalog) {
+				const model = interopModels.get(catalog);
+				if (model === undefined) continue;
+				const selected = new Map<string, string>();
 				for (const e of group) {
-					if (interopEntryChanged(e, result)) interopChanged++;
-					const version = result.resolved.get(e.pkg);
-					const original = originalPick.get(e.pkg);
-					// `version === undefined` is defensive: runInterop always resolves every
-					// member, so a missing entry here would indicate an internal mismatch.
-					if (version === undefined || original === undefined || version === original) continue;
-					adjustments.push({
-						catalog: e.catalog,
-						pkg: e.pkg,
-						from: `${e.operator}${original}`,
-						to: `${e.operator}${version}`,
-						peer: result.peers.get(e.pkg) ?? `^${version}`,
-					});
+					const d = decisions.find((dd) => dd.item.entry.catalog === catalog && dd.item.entry.pkg === e.pkg);
+					selected.set(e.pkg, d ? d.chosen.version : e.currentRange.replace(/^[\^~]/, ""));
+				}
+				const { peer, conflict } = computeGroupPeers(model, selected);
+				interopEdits.push(
+					...buildInteropEdits(group, { resolved: selected, peers: peer, conflicts: [], peerDepsOf: () => ({}) }),
+				);
+				for (const [pkg, blockedBy] of conflict) {
+					allConflicts.push({ pkg, ceiling: selected.get(pkg) ?? "", blockedBy });
+				}
+				for (const e of group) {
+					const version = selected.get(e.pkg);
+					if (version === undefined) continue;
+					const rangeChanged = `${e.operator}${version}` !== e.currentRange;
+					const newPeer = peer.get(e.pkg);
+					const peerChanged = newPeer !== undefined && (e.peer ? newPeer !== e.peer.value : true);
+					if (rangeChanged || peerChanged) interopChanged++;
 				}
 			}
 
@@ -683,7 +660,7 @@ export const upgradeCommand = Command.make(
 
 			yield* Effect.sync(() =>
 				process.stdout.write(
-					`${renderSummary(decisions, { adjustments, conflicts: allConflicts }, { color: caps.color }, rejected)}\n`,
+					`${renderSummary(decisions, { adjustments: [], conflicts: allConflicts }, { color: caps.color }, rejected)}\n`,
 				),
 			);
 			// The ONLY thing --dry-run skips. Everything above ran for real, so the

@@ -16,14 +16,19 @@ describe("buildPreviewViews", () => {
 		expect(text).not.toContain("- "); // no removed overrides line for the link
 	});
 
-	it("simulated view shows local-only + unmanaged keys as removed (unique to your repo)", () => {
+	it("simulated view renders the calculated file with no diff removals", () => {
 		const managed = { overrides: { a: "^1" } };
 		const parsed = { overrides: { link: "file:/abs", a: "^1" }, packages: ["p/*"] };
 		const v = buildPreviewViews({ managed, parsed, manifest, rootName: "r" });
 		const text = toAnsi(v.simulated, { color: false });
-		// vanilla has no overlay: the link and packages are "removed" relative to your file
-		expect(text).toContain("link");
-		expect(text).toContain("packages");
+		// The calculated managed field is shown as a plain listing...
+		expect(text).toContain("overrides:");
+		expect(text).toContain("a: ^1");
+		// ...and local-only / unmanaged keys are NOT shown as removals (the old
+		// confusing behavior): they simply aren't part of the fresh-consumer file.
+		expect(text).not.toContain("packages");
+		expect(text).not.toContain("link");
+		expect(text).not.toMatch(/^- /m);
 	});
 
 	it("full view emits more lines than changes for the same input", () => {

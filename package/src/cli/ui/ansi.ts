@@ -13,7 +13,7 @@ export function toAnsi(lines: readonly StyledLine[], opts: { color: boolean }): 
 		.map((l) => {
 			const indent = "  ".repeat(l.indent);
 			const body = l.segments.map((s) => paint(s.text, s.style, opts.color)).join("");
-			return `${l.gutter} ${indent}${body}${tagSuffix(l.tag)}`;
+			return `${l.gutter} ${indent}${body}${tagSuffix(l.tag, opts.color)}`;
 		})
 		.join("\n");
 }
