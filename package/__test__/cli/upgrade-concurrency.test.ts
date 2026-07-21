@@ -9,10 +9,10 @@
  * (max in-flight === 1) and pass after Effect.all parallelization
  * (max in-flight === 2).
  */
+import { ReleaseAgeGate } from "@effected/npm";
 import { Effect } from "effect";
 import { describe, expect, it } from "vitest";
 import { computeGate, resolveGatedVersions } from "../../src/cli/commands/upgrade.js";
-import type { ReleaseAgeGate } from "../../src/cli/release-age.js";
 import type { CatalogEntry } from "../../src/cli/types.js";
 
 /** The concurrency limit the production code exports / uses. Must match the constant in upgrade.ts. */
@@ -74,8 +74,8 @@ describe("resolveGatedVersions (concurrency)", () => {
 			peerDependencies: (_pkg: string, _version: string) => Effect.succeed<Record<string, string>>({}),
 		};
 
-		// ageMinutes: 0 → filterByReleaseAge passes all versions through without filtering
-		const gate: ReleaseAgeGate = { ageMinutes: 0, exclude: [] };
+		// ageMinutes: 0 → gate.filterVersions passes all versions through without filtering
+		const gate = ReleaseAgeGate.combine({ ageMinutes: 0 });
 		const entries = makeEntries(PACKAGE_COUNT);
 
 		// When: resolveGatedVersions is called
@@ -109,7 +109,7 @@ describe("resolveGatedVersions (fail-closed semantics)", () => {
 			pnpmConfig: (_key: string) => Effect.succeed<string | null>(null),
 			peerDependencies: (_pkg: string, _version: string) => Effect.succeed<Record<string, string>>({}),
 		};
-		const gate: ReleaseAgeGate = { ageMinutes: 0, exclude: [] };
+		const gate = ReleaseAgeGate.combine({ ageMinutes: 0 });
 		const entries: CatalogEntry[] = [
 			{
 				catalog: "test",
@@ -148,7 +148,7 @@ describe("resolveGatedVersions (fail-closed semantics)", () => {
 			pnpmConfig: (_key: string) => Effect.succeed<string | null>(null),
 			peerDependencies: (_pkg: string, _version: string) => Effect.succeed<Record<string, string>>({}),
 		};
-		const gate: ReleaseAgeGate = { ageMinutes: 1440, exclude: [] };
+		const gate = ReleaseAgeGate.combine({ ageMinutes: 1440 });
 
 		// When
 		const { gated, raw } = await Effect.runPromise(resolveGatedVersions(makeEntries(1), resolver, gate, Date.now()));
@@ -167,7 +167,7 @@ describe("resolveGatedVersions (fail-closed semantics)", () => {
 			peerDependencies: (_pkg: string, _version: string) => Effect.succeed<Record<string, string>>({}),
 		};
 		// gate.ageMinutes > 0 means times data is required for filtering
-		const gate: ReleaseAgeGate = { ageMinutes: 1440, exclude: [] };
+		const gate = ReleaseAgeGate.combine({ ageMinutes: 1440 });
 		const entries: CatalogEntry[] = [
 			{
 				catalog: "test",
@@ -181,7 +181,7 @@ describe("resolveGatedVersions (fail-closed semantics)", () => {
 		// When
 		const { gated: result } = await Effect.runPromise(resolveGatedVersions(entries, resolver, gate, Date.now()));
 
-		// Then: fail-closed — empty times map makes filterByReleaseAge drop every version
+		// Then: fail-closed — empty times map makes gate.filterVersions drop every version
 		expect(result.get("some-pkg")).toEqual([]);
 	});
 });
