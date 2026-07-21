@@ -25,12 +25,18 @@ interface Flat {
 	readonly changed: boolean;
 }
 
-function flatten(node: DiffNode, depth: number): Flat[] {
+function flatten(node: DiffNode, depth: number, inheritedUnmanaged = false): Flat[] {
 	const indent = depth;
 	const gutter = GUTTER[node.kind];
-	const style = STYLE[node.kind];
 	const tag: DiffTag | undefined = node.tag;
 	const changed = node.kind !== "unchanged";
+
+	// An unchanged line carrying the `unmanaged` tag (or nested under one) uses the
+	// dedicated `unmanaged` style so it reads distinctly from unchanged managed
+	// lines. Non-unchanged kinds (e.g. `removed` in the Simulated view) keep their
+	// own style — there the gutter/color already carries the meaning.
+	const unmanaged = inheritedUnmanaged || (node.tag === "unmanaged" && node.kind === "unchanged");
+	const style: ChangeStyle = node.kind === "unchanged" && unmanaged ? "unmanaged" : STYLE[node.kind];
 
 	// Array element leaf: tagged by the diff builder (no key/value heuristic).
 	const isArrayEl = node.arrayElement === true;
@@ -38,7 +44,7 @@ function flatten(node: DiffNode, depth: number): Flat[] {
 	if (node.children) {
 		const header: Segment[] = [{ text: `${node.key}:`, style }];
 		const self: Flat = { line: { indent, gutter, segments: header, ...(tag ? { tag } : {}) }, changed };
-		const kids = node.children.flatMap((c) => flatten(c, depth + 1));
+		const kids = node.children.flatMap((c) => flatten(c, depth + 1, unmanaged));
 		return [self, ...kids];
 	}
 

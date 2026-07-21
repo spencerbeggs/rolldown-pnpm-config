@@ -1,6 +1,9 @@
+import { Effect } from "effect";
 import { render } from "ink-testing-library";
 import { createElement } from "react";
 import { describe, expect, it } from "vitest";
+import type { FetchPeer } from "../../src/cli/interop.js";
+import { buildGroupModel } from "../../src/cli/interop-live.js";
 import type { Candidate, CatalogEntry } from "../../src/cli/types.js";
 import { Walk } from "../../src/cli/ui/Walk.js";
 import type { Decision, WalkItem } from "../../src/cli/walk-types.js";
@@ -99,6 +102,36 @@ describe("Walk (ink)", () => {
 		expect(lastFrame() ?? "").toContain("catalog: silk");
 	});
 
+	it("renders a fully up-to-date catalog's rows and puts the cursor on the first actionable row", () => {
+		const upA: WalkItem = {
+			entry: entry("pkg-a", "effect"),
+			candidates: [C("keep", "4.0.0-beta.99")],
+			upToDate: true,
+			driftPeer: null,
+			materializePeer: null,
+			peerWarning: null,
+		};
+		const upB: WalkItem = { ...upA, entry: entry("pkg-b", "effect") };
+		const act: WalkItem = {
+			entry: entry("pkg-c", "effect3"),
+			candidates: [C("keep", "^0.36.0"), C("in-range", "^0.37.0")],
+			upToDate: false,
+			driftPeer: null,
+			materializePeer: null,
+			peerWarning: null,
+		};
+		const { lastFrame } = render(createElement(Walk, { items: [upA, upB, act], onDone: () => {} }));
+		const frame = lastFrame() ?? "";
+		// The all-up-to-date catalog is NOT hidden.
+		expect(frame).toContain("catalog: effect");
+		expect(frame).toContain("catalog: effect3");
+		expect(frame).toContain("pkg-a");
+		expect(frame).toContain("pkg-c");
+		// Cursor lands on the first actionable row, not the inert up-to-date ones.
+		const cursorLine = frame.split("\n").find((l) => l.includes("❯")) ?? "";
+		expect(cursorLine).toContain("pkg-c");
+	});
+
 	it("shows no dry-run banner by default, and says Enter updates", () => {
 		const frame = render(createElement(Walk, { items, onDone: () => {} })).lastFrame() ?? "";
 		expect(frame).not.toContain("DRY RUN");
@@ -170,6 +203,90 @@ describe("Walk (ink)", () => {
 		await tick();
 
 		expect(decisions).toEqual([]);
+	});
+
+	it("shows live interop peer floors and flags a conflicting pick, clearing it when satisfied", async () => {
+		// app@1.0.0 peers on lib ^0.97.0. lib can be 0.96.0 (keep) or 0.97.0 (in-range).
+		const PEERS: Record<string, Record<string, string>> = { "app@1.0.0": { lib: "^0.97.0" } };
+		const fp: FetchPeer = (p, v) => Effect.succeed(PEERS[`${p}@${v}`] ?? {});
+		const model = await Effect.runPromise(
+			buildGroupModel(
+				new Map([
+					["app", ["1.0.0"]],
+					["lib", ["0.96.0", "0.97.0"]],
+				]),
+				fp,
+			),
+		);
+		const models = new Map([["grp", model]]);
+		const appItem: WalkItem = {
+			entry: entry("app", "grp"),
+			candidates: [C("keep", "1.0.0")],
+			upToDate: true,
+			driftPeer: null,
+			materializePeer: null,
+			peerWarning: null,
+		};
+		const libItem: WalkItem = {
+			entry: entry("lib", "grp"),
+			candidates: [C("keep", "0.96.0"), C("in-range", "0.97.0")],
+			upToDate: false,
+			driftPeer: null,
+			materializePeer: null,
+			peerWarning: null,
+		};
+		const { lastFrame, stdin } = render(
+			createElement(Walk, { items: [appItem, libItem], interopModels: models, onDone: () => {} }),
+		);
+		let frame = lastFrame() ?? "";
+		// lib's live floor is the group-derived ^0.97.0, not "—"; app conflicts.
+		expect(frame).toContain("^0.97.0");
+		expect(frame).toContain("⚠");
+		expect(frame).toContain("lib ^0.97.0");
+
+		// Cursor starts on the first actionable row (lib); RIGHT selects its in-range
+		// 0.97.0, which satisfies app's requirement → the conflict clears live.
+		stdin.write(RIGHT);
+		await tick();
+		frame = lastFrame() ?? "";
+		expect(frame).not.toContain("⚠");
+	});
+
+	it("truncates a long peer-conflict annotation to the terminal width instead of wrapping", async () => {
+		const cols = process.stdout.columns;
+		Object.defineProperty(process.stdout, "columns", { value: 44, configurable: true });
+		try {
+			// app conflicts on several in-group libs → a long ⚠ message.
+			const PEERS: Record<string, Record<string, string>> = {
+				"app@1.0.0": { libA: "^9.0.0", libB: "^9.0.0", libC: "^9.0.0" },
+			};
+			const fp: FetchPeer = (p, v) => Effect.succeed(PEERS[`${p}@${v}`] ?? {});
+			const cand = new Map<string, string[]>([
+				["app", ["1.0.0"]],
+				["libA", ["0.1.0"]],
+				["libB", ["0.1.0"]],
+				["libC", ["0.1.0"]],
+			]);
+			const model = await Effect.runPromise(buildGroupModel(cand, fp));
+			const mk = (pkg: string, v: string): WalkItem => ({
+				entry: entry(pkg, "grp"),
+				candidates: [C("keep", v)],
+				upToDate: true,
+				driftPeer: null,
+				materializePeer: null,
+				peerWarning: null,
+			});
+			const items2 = [mk("app", "1.0.0"), mk("libA", "0.1.0"), mk("libB", "0.1.0"), mk("libC", "0.1.0")];
+			const { lastFrame } = render(
+				createElement(Walk, { items: items2, interopModels: new Map([["grp", model]]), onDone: () => {} }),
+			);
+			const frame = lastFrame() ?? "";
+			expect(frame).toContain("…"); // the long conflict was clipped
+			// No rendered line exceeds the (narrow) terminal width — nothing wrapped.
+			for (const line of frame.split("\n")) expect(line.length).toBeLessThanOrEqual(44);
+		} finally {
+			Object.defineProperty(process.stdout, "columns", { value: cols, configurable: true });
+		}
 	});
 
 	it("aligns the peer separator at the same column across rows with differing candidate counts", () => {

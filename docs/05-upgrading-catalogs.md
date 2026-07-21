@@ -18,7 +18,13 @@ Only simple ranges are touched — a bare version or a `^`/`~` range (`5.9.0`, `
 
 ## Interactive table (default)
 
-Run with no flags and the command shows every catalog package at once as a table, one row per package, modeled on `pnpm up -i`. Each row is a radio group over that package's candidates (keep, then in-range, then latest) with `●`/`○` bubbles — keep is preselected on every row, so the table starts as a no-op. `↑`/`↓` move the cursor between rows, `←`/`→` move the selection within the row under the cursor, `⏎` applies from wherever the cursor sits and `Esc` cancels without writing anything. A package already at the newest available version is hidden by default; pass `--full` to show it anyway. In a non-interactive terminal (CI, piped output) the command automatically falls back to the same projection `--preview` prints, since there is no TTY to drive the table.
+Run with no flags and the command shows every discovered catalog package at once as a table, one row per package, modeled on `pnpm up -i`. Each row is a radio group over that package's candidates with `●`/`○` bubbles — keep is preselected on every row, so the table starts as a no-op. Candidates appear in order: keep, then the latest in-range version, then `minor`, then latest. `↑`/`↓` move the cursor between rows, `←`/`→` move the selection within the row under the cursor, `⏎` applies from wherever the cursor sits and `Esc` cancels without writing anything.
+
+Every discovered row is shown, including packages already at their newest version — those appear as non-selectable context so a fully up-to-date catalog is never hidden. The cursor starts on the first actionable row, skipping past any leading up-to-date ones. In a non-interactive terminal (CI, piped output) the command automatically falls back to the same projection `--preview` prints, since there is no TTY to drive the table.
+
+The `minor` candidate is the latest version within the package's current major line that sits beyond its caret range but below the next major — the meaningful intermediate for a `0.x` package whose caret locks the minor. It offers, say, `0.50.0` rather than forcing a jump straight from `0.49.x` to the `1.0` major. The tier is omitted when it would coincide with the in-range pick or the overall latest.
+
+For an interop catalog the peer column shows a live group-derived floor recomputed from the current picks, so changing one member's version instantly updates every dependent's peer. A pick that no longer satisfies an in-group peer is flagged inline with `⚠`.
 
 ```bash
 npx rolldown-pnpm-config upgrade
@@ -34,7 +40,7 @@ npx rolldown-pnpm-config upgrade
 | `--dry-run` | Runs the identical table, picks, and interop reconciliation as an unflagged run, and skips only the final write. Composes with `--yes` for a non-interactive dry run. |
 | `--catalog <name>` | Restricts the table to a single named catalog. |
 | `--preview` | Non-interactive projection: resolves every package, takes the default picks and prints the colorized summary — no table, no write. |
-| `--full` | Used with `--preview`, `--dry-run`, or the interactive table: disables the up-to-date filter and shows every catalog entry. |
+| `--full` | Applies to the non-interactive projection (`--preview` and the CI fallback): includes up-to-date entries the projection would otherwise omit. The interactive table already shows every entry, so the flag is a no-op there. |
 
 `--yes` is the unattended path — useful in scripts or a scheduled job:
 
@@ -74,7 +80,7 @@ catalogs: {
 }
 ```
 
-The `peer` value is materialized in source. The runtime emits it verbatim as a `<name>Peers` catalog, so consuming repos can reference a peer-compatible range distinct from the main one. `strategy` is read only by the upgrade command and tells it how to recompute that peer when the main range moves:
+The `peer` value is materialized in source. The runtime emits it verbatim as a separate peers catalog, so consuming repos can reference a peer-compatible range distinct from the main one. During the current transition it is emitted under both `<name>:peers` (the preferred colon form) and `<name>Peers` (camelCase, retained for compatibility and removed in a later release). `strategy` is read only by the upgrade command and tells it how to recompute that peer when the main range moves:
 
 - `lock` pins the peer to the exact resolved version **as published**, operator preserved (`^6.5.1`) — including any prerelease identifier (`^3.0.0-next.8` stays `^3.0.0-next.8`, never rebuilt into an unpublished `^3.0.0`).
 - `lock-minor` floors a stable version's patch to `.0`, operator preserved (`^6.5.0`). On a prerelease version, flooring would exclude the very version being catalogued, so `lock-minor` degrades to `lock` behavior and reports a warning instead.

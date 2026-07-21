@@ -31,6 +31,7 @@ describe("PnpmConfigPlugin", () => {
 		const src = await callHook<Promise<string | null>>(plugin.load, "\0rolldown-pnpm-config/virtual/catalogs");
 		expect(src).toContain('["silk", new Map([["a", "^1.0.0"]])]');
 		expect(src).toContain('["silkPeers", new Map([["a", "^1.0.0"]])]');
+		expect(src).toContain('["silk:peers", new Map([["a", "^1.0.0"]])]');
 	});
 
 	it("runs freeze exactly once across multiple load calls (memoized across passes)", async () => {

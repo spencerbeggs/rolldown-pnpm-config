@@ -34,7 +34,17 @@ describe("example build artifacts", () => {
 	it("emits a catalogs Map reflecting the configured packages", () => {
 		const indexSrc = readCatalogsEntry();
 		expect(indexSrc).toContain("new Map(");
-		expect(indexSrc).toContain("typescript");
-		expect(indexSrc).toContain("silkPeers");
+		expect(indexSrc).toContain("@effect/platform-node");
+		// materialized peer catalogs are emitted under both names during the transition
+		expect(indexSrc).toContain("effectPeers");
+		expect(indexSrc).toContain("effect:peers");
+	});
+
+	it("emits the peerDependencyRules.allowedVersions derived from the catalog directive", () => {
+		const src = readFileSync(join(pkgDir, "pnpmfile.mjs"), "utf8");
+		// allowedVersionsFromCatalogs derives a version-qualified rule for each exact
+		// pinned entry; @effect/tsgo (0.24.1, exact) qualifies.
+		expect(src).toContain("allowedVersions");
+		expect(src).toContain("@effect/tsgo@0.24.1>effect");
 	});
 });

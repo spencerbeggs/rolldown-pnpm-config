@@ -4,6 +4,7 @@ import type { PluginConfig } from "../define-plugin.js";
 import { DESCRIPTORS, deriveSchemas } from "../descriptors/index.js";
 import { FIELD_REGISTRY } from "../registry.js";
 import type { Base, Enforcement, Manifest } from "../runtime/types.js";
+import { resolvePeerDependencyRules } from "./allowed-versions.js";
 
 /**
  * Typed failure for invalid plugin configuration, surfaced as a build error.
@@ -75,11 +76,22 @@ export function freeze(
 			if (raw === undefined) continue;
 			const decl = normalizeField(raw);
 			const schema = FIELD_SCHEMAS[field];
+			// peerDependencyRules may carry an `allowedVersionsFromCatalogs` directive:
+			// derive its rules from the catalogs and merge them into `allowedVersions`,
+			// stripping the directive so the cleaned value passes the schema. Baked into
+			// `base` here, so both the runtime pnpmfile and `export` emit it.
+			const value =
+				field === "peerDependencyRules"
+					? yield* Effect.try({
+							try: () => resolvePeerDependencyRules(decl.value, config.catalogs),
+							catch: (error) => new ConfigError({ message: error instanceof Error ? error.message : String(error) }),
+						})
+					: decl.value;
 			base[field] = schema
-				? yield* Schema.decodeUnknownEffect(schema)(decl.value).pipe(
+				? yield* Schema.decodeUnknownEffect(schema)(value).pipe(
 						Effect.mapError((error) => new ConfigError({ message: `Invalid ${field}: ${String(error)}` })),
 					)
-				: decl.value;
+				: value;
 			manifest[field] = {
 				strategy: reg.strategy,
 				enforcement: decl.enforcement ?? reg.enforcement,

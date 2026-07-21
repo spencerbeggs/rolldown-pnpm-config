@@ -27,6 +27,26 @@ describe("toAnsi", () => {
 		expect(out).toBe("░ packages:  (unmanaged)");
 	});
 
+	it("drops the unmanaged tag when color is on, keeps it when color is off", () => {
+		const l = line({ gutter: "░", segments: [{ text: "packages:", style: "unmanaged" }], tag: "unmanaged" });
+		expect(toAnsi([l], { color: true })).not.toContain("(unmanaged)");
+		expect(toAnsi([l], { color: false })).toContain("(unmanaged)");
+	});
+
+	it("keeps the local tag regardless of color", () => {
+		const l = line({ gutter: "·", segments: [{ text: "overrides:", style: "local" }], tag: "local" });
+		expect(toAnsi([l], { color: true })).toContain("(local)");
+		expect(toAnsi([l], { color: false })).toContain("(local)");
+	});
+
+	it("paints unmanaged with a distinct SGR from unchanged (A3: fixed gray vs dim)", () => {
+		const unmanaged = toAnsi([line({ segments: [{ text: "p", style: "unmanaged" }] })], { color: true });
+		const unchanged = toAnsi([line({ segments: [{ text: "p", style: "unchanged" }] })], { color: true });
+		expect(unmanaged).toContain("\x1b[38;5;240m"); // fixed dark gray
+		expect(unchanged).toContain("\x1b[2m"); // theme-adaptive dim
+		expect(unmanaged).not.toBe(unchanged);
+	});
+
 	it("wraps segments in SGR codes when color is on, same text otherwise", () => {
 		const l = line({ gutter: "+", segments: [{ text: "a", style: "added" }] });
 		const plain = toAnsi([l], { color: false });

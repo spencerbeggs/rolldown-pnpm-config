@@ -24,17 +24,22 @@ function setup(workspaceContent: string): { configFile: string; workspacePath: s
 }
 
 describe("runPreviewViews", () => {
-	it("returns three views; simulated shows the local file: override as removed", async () => {
+	it("returns three views; simulated is the calculated fresh-consumer file (not a diff)", async () => {
 		const { configFile, workspacePath } = setup(
 			'overrides:\n  "rolldown-pnpm-config": "file:/abs/pkg"\npackages:\n  - pkg/*\n',
 		);
 		const views = await Effect.runPromise(runPreviewViews({ configFile, workspacePath }));
 		expect(views.changes.length).toBeGreaterThan(0);
 		expect(views.full.length).toBeGreaterThanOrEqual(views.changes.length);
-		// changes view preserves the file: link (no removal gutter); simulated shows it as unique-to-repo
-		// NOTE: brief used .not.toContain("- ") but YAML array items ("- pkg/*") also contain "- ";
-		// the correct check is that no LINE starts with "- " (the removal gutter).
+		// changes view preserves the file: link (no removal gutter).
+		// NOTE: check that no LINE starts with "- " (the removal gutter); YAML array
+		// items ("- pkg/*") also contain "- " so a bare .not.toContain would misfire.
 		expect(toAnsi(views.changes, { color: false })).not.toMatch(/^- /m);
-		expect(toAnsi(views.simulated, { color: false })).toContain("rolldown-pnpm-config");
+		// Simulated is the plugin's own calculated config with rule annotations — it
+		// does NOT surface the local file: override as a removal (the old behavior).
+		const sim = toAnsi(views.simulated, { color: false });
+		expect(sim).toContain("(merge");
+		expect(sim).not.toContain("rolldown-pnpm-config");
+		expect(sim).not.toMatch(/^[-+~] /m);
 	});
 });

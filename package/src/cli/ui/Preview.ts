@@ -2,6 +2,7 @@ import { Box, Text, useApp, useInput } from "ink";
 import { Tab, Tabs } from "ink-tab";
 import type { FC, ReactElement } from "react";
 import { createElement, useState } from "react";
+import { legendLines, simulatedLegendLines } from "./legend.js";
 import type { StyledLine } from "./styled.js";
 
 interface PreviewViews {
@@ -10,15 +11,19 @@ interface PreviewViews {
 	readonly simulated: readonly StyledLine[];
 }
 
-const INK_COLOR: Record<string, string | undefined> = {
-	added: "green",
-	removed: "red",
-	changed: "yellow",
-	warn: "red",
-	local: "magenta",
-	unmanaged: "gray",
-	unchanged: "gray",
-	plain: undefined,
+// Ink Text props per style. `unchanged` uses theme-adaptive dim; `unmanaged`
+// uses a fixed dark gray so the two read distinctly (matches the ANSI palette).
+const INK_PROPS: Record<string, { color?: string; dimColor?: boolean }> = {
+	added: { color: "green" },
+	removed: { color: "red" },
+	changed: { color: "yellow" },
+	warn: { color: "red" },
+	local: { color: "magenta" },
+	unmanaged: { color: "#585858" },
+	unchanged: { dimColor: true },
+	plain: {},
+	merge: { color: "cyan" },
+	overwrite: { color: "magenta" },
 };
 
 // ink-tab declares `children` as a required prop in TabProps / TabsProps, but
@@ -38,10 +43,12 @@ function renderLines(lines: readonly StyledLine[]): ReactElement {
 		{ flexDirection: "column" },
 		...lines.map((l, i) => {
 			const indent = "  ".repeat(l.indent);
-			const tag = l.tag ? `  (${l.tag})` : "";
+			// Ink always renders in color, so drop the `(unmanaged)` tag (the gray
+			// shade + legend convey it); keep `(local)`, which the legend does not.
+			const tag = l.tag === "local" ? "  (local)" : "";
 			const body = l.segments.map((s, j) => {
-				const color = INK_COLOR[s.style];
-				return createElement(Text, { key: j, ...(color ? { color } : {}) }, s.text);
+				const props = INK_PROPS[s.style] ?? {};
+				return createElement(Text, { key: j, ...props }, s.text);
 			});
 			return createElement(Text, { key: i }, `${l.gutter} ${indent}`, ...body, tag);
 		}),
@@ -59,7 +66,7 @@ export function Preview({ views, onExit }: { views: PreviewViews; onExit: () => 
 	const [active, setActive] = useState<keyof PreviewViews>("changes");
 
 	useInput((input, key) => {
-		if (input === "q" || key.escape) {
+		if (input === "q" || key.escape || key.return) {
 			onExit();
 			app.exit();
 		}
@@ -73,5 +80,7 @@ export function Preview({ views, onExit }: { views: PreviewViews; onExit: () => 
 		createElement(TabC, { name: "simulated", key: "simulated" }, "Simulated"),
 	);
 
-	return createElement(Box, { flexDirection: "column" }, tabs, renderLines(views[active]));
+	// The Simulated tab is not a diff, so it gets its own merge/overwrite legend.
+	const legend = renderLines(active === "simulated" ? simulatedLegendLines() : legendLines());
+	return createElement(Box, { flexDirection: "column" }, tabs, legend, renderLines(views[active]));
 }

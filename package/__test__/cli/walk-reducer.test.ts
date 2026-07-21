@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { Candidate, CatalogEntry } from "../../src/cli/types.js";
-import { cellColor, displayCandidates, initTable, tableDecisions, tableStep } from "../../src/cli/walk-reducer.js";
+import {
+	cellColor,
+	displayCandidates,
+	initTable,
+	tableDecisions,
+	tableStep,
+	truncateEnd,
+} from "../../src/cli/walk-reducer.js";
 import type { WalkItem } from "../../src/cli/walk-types.js";
 
 const entry = (pkg: string): CatalogEntry => ({
@@ -13,6 +20,7 @@ const entry = (pkg: string): CatalogEntry => ({
 
 const keep: Candidate = { kind: "keep", range: "^1.0.0", version: "1.0.0", isMajor: false };
 const inRange: Candidate = { kind: "in-range", range: "^1.2.0", version: "1.2.0", isMajor: false };
+const minor: Candidate = { kind: "minor", range: "^1.9.0", version: "1.9.0", isMajor: false };
 const latest: Candidate = { kind: "latest", range: "^2.0.0", version: "2.0.0", isMajor: true };
 
 const item = (pkg: string, candidates: readonly Candidate[]): WalkItem => ({
@@ -33,6 +41,23 @@ describe("displayCandidates", () => {
 	it("returns a single keep for an up-to-date row", () => {
 		expect(displayCandidates(item("a", [keep])).map((c) => c.kind)).toEqual(["keep"]);
 	});
+
+	it("orders keep, in-range, minor, latest", () => {
+		const kinds = displayCandidates(item("a", [latest, minor, keep, inRange])).map((c) => c.kind);
+		expect(kinds).toEqual(["keep", "in-range", "minor", "latest"]);
+	});
+});
+
+describe("truncateEnd", () => {
+	it("leaves a short string unchanged", () => {
+		expect(truncateEnd("hi", 5)).toBe("hi");
+	});
+	it("clips a long string and appends an ellipsis", () => {
+		expect(truncateEnd("hello world", 5)).toBe("hell…");
+	});
+	it("degrades to just the ellipsis at max ≤ 1", () => {
+		expect(truncateEnd("hello", 1)).toBe("…");
+	});
 });
 
 describe("initTable", () => {
@@ -40,6 +65,18 @@ describe("initTable", () => {
 		const items = [item("a", [inRange, keep]), item("b", [inRange, latest, keep])];
 		const state = initTable(items);
 		expect(state).toEqual({ cursor: 0, picks: [0, 0], done: false, cancelled: false });
+	});
+
+	it("starts the cursor on the first actionable row when earlier rows are up to date", () => {
+		// All rows are shown (up-to-date included), so the cursor should skip past
+		// inert keep-only rows and land where the user can actually act.
+		const items = [item("a", [keep]), item("b", [keep]), item("c", [inRange, keep])];
+		expect(initTable(items).cursor).toBe(2);
+	});
+
+	it("starts the cursor at row 0 when every row is up to date", () => {
+		const items = [item("a", [keep]), item("b", [keep])];
+		expect(initTable(items).cursor).toBe(0);
 	});
 });
 

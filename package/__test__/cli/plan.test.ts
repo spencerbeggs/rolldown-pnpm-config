@@ -24,6 +24,23 @@ describe("planEntry", () => {
 		]);
 	});
 
+	it("offers the latest same-major version between the caret range and the next major (0.x)", async () => {
+		// ^0.49.0 locks the minor (>=0.49.0 <0.50.0), so 0.50.0 is out of range but is
+		// the meaningful intermediate below the 1.0 major — it must be offered.
+		const c = await run(entry({ currentRange: "^0.49.0", rangeSpan: [0, 8] }), ["0.49.0", "0.50.0", "1.0.0"]);
+		expect(c.map((x) => [x.kind, x.range, x.isMajor])).toEqual([
+			["minor", "^0.50.0", false],
+			["latest", "^1.0.0", true],
+			["keep", "^0.49.0", false],
+		]);
+	});
+
+	it("does not add a minor tier when the caret already spans the whole major (1.x)", async () => {
+		const c = await run(entry({ currentRange: "^1.2.0", rangeSpan: [0, 8] }), ["1.2.0", "1.9.0", "2.0.0"]);
+		expect(c.map((x) => x.kind)).toEqual(["in-range", "latest", "keep"]);
+		expect(c.find((x) => x.kind === "in-range")?.version).toBe("1.9.0");
+	});
+
 	it("returns only keep when already at the newest stable version", async () => {
 		const c = await run(entry({ currentRange: "^7.1.0", rangeSpan: [0, 8] }), ["7.1.0"]);
 		expect(c.map((x) => x.kind)).toEqual(["keep"]);

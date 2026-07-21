@@ -17,6 +17,12 @@ export function runPreview(views: {
 }): Effect.Effect<void> {
 	return Effect.callback<void>((resume) => {
 		const instance = render(createElement(Preview, { views, onExit: () => {} }));
-		void instance.waitUntilExit().then(() => resume(Effect.void));
+		// Resume on both paths: a normal exit succeeds, but if Ink crashes or
+		// unmounts with an error `waitUntilExit()` rejects — resume with a defect
+		// so the fiber fails instead of hanging suspended forever (unhandled).
+		void instance
+			.waitUntilExit()
+			.then(() => resume(Effect.void))
+			.catch((err) => resume(Effect.die(err)));
 	});
 }

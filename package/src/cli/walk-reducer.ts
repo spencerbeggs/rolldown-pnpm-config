@@ -14,7 +14,20 @@ export interface TableState {
 /** A key the table responds to. */
 export type TableKey = "up" | "down" | "left" | "right" | "submit" | "cancel";
 
-const ORDER: Record<Candidate["kind"], number> = { keep: 0, "in-range": 1, latest: 2 };
+const ORDER: Record<Candidate["kind"], number> = { keep: 0, "in-range": 1, minor: 2, latest: 3 };
+
+/**
+ * Truncate `s` to at most `max` display columns, appending `…` when clipped.
+ * Keeps a long peer-conflict annotation from wrapping and breaking the table's
+ * column alignment. A `max` of 1 or less yields just the ellipsis.
+ *
+ * @internal
+ */
+export function truncateEnd(s: string, max: number): string {
+	if (s.length <= max) return s;
+	if (max <= 1) return "…";
+	return `${s.slice(0, max - 1)}…`;
+}
 
 /**
  * The row's options in display order: keep first (always index 0, always the
@@ -28,13 +41,17 @@ export function displayCandidates(item: WalkItem): readonly Candidate[] {
 }
 
 /**
- * Initialize the table: cursor on the first row, keep selected on every row, so
- * the default state applies nothing.
+ * Initialize the table: keep selected on every row (so the default state applies
+ * nothing), and the cursor on the first actionable row. Since every discovered
+ * row is shown — up-to-date rows included, as context — the cursor skips past any
+ * leading inert keep-only rows to land where the user can act; it falls back to
+ * row 0 when nothing is actionable.
  *
  * @internal
  */
 export function initTable(items: readonly WalkItem[]): TableState {
-	return { cursor: 0, picks: items.map(() => 0), done: false, cancelled: false };
+	const first = items.findIndex((i) => !i.upToDate);
+	return { cursor: first === -1 ? 0 : first, picks: items.map(() => 0), done: false, cancelled: false };
 }
 
 const clamp = (n: number, max: number) => (n < 0 ? 0 : n > max ? max : n);

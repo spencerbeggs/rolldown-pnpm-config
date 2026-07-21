@@ -3,8 +3,8 @@ status: current
 module: rolldown-pnpm-config
 category: architecture
 created: 2026-06-29
-updated: 2026-07-17
-last-synced: 2026-07-17
+updated: 2026-07-21
+last-synced: 2026-07-21
 completeness: 90
 related:
   - architecture.md
@@ -13,6 +13,7 @@ related:
   - specs/2026-06-29-cli-diff-render-design.md
   - specs/2026-06-29-export-local-merge-preview-design.md
   - specs/2026-06-30-patch-distribution-design.md
+  - specs/2026-07-20-peer-colon-and-preview-colors-design.md
 dependencies:
   - architecture.md
 ---
@@ -36,7 +37,7 @@ The `export` and `preview` subcommands, the shared diff/render layer and the loc
 
 ## Overview
 
-`rolldown-pnpm-config export` materializes the plugin config into the consuming repo's `pnpm-workspace.yaml`. `rolldown-pnpm-config preview` is an interactive `ink-tab` explorer that shows how the file would change across three views — Changes, Full and Simulated — without writing anything.
+`rolldown-pnpm-config export` materializes the plugin config into the consuming repo's `pnpm-workspace.yaml`. `rolldown-pnpm-config preview` is an interactive `ink-tab` explorer that shows how the file would change across three views — Changes and Full (diffs) plus Simulated (the calculated fresh-consumer file rendered as an annotated plain listing, not a diff) — without writing anything.
 
 Both commands share a diff/render layer (`cli/ui/`, `cli/diff/`) that also feeds the colorized `upgrade` summary. The render layer's contract is the `StyledLine` type: a list of styled lines that can be turned into ANSI-colored terminal output or mapped to Ink `Text` components by a single pure function. Capability detection (color, interactivity, hyperlinks) is centralized in `cli/ui/env.ts` and threaded in as flags; render functions never read the environment.
 
@@ -56,6 +57,8 @@ Key design decisions made during this phase:
 
 Since migrated to Effect v4 on `feat/effected`: the `export`/`preview` command layer moved from `@effect/cli` to `effect/unstable/cli` (`Args`→`Argument`, `Options`→`Flag`), and `workspace-file.ts`'s YAML read/write moved from `yaml` to `@effected/yaml` (a drop-in over the parse/stringify surface used here, `Yaml`/`YamlStringifyOptions`). Neither the pipeline, the local-merge semantics, the render layer nor the canonical format changed. See [architecture.md](architecture.md) for the migration's dependency-level rationale.
 
+Extended on `feat/peer-with-colon` (recorded in [the peer-colon / preview-colors spec](specs/2026-07-20-peer-colon-and-preview-colors-design.md)): a color legend now heads every colored diff; the `unmanaged` style is actually reached by `render.ts` and painted a fixed gray distinct from dim `unchanged`; the redundant `(unmanaged)` tag is dropped when color is on; and the Simulated view was redesigned from a diff into a plain calculated-file listing with per-field merge/overwrite and enforcement annotations under its own legend. `preview`'s Enter key also exits.
+
 ## Command surface
 
 Three subcommands registered in `package/src/cli/bin.ts`:
@@ -72,13 +75,15 @@ All three reuse `buildDiff` / `renderExportDiff` / `toAnsi`. The file-arg is opt
 
 Lives in `package/src/cli/ui/` and is imported by the export, preview and upgrade commands.
 
-`cli/ui/styled.ts` defines the `StyledLine` contract: an `indent` depth, a single-character `gutter` symbol (`+` added, `~` changed, `-` removed, ` ` unchanged, `·` local, `░` unmanaged, `⚠` conflict/warn), a list of `Segment`s each with a `ChangeStyle` and a text run, and an optional `DiffTag`. Gutters and tags are always present so output is meaningful with color off.
+`cli/ui/styled.ts` defines the `StyledLine` contract: an `indent` depth, a single-character `gutter` symbol (`+` added, `~` changed, `-` removed, ` ` unchanged, `·` local, `░` unmanaged, `⚠` conflict/warn), a list of `Segment`s each with a `ChangeStyle` and a text run, and an optional `DiffTag`. Gutters and tags are always present so output is meaningful with color off. The `ChangeStyle` palette gained `merge`/`overwrite` (cyan/magenta, for the Simulated annotations) and now paints `unmanaged` a fixed 256-color gray distinct from dim `unchanged`. `tagSuffix` takes the `color` flag: the `(unmanaged)` tag is dropped when color is on (the gray shade plus the legend convey it) and kept when color is off, preserving the tags-stay-meaningful-without-color contract; `(local)` is kept in both.
+
+`cli/ui/legend.ts` exports `legendLines()` (the diff legend: added/removed/modified/unchanged/unmanaged swatches) and `simulatedLegendLines()` (merge/overwrite/warn/error). Each swatch carries the matching `ChangeStyle` so the legend tracks the palette automatically. A legend is prepended only when color is on — `export --dry-run`, `upgrade --preview/--full` and the interactive `preview` (which swaps to the simulated legend on the Simulated tab).
 
 `cli/ui/ansi.ts` exports `toAnsi(lines, { color }): string` — a pure function that maps `StyledLine[]` to a colored (or plain) terminal string. Never reads the environment.
 
 `cli/ui/env.ts` is the only module that imports `std-env` and `std-osc8`. It exports `detectCapabilities(): { color, interactive, hyperlinks }` and re-exports `link` from `std-osc8` for optional OSC-8 hyperlinks. `interactive` is `hasTTY && !isCI && !isAgent`; `color` is `isColorSupported` from `std-env`.
 
-The diff model in `cli/diff/` is a structured tree over canonicalized before/after data. See `cli/diff/types.ts` for `DiffNode` and `DiffMeta`, `cli/diff/build.ts` for `buildDiff(before, after, meta)` and `cli/diff/render.ts` for `renderExportDiff(root, { full })`. `buildDiff` compares canonicalized plain objects; `renderExportDiff` flattens the tree to `StyledLine[]` with context collapsing (default: 2 unchanged lines around each change; `--full` emits everything).
+The diff model in `cli/diff/` is a structured tree over canonicalized before/after data. See `cli/diff/types.ts` for `DiffNode` and `DiffMeta`, `cli/diff/build.ts` for `buildDiff(before, after, meta)` and `cli/diff/render.ts` for `renderExportDiff(root, { full })`. `buildDiff` compares canonicalized plain objects; `renderExportDiff` flattens the tree to `StyledLine[]` with context collapsing (default: 2 unchanged lines around each change; `--full` emits everything). `flatten` threads an `unmanaged` flag so an unchanged line carrying the `unmanaged` tag (and its descendants) renders in the `unmanaged` style rather than plain `unchanged`, making the whole passthrough block read as one shade; non-unchanged kinds keep their own style.
 
 `workspace-file.ts#canonicalize` sorts object keys alphabetically and sorts arrays whose elements are all primitives lexicographically. This affects the written file's array order and ensures the preview diff matches the file that would be written.
 
@@ -140,11 +145,11 @@ The descriptor table is unchanged: `patchedDependencies`/`patchesDir`/`configDep
 `package/src/cli/preview-views.ts` exports `buildPreviewViews(input)` which returns `{ changes, full, simulated }` as `StyledLine[]` triples.
 
 - **Changes** / **Full**: `buildDiff(canonicalize(parsed), canonicalize(merged), meta)` rendered with `{ full: false }` and `{ full: true }` respectively. `meta.localKeys` are the keys in `config.local`; `meta.managedKeys` is `WORKSPACE_FIELDS`.
-- **Simulated**: `buildDiff(canonicalize(parsed), canonicalize(vanilla), meta)` with `{ full: false }`. `vanilla` is `vanillaManaged(managed, manifest, rootName)` — no local overlay, no preserve. Keys present in `parsed` but absent from the vanilla output (unmanaged keys like `packages`, plus local-protocol overrides) appear as `removed`, annotated as "unique to your repo."
+- **Simulated**: no longer a diff. `renderSimulated(vanilla, manifest)` (`cli/simulated-view.ts`) renders `vanilla` — `vanillaManaged(managed, manifest, rootName)`, the fresh-consumer output with no local overlay or preserve — as a plain pnpm-workspace.yaml listing (no `+/-/~` gutters), each top-level field annotated with how the plugin combines it (`merge`/`overwrite`, from the field's manifest strategy via `STRATEGY_VERB`) and how it is enforced (`warn`/`error`). The earlier `buildDiff(parsed → vanilla)` form rendered every local-only key as a confusing red "removed" line even though nothing is actually removed.
 
-`package/src/cli/ui/Preview.ts` is the Ink component: a `Tabs` bar via `ink-tab` over the three pre-built views; tab switch is local state; `q`/Esc exits. It maps `StyledLine[]` to Ink `Box`/`Text` elements directly (no `toAnsi`), making this the phase-2 consumer of the shared contract.
+`package/src/cli/ui/Preview.ts` is the Ink component: a `Tabs` bar via `ink-tab` over the three pre-built views, with a legend rendered below the tab bar that swaps to `simulatedLegendLines()` on the Simulated tab; tab switch is local state; `q`/Esc/Enter exits. It maps `StyledLine[]` to Ink `Box`/`Text` elements directly (no `toAnsi`) via a `ChangeStyle`→Text-props map (so `dimColor` for `unchanged` is expressible), making this the phase-2 consumer of the shared contract; being always-colored it renders only the `(local)` tag.
 
-`package/src/cli/ui/run-preview.ts` provides `runPreview(views): Effect<void>` — the `render` + `waitUntilExit` bridge, mirroring `run-walk.ts`.
+`package/src/cli/ui/run-preview.ts` provides `runPreview(views): Effect<void>` — the `render` + `waitUntilExit` bridge, mirroring `run-walk.ts`; both now resume the fiber with `Effect.die` if `waitUntilExit()` rejects, so an Ink crash fails the run instead of hanging it suspended forever (issue #37).
 
 `package/src/cli/commands/preview.ts` exports `runPreviewViews(opts)` (the testable pure core) and `previewCommand` (the `effect/unstable/cli` command).
 
@@ -173,8 +178,9 @@ The runtime pnpmfile must be the same for every consumer of the plugin. Per-repo
 - [the cli diff/render design spec](specs/2026-06-29-cli-diff-render-design.md) — the original design rationale for the shared render layer.
 - [the export/preview design spec](specs/2026-06-29-export-local-merge-preview-design.md) — the original design rationale for the command split, local merge semantics and preview views.
 - [the patch distribution spec](specs/2026-06-30-patch-distribution-design.md) — the ownership model, path rewrite and reconcile design for distributing dependency patches.
+- [the peer-colon / preview-colors spec](specs/2026-07-20-peer-colon-and-preview-colors-design.md) — the color legend, the reachable `unmanaged` style and the Simulated-view redesign.
 - `package/src/patches/` — the shared build/CLI patch discovery and path-rewrite module (`keys.ts`, `paths.ts`, `discover.ts`, `build.ts`, `reconcile.ts`).
 - `package/src/cli/commands/export.ts` and `package/src/cli/commands/preview.ts` — the command implementations.
-- `package/src/cli/ui/` — the shared render layer (`styled.ts`, `ansi.ts`, `env.ts`, `Preview.ts`, `run-preview.ts`).
+- `package/src/cli/ui/` — the shared render layer (`styled.ts`, `ansi.ts`, `env.ts`, `legend.ts`, `Preview.ts`, `run-preview.ts`).
 - `package/src/cli/diff/` — the diff model (`types.ts`, `build.ts`, `render.ts`).
-- `package/src/cli/local-merge.ts`, `package/src/cli/effective.ts` and `package/src/cli/preview-views.ts` — the local-merge engine and view builders.
+- `package/src/cli/local-merge.ts`, `package/src/cli/effective.ts`, `package/src/cli/preview-views.ts` and `package/src/cli/simulated-view.ts` — the local-merge engine and view builders (the last renders the non-diff Simulated view).

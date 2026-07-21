@@ -28,6 +28,26 @@ describe("renderExportDiff", () => {
 		expect(out).toContain("+   - b/*");
 	});
 
+	it("styles an unmanaged unchanged block (header + children) with the unmanaged style", () => {
+		const m: DiffMeta = { localKeys: new Set(), managedKeys: new Set() };
+		const root = buildDiff({ packages: ["a/*", "b/*"] }, { packages: ["a/*", "b/*"] }, m);
+		const lines = renderExportDiff(root, { full: true });
+		const styles = lines.flatMap((l) => l.segments.map((s) => s.style));
+		expect(styles.length).toBeGreaterThan(0);
+		// The whole passthrough block reads as one shade: header AND its entries.
+		expect(styles.every((s) => s === "unmanaged")).toBe(true);
+	});
+
+	it("keeps a removed unmanaged line (Simulated) on the removed style, not unmanaged", () => {
+		// In the simulated view an unmanaged key is `removed` (would disappear); the
+		// red/removed gutter already carries the meaning, so it must not go gray.
+		const m: DiffMeta = { localKeys: new Set(), managedKeys: new Set() };
+		const root = buildDiff({ packages: ["a/*"] }, {}, m);
+		const lines = renderExportDiff(root, { full: true });
+		const header = lines.find((l) => l.segments.some((s) => s.text.startsWith("packages")));
+		expect(header?.segments[0]?.style).toBe("removed");
+	});
+
 	it("renders a changed scalar inline with a ~ gutter", () => {
 		const root = buildDiff({ catalogMode: "strict" }, { catalogMode: "manual" }, meta);
 		expect(plain(renderExportDiff(root, { full: true }))).toContain("~ catalogMode: strict → manual");

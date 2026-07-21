@@ -11,6 +11,58 @@ describe("freeze", () => {
 		expect(out.manifest.catalogs).toEqual({ strategy: "catalogs", enforcement: "warn" });
 	});
 
+	it("derives peerDependencyRules.allowedVersions from a catalog directive and strips it", async () => {
+		const { base } = await Effect.runPromise(
+			freeze({
+				name: "@test/cfg",
+				catalogs: {
+					effect: {
+						packages: {
+							effect: { range: "4.0.0-beta.99", peer: "4.0.0-beta.99", strategy: "lock" },
+							"@effect/platform-node": { range: "4.0.0-beta.99", peer: "4.0.0-beta.99", strategy: "lock" },
+						},
+					},
+				},
+				peerDependencyRules: { allowedVersionsFromCatalogs: { catalog: "effect", peer: "effect" } },
+			}),
+		);
+		// The directive is resolved into allowedVersions and removed (schema-clean value).
+		expect(base.peerDependencyRules).toEqual({
+			allowedVersions: { "@effect/platform-node@4.0.0-beta.99>effect": "4.0.0-beta.99" },
+		});
+	});
+
+	it("applies a prefix transform to the derived peer value", async () => {
+		const { base } = await Effect.runPromise(
+			freeze({
+				name: "@test/cfg",
+				catalogs: {
+					effect: {
+						packages: {
+							effect: "4.0.0-beta.99",
+							"@effect/platform-node": "4.0.0-beta.99",
+						},
+					},
+				},
+				peerDependencyRules: { allowedVersionsFromCatalogs: { catalog: "effect", peer: "effect", prefix: "^" } },
+			}),
+		);
+		expect(base.peerDependencyRules).toEqual({
+			allowedVersions: { "@effect/platform-node@4.0.0-beta.99>effect": "^4.0.0-beta.99" },
+		});
+	});
+
+	it("fails with a ConfigError when the directive names an undeclared catalog", async () => {
+		const exit = await Effect.runPromiseExit(
+			freeze({
+				name: "@test/cfg",
+				catalogs: { effect: { packages: { effect: "4.0.0-beta.99" } } },
+				peerDependencyRules: { allowedVersionsFromCatalogs: { catalog: "nope", peer: "effect" } },
+			}),
+		);
+		expect(Exit.isFailure(exit)).toBe(true);
+	});
+
 	it("fails with ConfigError when catalogs are malformed", async () => {
 		const bad = { name: "@test/cfg", catalogs: { silk: { packages: { a: 123 } } } } as unknown as Parameters<
 			typeof freeze
@@ -82,7 +134,11 @@ describe("freeze", () => {
 				catalogs: { silk: { packages: { vitest: { range: "^4.2.3", peer: "^4.2.0", strategy: "lock-minor" } } } },
 			}),
 		);
-		expect(base.catalogs).toEqual({ silk: { vitest: "^4.2.3" }, silkPeers: { vitest: "^4.2.0" } });
+		expect(base.catalogs).toEqual({
+			silk: { vitest: "^4.2.3" },
+			silkPeers: { vitest: "^4.2.0" },
+			"silk:peers": { vitest: "^4.2.0" },
+		});
 	});
 
 	it("returns the provided name", async () => {

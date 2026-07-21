@@ -3,8 +3,8 @@ status: current
 module: rolldown-pnpm-config
 category: architecture
 created: 2026-06-26
-updated: 2026-06-30
-last-synced: 2026-06-30
+updated: 2026-07-21
+last-synced: 2026-07-21
 completeness: 95
 related:
   - architecture.md
@@ -58,6 +58,8 @@ descriptor (all lowercased; any normalisations are noted below the table).
 | `trustPolicyExclude` | stringArray | `arrayUnion` | warn | [trustPolicyExclude](https://pnpm.io/settings#trustpolicyexclude) |
 | `trustPolicyIgnoreAfter` | number | `scalar` | warn | [trustPolicyIgnoreAfter](https://pnpm.io/settings#trustpolicyignoreafter) |
 | `trustLockfile` | boolean | `scalar` | warn | [trustLockfile](https://pnpm.io/settings#trustlockfile) |
+
+`peerDependencyRules` additionally supports an authoring-layer `allowedVersionsFromCatalogs` directive (the `#40` work) — a `{ catalog, peer, prefix? }` (or array) input that `freeze` resolves against the declared catalogs into version-qualified `allowedVersions` rules and strips before schema validation, baking the result into `base`. This is layered on top of the field by `package/src/plugin/allowed-versions.ts`; the descriptor row above is unchanged (`object`/`peerDependencyRules`/`warn`). See [architecture.md](architecture.md).
 
 ### Hoisting (`hoisting.ts`) — 17 fields
 
