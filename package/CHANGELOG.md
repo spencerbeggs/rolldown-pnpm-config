@@ -1,5 +1,21 @@
 # rolldown-pnpm-config
 
+## 0.5.2
+
+### Dependencies
+
+* | Dependency            | Type       | Action  | From          | To             |                                                                          |
+  | --------------------- | ---------- | ------- | ------------- | -------------- | ------------------------------------------------------------------------ |
+  | @effect/platform-node | dependency | updated | 4.0.0-beta.99 | 4.0.0-beta.101 |                                                                          |
+  | @effected/npm         | dependency | updated | ^0.3.0        | ^0.3.1         |                                                                          |
+  | @effected/semver      | dependency | updated | ^0.2.0        | ^0.2.1         |                                                                          |
+  | @effected/yaml        | dependency | updated | ^0.5.0        | ^0.5.1         |                                                                          |
+  | effect                | dependency | updated | 4.0.0-beta.99 | 4.0.0-beta.101 | [#51][#51] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
+
+### Patch Changes
+
+[#51]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/51
+
 ## 0.5.1
 
 ### Refactoring
