@@ -34,9 +34,9 @@
 	},
 	"dependencies": {
 		"@effect/platform-node": "catalog:effect",
-		"@effected/npm": "^0.3.0",
-		"@effected/semver": "^0.2.0",
-		"@effected/yaml": "^0.5.0",
+		"@effected/npm": "^0.3.1",
+		"@effected/semver": "^0.2.1",
+		"@effected/yaml": "^0.5.1",
 		"effect": "catalog:effect",
 		"ink": "^7.1.1",
 		"ink-tab": "^5.2.0",
@@ -46,7 +46,7 @@
 		"std-osc8": "^0.2.0"
 	},
 	"devDependencies": {
-		"@savvy-web/bundler": "^2.0.8",
+		"@savvy-web/bundler": "^2.0.9",
 		"@types/node": "catalog:silk",
 		"@types/react": "catalog:silk",
 		"ink-testing-library": "^4.0.0",
