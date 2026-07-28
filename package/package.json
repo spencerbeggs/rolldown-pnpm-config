@@ -40,13 +40,13 @@
 		"effect": "catalog:effect",
 		"ink": "^7.1.1",
 		"ink-tab": "^5.2.0",
-		"oxc-parser": "^0.141.0",
+		"oxc-parser": "^0.142.0",
 		"react": "catalog:silk",
 		"std-env": "^4.2.0",
 		"std-osc8": "^0.2.0"
 	},
 	"devDependencies": {
-		"@savvy-web/bundler": "^2.0.13",
+		"@savvy-web/bundler": "^2.1.0",
 		"@types/node": "catalog:silk",
 		"@types/react": "catalog:silk",
 		"ink-testing-library": "^4.0.0",
