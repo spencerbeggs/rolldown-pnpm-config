@@ -1,5 +1,19 @@
 # rolldown-pnpm-config
 
+## 0.5.6
+
+### Bug Fixes
+
+* More accurate type exports
+
+### Documentation
+
+* Adds tsdown example
+
+### Patch Changes
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
 ## 0.5.5
 
 ### Dependencies
