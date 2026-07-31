@@ -1,12 +1,12 @@
 {
-	"name": "@example/rolldown",
+	"name": "@example/tsdown",
 	"version": "0.0.0",
 	"private": true,
-	"description": "Vanilla rolldown example: the documented setup, as a runnable test",
+	"description": "A example of configuring the rolldown-pnpm-config plugin with tsdown",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/spencerbeggs/rolldown-pnpm-config.git",
-		"directory": "examples/rolldown"
+		"directory": "examples/tsdown"
 	},
 	"license": "MIT",
 	"author": {
@@ -16,22 +16,23 @@
 	},
 	"type": "module",
 	"exports": {
-		".": "./src/pnpmfile.ts",
+		".": "./dist/prod/index.mjs",
+		"./pnpmfile": "./dist/prod/pnpmfile.mjs",
 		"./package.json": "./package.json"
 	},
 	"scripts": {
-		"build:dev": "rolldown -c",
-		"build:prod": "rolldown -c",
+		"build:dev": "NODE_ENV='development' tsdown -d ./dist/dev",
+		"build:prod": "NODE_ENV='production' tsdown -d ./dist/prod",
 		"pnpm:export": "rolldown-pnpm-config export --dry-run",
 		"pnpm:preview": "rolldown-pnpm-config preview",
-		"pnpm:up": "rolldown-pnpm-config upgrade rolldown.config.ts --dry-run",
+		"pnpm:up": "rolldown-pnpm-config upgrade tsdown.config.ts --dry-run",
 		"prepare": "turbo run build:dev",
 		"types:check": "tsc --noEmit"
 	},
 	"devDependencies": {
 		"@types/node": "catalog:silk",
-		"rolldown": "catalog:silk",
 		"rolldown-pnpm-config": "workspace:*",
+		"tsdown": "catalog:silk",
 		"typescript": "catalog:silk"
 	},
 	"engines": {

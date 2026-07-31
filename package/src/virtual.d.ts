@@ -14,8 +14,9 @@ declare module "rolldown-pnpm-config/virtual/pnpmfile" {
 	// against this package's own *source* `exports` map during the build's declaration
 	// pass and pulls a raw .ts file into API Extractor's analysis (ae-wrong-input-file-type).
 	// Keep this shape in sync with `PnpmConfig`/`PnpmHooks` in `src/runtime/types.ts`.
-	interface PnpmConfig {
-		catalogs?: Record<string, Record<string, string>>;
+	export type Catalogs = Map<string, Map<string, string>>;
+	export interface PnpmConfig {
+		catalogs?: Catalogs;
 		[key: string]: unknown;
 	}
 	export const hooks: {
@@ -24,5 +25,6 @@ declare module "rolldown-pnpm-config/virtual/pnpmfile" {
 }
 
 declare module "rolldown-pnpm-config/virtual/catalogs" {
-	export const catalogs: Map<string, Map<string, string>>;
+	export type Catalogs = Map<string, Map<string, string>>;
+	export const catalogs: Catalogs;
 }
