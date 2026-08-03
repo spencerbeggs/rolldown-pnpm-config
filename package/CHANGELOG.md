@@ -1,5 +1,20 @@
 # rolldown-pnpm-config
 
+## 0.5.7
+
+### Dependencies
+
+* | Dependency       | Type       | Action  | From     | To       |                                                                          |
+  | ---------------- | ---------- | ------- | -------- | -------- | ------------------------------------------------------------------------ |
+  | @effected/npm    | dependency | updated | ^0.6.0   | ^0.8.1   |                                                                          |
+  | @effected/semver | dependency | updated | ^0.2.1   | ^0.3.1   |                                                                          |
+  | @effected/yaml   | dependency | updated | ^0.6.0   | ^0.6.1   |                                                                          |
+  | oxc-parser       | dependency | updated | ^0.142.0 | ^0.143.0 | [#62][#62] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
+
+### Patch Changes
+
+[#62]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/62
+
 ## 0.5.6
 
 ### Bug Fixes
