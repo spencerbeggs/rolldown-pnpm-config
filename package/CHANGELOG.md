@@ -1,5 +1,17 @@
 # rolldown-pnpm-config
 
+## 0.5.9
+
+### Dependencies
+
+* | Dependency     | Type       | Action  | From   | To     |                                                                          |
+  | -------------- | ---------- | ------- | ------ | ------ | ------------------------------------------------------------------------ |
+  | @effected/yaml | dependency | updated | ^0.7.0 | ^0.8.0 | [#71][#71] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
+
+### Patch Changes
+
+[#71]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/71
+
 ## 0.5.8
 
 ### Dependencies
