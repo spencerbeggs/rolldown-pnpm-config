@@ -36,7 +36,7 @@
 		"@effect/platform-node": "catalog:effect",
 		"@effected/npm": "^0.9.0",
 		"@effected/semver": "^0.4.0",
-		"@effected/yaml": "^0.7.0",
+		"@effected/yaml": "^0.8.0",
 		"effect": "catalog:effect",
 		"ink": "^7.1.1",
 		"ink-tab": "^5.2.0",
