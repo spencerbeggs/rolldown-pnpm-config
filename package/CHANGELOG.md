@@ -1,5 +1,17 @@
 # rolldown-pnpm-config
 
+## 0.5.10
+
+### Dependencies
+
+* | Dependency | Type           | Action  | From  | To    |                                                                          |
+  | ---------- | -------------- | ------- | ----- | ----- | ------------------------------------------------------------------------ |
+  | rolldown   | peerDependency | updated | 1.2.3 | 1.2.4 | [#74][#74] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
+
+### Patch Changes
+
+[#74]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/74
+
 ## 0.5.9
 
 ### Dependencies
