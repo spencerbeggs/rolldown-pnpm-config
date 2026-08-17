@@ -35,9 +35,9 @@ describe("example build artifacts", () => {
 		const indexSrc = readCatalogsEntry();
 		expect(indexSrc).toContain("new Map(");
 		expect(indexSrc).toContain("@effect/platform-node");
-		// materialized peer catalogs are emitted under both names during the transition
-		expect(indexSrc).toContain("effectPeers");
+		// materialized peer catalogs are emitted under the colon name only
 		expect(indexSrc).toContain("effect:peers");
+		expect(indexSrc).not.toContain('"effectPeers"');
 	});
 
 	it("emits the peerDependencyRules.allowedVersions derived from the catalog directive", () => {
