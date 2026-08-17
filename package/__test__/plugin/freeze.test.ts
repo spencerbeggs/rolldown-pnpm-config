@@ -136,7 +136,6 @@ describe("freeze", () => {
 		);
 		expect(base.catalogs).toEqual({
 			silk: { vitest: "^4.2.3" },
-			silkPeers: { vitest: "^4.2.0" },
 			"silk:peers": { vitest: "^4.2.0" },
 		});
 	});

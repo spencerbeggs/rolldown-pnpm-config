@@ -16,8 +16,8 @@
 	},
 	"type": "module",
 	"exports": {
-		".": "./dist/dev/index.mjs",
-		"./pnpmfile": "./dist/dev/pnpmfile.mjs",
+		".": "./dist/prod/index.mjs",
+		"./pnpmfile": "./dist/prod/pnpmfile.mjs",
 		"./package.json": "./package.json"
 	},
 	"scripts": {

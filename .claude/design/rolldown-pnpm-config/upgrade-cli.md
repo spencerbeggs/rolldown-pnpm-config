@@ -3,8 +3,8 @@ status: current
 module: rolldown-pnpm-config
 category: architecture
 created: 2026-06-27
-updated: 2026-07-21
-last-synced: 2026-07-21
+updated: 2026-08-16
+last-synced: 2026-08-16
 completeness: 95
 related:
   - architecture.md
@@ -96,7 +96,7 @@ The interactive table shows every discovered row, up-to-date rows included as no
 
 ## Peer handling
 
-`upgrade` is the component that owns peer-range recomputation; the runtime engine never derives (see [architecture.md](architecture.md) and `package/src/catalogs.ts`). `PeerStrategy` has three values: `"lock"`, `"lock-minor"` and `"interop"`. The first two are per-package and offline; `interop` is a per-catalog group reconcile that needs the registry. All three are CLI-only metadata — `normalizeCatalogs` ignores `strategy` and materializes the `peer` into the `<name>Peers` catalog identically regardless.
+`upgrade` is the component that owns peer-range recomputation; the runtime engine never derives (see [architecture.md](architecture.md) and `package/src/catalogs.ts`). `PeerStrategy` has three values: `"lock"`, `"lock-minor"` and `"interop"`. The first two are per-package and offline; `interop` is a per-catalog group reconcile that needs the registry. All three are CLI-only metadata — `normalizeCatalogs` ignores `strategy` and materializes the `peer` into the `<name>:peers` catalog identically regardless.
 
 `derivePeerRange(range, strategy)` (`peer-range.ts`, built on `@effected/semver`) is the single primitive for the offline strategies, operator preserved. It returns `{ range, warning }` (`PeerDerivation`) rather than a bare string, because `lock-minor` can produce a warning alongside its range. `"lock"` pins to the version **as given**, reusing the version text verbatim rather than rebuilding it from parsed `major.minor.patch` — the earlier reconstruction silently dropped prerelease and build identifiers, deriving an unpublished range (`^3.0.0-next.8` → `^3.0.0`) that could never match the very version being catalogued. That bug made `detectPeerDrift` report permanent drift (the derived value could never equal the actual one) and made the keep branch of `buildEdits` rewrite the peer even when the author chose keep — the reported symptom this branch fixes. `"lock-minor"` floors a **stable** version's patch to `.0` (and intentionally drops build metadata in doing so — build metadata identifies a specific build of the un-floored version, and semver ignores it when matching ranges regardless). On a **prerelease** version, flooring is not a meaningful operation (`^3.0.0` excludes `3.0.0-next.8` outright, excluding the very version being catalogued), so `lock-minor` degrades to `lock` behavior and returns a `lock-minor-prerelease` warning rather than silently emitting a range that can never be satisfied. Three behaviors flow from the primitive.
 

@@ -30,8 +30,8 @@ describe("PnpmConfigPlugin", () => {
 		const plugin = PnpmConfigPlugin(config);
 		const src = await callHook<Promise<string | null>>(plugin.load, "\0rolldown-pnpm-config/virtual/catalogs");
 		expect(src).toContain('["silk", new Map([["a", "^1.0.0"]])]');
-		expect(src).toContain('["silkPeers", new Map([["a", "^1.0.0"]])]');
 		expect(src).toContain('["silk:peers", new Map([["a", "^1.0.0"]])]');
+		expect(src).not.toContain('["silkPeers"');
 	});
 
 	it("runs freeze exactly once across multiple load calls (memoized across passes)", async () => {
@@ -39,7 +39,7 @@ describe("PnpmConfigPlugin", () => {
 		const freezeSpy = vi.fn((_c: PluginConfig) =>
 			Effect.succeed({
 				name: "@test/cfg",
-				base: { catalogs: { silk: { a: "^1.0.0" }, silkPeers: { a: "^1.0.0" } } },
+				base: { catalogs: { silk: { a: "^1.0.0" }, "silk:peers": { a: "^1.0.0" } } },
 				manifest: { catalogs: { strategy: "catalogs", enforcement: "warn" as const } },
 			}),
 		);
