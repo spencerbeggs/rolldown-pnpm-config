@@ -54,7 +54,7 @@
 		"typescript": "catalog:silk"
 	},
 	"peerDependencies": {
-		"rolldown": "catalog:silkPeers"
+		"rolldown": "catalog:build:peers"
 	},
 	"peerDependenciesMeta": {
 		"rolldown": {
