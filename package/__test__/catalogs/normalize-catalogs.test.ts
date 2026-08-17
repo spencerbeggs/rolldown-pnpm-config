@@ -11,7 +11,6 @@ describe("normalizeCatalogs", () => {
 
 	it("omits the peers catalog when no package carries a materialized peer", () => {
 		const out = normalizeCatalogs({ silk: { packages: { typescript: "^5.9.0" } } });
-		expect(out.silkPeers).toBeUndefined();
 		expect(out["silk:peers"]).toBeUndefined();
 	});
 
@@ -26,22 +25,21 @@ describe("normalizeCatalogs", () => {
 			},
 		});
 		expect(out.silk).toEqual({ typescript: "^5.9.0", vitest: "^4.2.3", effect: "^3.2.0" });
-		expect(out.silkPeers).toEqual({ vitest: "^4.2.0", effect: "^3.0.0" });
 		expect(out["silk:peers"]).toEqual({ vitest: "^4.2.0", effect: "^3.0.0" });
 	});
 
-	it("emits the peers catalog under both the camelCase and colon names (same map)", () => {
+	it("does not emit the legacy camelCase peers name", () => {
 		const out = normalizeCatalogs({
 			silk: { packages: { vitest: { range: "^4.2.3", peer: "^4.2.0" } } },
 		});
-		expect(out["silk:peers"]).toEqual(out.silkPeers);
+		expect(out["silk:peers"]).toEqual({ vitest: "^4.2.0" });
+		expect(out.silkPeers).toBeUndefined();
 	});
 
 	it("emits no peer entry for a package with strategy but no materialized peer", () => {
 		const out = normalizeCatalogs({
 			silk: { packages: { vitest: { range: "^4.2.3", strategy: "lock-minor" } } },
 		});
-		expect(out.silkPeers).toBeUndefined();
 		expect(out["silk:peers"]).toBeUndefined();
 	});
 

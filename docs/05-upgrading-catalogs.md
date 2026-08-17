@@ -80,7 +80,7 @@ catalogs: {
 }
 ```
 
-The `peer` value is materialized in source. The runtime emits it verbatim as a separate peers catalog, so consuming repos can reference a peer-compatible range distinct from the main one. During the current transition it is emitted under both `<name>:peers` (the preferred colon form) and `<name>Peers` (camelCase, retained for compatibility and removed in a later release). `strategy` is read only by the upgrade command and tells it how to recompute that peer when the main range moves:
+The `peer` value is materialized in source. The runtime emits it verbatim as a separate peers catalog named `<name>:peers`, so consuming repos can reference a peer-compatible range distinct from the main one. (The legacy camelCase `<name>Peers` alias from earlier releases is no longer emitted.) `strategy` is read only by the upgrade command and tells it how to recompute that peer when the main range moves:
 
 - `lock` pins the peer to the exact resolved version **as published**, operator preserved (`^6.5.1`) — including any prerelease identifier (`^3.0.0-next.8` stays `^3.0.0-next.8`, never rebuilt into an unpublished `^3.0.0`).
 - `lock-minor` floors a stable version's patch to `.0`, operator preserved (`^6.5.0`). On a prerelease version, flooring would exclude the very version being catalogued, so `lock-minor` degrades to `lock` behavior and reports a warning instead.

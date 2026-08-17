@@ -20,7 +20,7 @@ A catalog is a named set of version specifiers managed in one place. The `catalo
 
 Each package is a bare range or the object form `{ range, peer?, strategy? }`. The optional `peer` is a materialized range the runtime emits as a separate peers catalog, and `strategy` tells the [`upgrade` CLI](./05-upgrading-catalogs.md) how to recompute that peer when the range moves. Bumping these ranges over time is the job of that command.
 
-The peers catalog is emitted under two names during the current transition: `<name>:peers` (colon-delimited, the preferred form) and `<name>Peers` (camelCase, retained for compatibility). Both point at the same materialized ranges, so a consuming repo can reference either. The camelCase name is removed in a later release; reference `<name>:peers` in new configs.
+The peers catalog is emitted under the colon-delimited name `<name>:peers`. Earlier releases also emitted a legacy camelCase alias (`<name>Peers`); that name is no longer generated, so a repo still referencing `catalog:<name>Peers` must switch to `catalog:<name>:peers`.
 
 ## Deriving peer allowedVersions from a catalog
 

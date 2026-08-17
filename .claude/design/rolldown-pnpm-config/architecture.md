@@ -3,8 +3,8 @@ status: current
 module: rolldown-pnpm-config
 category: architecture
 created: 2026-06-25
-updated: 2026-07-21
-last-synced: 2026-07-21
+updated: 2026-08-16
+last-synced: 2026-08-16
 completeness: 95
 related:
   - settings-coverage.md
@@ -53,7 +53,7 @@ The build-to-runtime pipeline has three stages, each on one side of the build / 
 
 Authoring API (`@public`, build time): authors call `PnpmConfigPlugin({...})` to declare catalogs plus the managed pnpm fields in one canonical, statically analyzable call. Catalogs are inline — `catalogs: { <name>: { packages: { <pkg>: range | { range, peer?, strategy? } } } }`, keyed by catalog name. The `PluginConfig` shape is a hand-authored interface (one `FieldInput<T>` per field, for rich per-field JSDoc and DX), kept in lockstep with the descriptor table by the compile-time drift guard described below. `defineCatalogs` and `definePlugin` were removed; the catalog types and a pure `normalizeCatalogs` now live in `package/src/catalogs.ts`, and the `PluginConfig`/`FieldInput` types in `package/src/define-plugin.ts`.
 
-Build step (`freeze`, the only place Effect runs, `@internal`): `freeze` first validates `config.name` — a missing or empty `name` is a `ConfigError`. It then validates each declared field against its descriptor-derived Schema and emits three plain-data values — `base` (field to frozen value), `manifest` (field to `{ strategy, enforcement, options? }`) and `name` (the validated string). The schema map (`FIELD_SCHEMAS`) is derived from `DESCRIPTORS`; `catalogs` is special-cased — `freeze` runs `normalizeCatalogs(config.catalogs)` to resolve the inline declarations (including any materialized `<name>Peers` catalogs) before validating. `peerDependencyRules` is likewise special-cased: `freeze` resolves an optional `allowedVersionsFromCatalogs` directive against the declared catalogs into concrete `allowedVersions` rules and strips the directive before validating, baking the result into `base` so it reaches both the runtime pnpmfile and `export`. See `package/src/plugin/freeze.ts`, `package/src/catalogs.ts` and `package/src/plugin/allowed-versions.ts`.
+Build step (`freeze`, the only place Effect runs, `@internal`): `freeze` first validates `config.name` — a missing or empty `name` is a `ConfigError`. It then validates each declared field against its descriptor-derived Schema and emits three plain-data values — `base` (field to frozen value), `manifest` (field to `{ strategy, enforcement, options? }`) and `name` (the validated string). The schema map (`FIELD_SCHEMAS`) is derived from `DESCRIPTORS`; `catalogs` is special-cased — `freeze` runs `normalizeCatalogs(config.catalogs)` to resolve the inline declarations (including any materialized `<name>:peers` catalogs) before validating. `peerDependencyRules` is likewise special-cased: `freeze` resolves an optional `allowedVersionsFromCatalogs` directive against the declared catalogs into concrete `allowedVersions` rules and strips the directive before validating, baking the result into `base` so it reaches both the runtime pnpmfile and `export`. See `package/src/plugin/freeze.ts`, `package/src/catalogs.ts` and `package/src/plugin/allowed-versions.ts`.
 
 Runtime (`createHooks`, zero-dependency, `@public`): `createHooks(base, manifest, name)` returns `{ updateConfig }`. It builds the strategy table, runs each field's strategy, applies the field's enforcement, prints the warning boxes — each tagged `[<name>]` on the first line — and returns the merged config. See `package/src/runtime/index.ts`.
 
