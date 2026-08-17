@@ -32,7 +32,7 @@
 	"devDependencies": {
 		"@types/node": "catalog:silk",
 		"rolldown-pnpm-config": "workspace:*",
-		"tsdown": "catalog:silk",
+		"tsdown": "catalog:build",
 		"typescript": "catalog:silk"
 	},
 	"engines": {
