@@ -35,7 +35,16 @@ describe("workspace-sourced entries on the non-interactive path", () => {
 		const result = readFileSync(file, "utf8");
 		expect(result).toContain('range: "^0.3.0"');
 		expect(result).toContain('peer: "^0.3.0"');
-		expect(out.changed).toEqual([{ name: "effected.@fix/bumped", source: "workspace" }]);
+		expect(out.changed).toEqual([
+			{
+				name: "effected.@fix/bumped",
+				catalog: "effected",
+				pkg: "@fix/bumped",
+				from: "^0.2.0",
+				to: "^0.3.0",
+				source: "workspace",
+			},
+		]);
 	});
 
 	it("reports drift without writing under dryRun", async () => {
@@ -45,7 +54,16 @@ describe("workspace-sourced entries on the non-interactive path", () => {
 			runUpgrade({ file, resolver: registry, workspaceResolver: makeWorkspaceResolver(FIXTURE), dryRun: true }),
 		);
 		expect(readFileSync(file, "utf8")).toBe(before);
-		expect(out.changed).toEqual([{ name: "effected.@fix/bumped", source: "workspace" }]);
+		expect(out.changed).toEqual([
+			{
+				name: "effected.@fix/bumped",
+				catalog: "effected",
+				pkg: "@fix/bumped",
+				from: "^0.2.0",
+				to: "^0.3.0",
+				source: "workspace",
+			},
+		]);
 	});
 
 	it("reports no change when the entry already matches the workspace next version", async () => {
@@ -64,8 +82,8 @@ describe("checkOutcome", () => {
 		// PIN: in a mixed catalog a human reading the gate's output must see which
 		// rows track the workspace and which track the registry.
 		const out = checkOutcome([
-			{ name: "effected.@fix/bumped", source: "workspace" },
-			{ name: "silk.typescript", source: "registry" },
+			{ name: "effected.@fix/bumped", catalog: "effected", pkg: "@fix/bumped", from: "^0.2.0", source: "workspace" },
+			{ name: "silk.typescript", catalog: "silk", pkg: "typescript", from: "^5.9.0", source: "registry" },
 		]);
 		expect(out.exitCode).toBe(1);
 		expect(out.text).toContain("  effected.@fix/bumped  (workspace)");
@@ -78,7 +96,9 @@ describe("checkOutcome", () => {
 	});
 
 	it("never labels a drift result as a resolution error", () => {
-		const out = checkOutcome([{ name: "effected.@fix/bumped", source: "workspace" }]);
+		const out = checkOutcome([
+			{ name: "effected.@fix/bumped", catalog: "effected", pkg: "@fix/bumped", from: "^0.2.0", source: "workspace" },
+		]);
 		expect(out.text).toContain("Catalog drift detected");
 		expect(out.text).not.toContain("resolution error");
 	});

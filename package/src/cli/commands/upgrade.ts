@@ -38,15 +38,35 @@ import { findWorkspaceRoot, makeWorkspaceResolver } from "../workspace-resolve.j
 export class UpgradeError extends Data.TaggedError("UpgradeError")<{ readonly message: string }> {}
 
 /**
- * One changed entry in a non-interactive run: its `catalog.pkg` name and which
- * version source it resolved from — so `--check`'s drift list can say which
- * rows track the workspace and which track the registry.
+ * One changed entry in a non-interactive run: its `catalog.pkg` name, the
+ * range it moves from (and to, when the change is a range bump rather than a
+ * peer-only resync), and which version source it resolved from — so `--check`'s
+ * drift list can say which rows track the workspace and which the registry,
+ * and `--json` can emit a self-describing from→to row.
  *
  * @internal
  */
 export interface CheckDriftRow {
 	readonly name: string;
+	readonly catalog: string;
+	readonly pkg: string;
+	readonly from: string;
+	/** The new range, absent for a peer-only resync/materialize (the range itself is unchanged). */
+	readonly to?: string;
 	readonly source: VersionSource;
+}
+
+/**
+ * What a non-interactive `runUpgrade` reports back to its caller.
+ *
+ * @internal
+ */
+export interface UpgradeRunResult {
+	readonly updated: number;
+	readonly skipped: string[];
+	readonly conflicts: InteropConflict[];
+	readonly rejected: RejectedEdit[];
+	readonly changed: CheckDriftRow[];
 }
 
 interface Resolver {
@@ -209,16 +229,7 @@ export function runUpgrade(opts: {
 	dryRun?: boolean;
 	/** Workspace-backed resolver for entries with `source: "workspace"`. */
 	workspaceResolver?: Resolver;
-}): Effect.Effect<
-	{
-		updated: number;
-		skipped: string[];
-		conflicts: InteropConflict[];
-		rejected: RejectedEdit[];
-		changed: CheckDriftRow[];
-	},
-	UpgradeError
-> {
+}): Effect.Effect<UpgradeRunResult, UpgradeError> {
 	return Effect.gen(function* () {
 		const source = yield* Effect.try({
 			try: () => readFileSync(opts.file, "utf8"),
@@ -249,10 +260,18 @@ export function runUpgrade(opts: {
 		const interopEdits: Edit[] = [];
 		const warnings: string[] = [];
 		const changedSpans = new Set<number>();
-		const changedPkgs = new Map<string, VersionSource>();
-		const markChanged = (entry: CatalogEntry): void => {
+		const changedPkgs = new Map<string, CheckDriftRow>();
+		const markChanged = (entry: CatalogEntry, to?: string): void => {
 			changedSpans.add(entry.rangeSpan[0]);
-			changedPkgs.set(`${entry.catalog}.${entry.pkg}`, entry.source ?? "registry");
+			const name = `${entry.catalog}.${entry.pkg}`;
+			changedPkgs.set(name, {
+				name,
+				catalog: entry.catalog,
+				pkg: entry.pkg,
+				from: entry.currentRange,
+				...(to !== undefined ? { to } : {}),
+				source: entry.source ?? "registry",
+			});
 		};
 
 		for (const entry of entries) {
@@ -323,7 +342,7 @@ export function runUpgrade(opts: {
 			const at = entry.rangeSpan[1];
 			if (inRange) {
 				edits.push(rangeEdit(entry.rangeSpan, inRange.range));
-				markChanged(entry);
+				markChanged(entry, inRange.range);
 				if (entry.peer && inRange.peerRange) {
 					edits.push(peerEdit(entry.peer.span, inRange.peerRange));
 				} else if (!entry.peer && entry.strategy && inRange.peerRange) {
@@ -365,7 +384,14 @@ export function runUpgrade(opts: {
 			}
 			const result = yield* runInterop(members, opts.resolver);
 			interopEdits.push(...buildInteropEdits(group, result));
-			for (const e of group) if (interopEntryChanged(e, result)) markChanged(e);
+			for (const e of group) {
+				if (!interopEntryChanged(e, result)) continue;
+				// Annotate the row with the new range when the range itself moved; a
+				// peer-only interop change keeps `to` absent, like the strategy paths.
+				const next = result.resolved.get(e.pkg);
+				const nextRange = next === undefined ? undefined : `${e.operator}${next}`;
+				markChanged(e, nextRange !== undefined && nextRange !== e.currentRange ? nextRange : undefined);
+			}
 			conflicts.push(...result.conflicts);
 		}
 
@@ -411,7 +437,7 @@ export function runUpgrade(opts: {
 			skipped,
 			conflicts,
 			rejected,
-			changed: [...changedPkgs].map(([name, source]) => ({ name, source })),
+			changed: [...changedPkgs.values()],
 		};
 	});
 }
@@ -581,6 +607,114 @@ export function checkFailureOutcome(message: string): { exitCode: 1; text: strin
 	};
 }
 
+/** Project a drift row to its stable `--json` object: catalog/pkg/from/to?/source, camelCase, `to` omitted (never null) when unknown. */
+function driftRowJson(row: CheckDriftRow): Record<string, unknown> {
+	return {
+		catalog: row.catalog,
+		pkg: row.pkg,
+		from: row.from,
+		...(row.to !== undefined ? { to: row.to } : {}),
+		source: row.source,
+	};
+}
+
+/** Serialize one single-line JSON document, newline-terminated — the ONLY bytes `--json` puts on stdout. */
+function jsonLine(doc: Record<string, unknown>): string {
+	return `${JSON.stringify(doc)}\n`;
+}
+
+/**
+ * The `--check --json` outcome. stdout carries exactly one single-line JSON
+ * document in EVERY case — including the resolution-failure family, which
+ * keeps its non-zero exit but must never leave a bash gate with exit 1 and an
+ * empty stdout. The human failure label stays on stderr; the in-sync/drift
+ * text is superseded by the document.
+ *
+ * @internal
+ */
+export function checkJsonOutcome(result: Result.Result<UpgradeRunResult, UpgradeError>): {
+	exitCode: 0 | 1;
+	stdout: string;
+	stderr: string;
+} {
+	if (Result.isFailure(result)) {
+		const message = result.failure.message;
+		return {
+			exitCode: 1,
+			stdout: jsonLine({ command: "check", inSync: false, error: { kind: "resolution", message } }),
+			stderr: checkFailureOutcome(message).text,
+		};
+	}
+	const changed = result.success.changed;
+	return {
+		exitCode: changed.length === 0 ? 0 : 1,
+		stdout: jsonLine({ command: "check", inSync: changed.length === 0, drift: changed.map(driftRowJson) }),
+		stderr: "",
+	};
+}
+
+/**
+ * The `--yes --json` / `--dry-run --json` outcome. `applied` reports whether
+ * the run wrote (false under dry-run); `changed` uses the same row object as
+ * check's `drift`. A failure emits an error document on stdout with a non-zero
+ * exit and the human message on stderr.
+ *
+ * @internal
+ */
+export function upgradeJsonOutcome(
+	result: Result.Result<UpgradeRunResult, UpgradeError>,
+	dryRun: boolean,
+): { exitCode: 0 | 1; stdout: string; stderr: string } {
+	if (Result.isFailure(result)) {
+		const message = result.failure.message;
+		return {
+			exitCode: 1,
+			stdout: jsonLine({ command: "upgrade", applied: false, error: { kind: "resolution", message } }),
+			stderr: `${message}\n`,
+		};
+	}
+	const r = result.success;
+	return {
+		exitCode: 0,
+		stdout: jsonLine({
+			command: "upgrade",
+			applied: !dryRun,
+			updated: r.updated,
+			changed: r.changed.map(driftRowJson),
+			skipped: r.skipped,
+			conflicts: r.conflicts.map((c) => ({ pkg: c.pkg, ceiling: c.ceiling, blockedBy: c.blockedBy })),
+		}),
+		stderr: "",
+	};
+}
+
+/**
+ * Reject `--json` outside the non-interactive modes it exists for. JSON mode
+ * is a machine contract (a GitHub Action parsing stdout from bash); the
+ * interactive table and the preview views have no meaningful document to emit.
+ * Returns the rejection to fail with, or null when the combination is valid.
+ *
+ * @internal
+ */
+export function validateJsonMode(flags: {
+	json: boolean;
+	check: boolean;
+	yes: boolean;
+	dryRun: boolean;
+	preview: boolean;
+}): UpgradeError | null {
+	if (!flags.json) return null;
+	if (flags.preview) {
+		return new UpgradeError({ message: "--json cannot be combined with --preview; use --check, --yes, or --dry-run" });
+	}
+	if (!flags.check && !flags.yes && !flags.dryRun) {
+		return new UpgradeError({
+			message: "--json requires a non-interactive mode: combine it with --check, --yes, or --dry-run",
+		});
+	}
+	return null;
+}
+
 /**
  * Resolve the target file: the passed path, or autodetect in cwd.
  *
@@ -604,6 +738,7 @@ const catalogOption = Flag.string("catalog").pipe(Flag.optional);
 const previewFlag = Flag.boolean("preview").pipe(Flag.withDefault(false));
 const fullFlag = Flag.boolean("full").pipe(Flag.withDefault(false));
 const checkFlag = Flag.boolean("check").pipe(Flag.withDefault(false));
+const jsonFlag = Flag.boolean("json").pipe(Flag.withDefault(false));
 
 /**
  * The "upgrade" command. The default path runs the interactive table;
@@ -623,9 +758,16 @@ export const upgradeCommand = Command.make(
 		preview: previewFlag,
 		full: fullFlag,
 		check: checkFlag,
+		json: jsonFlag,
 	},
-	({ file: fileOpt, yes, dryRun, catalog, preview, full, check }) =>
+	({ file: fileOpt, yes, dryRun, catalog, preview, full, check, json }) =>
 		Effect.gen(function* () {
+			// JSON mode is for non-interactive consumers only — reject before touching
+			// the filesystem so the failure is fast and unambiguous.
+			const jsonRejection = validateJsonMode({ json, check, yes, dryRun, preview });
+			if (jsonRejection !== null) {
+				return yield* Effect.fail(jsonRejection);
+			}
 			const file = yield* resolveTargetFile(fileOpt);
 			const resolver = yield* RegistryResolver;
 			const caps = detectCapabilities();
@@ -641,6 +783,17 @@ export const upgradeCommand = Command.make(
 				// non-zero exit with drift, but its output must NOT read as drift —
 				// the consuming gate reports every non-zero as "catalog drifted".
 				const result = yield* runUpgrade({ file, resolver, workspaceResolver, dryRun: true }).pipe(Effect.result);
+				if (json) {
+					// stdout carries exactly one JSON document (a bash consumer feeds it
+					// straight to jq); the human failure label moves to stderr.
+					const o = checkJsonOutcome(result);
+					yield* Effect.sync(() => {
+						if (o.stderr !== "") process.stderr.write(o.stderr);
+						process.stdout.write(o.stdout);
+						process.exitCode = o.exitCode;
+					});
+					return;
+				}
 				const failed = Result.isFailure(result);
 				const outcome = failed ? checkFailureOutcome(result.failure.message) : checkOutcome(result.success.changed);
 				yield* Effect.sync(() => {
@@ -648,6 +801,19 @@ export const upgradeCommand = Command.make(
 					// a resolution failure is an error → stderr.
 					(failed ? process.stderr : process.stdout).write(outcome.text);
 					process.exitCode = outcome.exitCode;
+				});
+				return;
+			}
+			// `--yes --json` and `--dry-run --json`: the non-interactive core with a
+			// machine-readable report. `--dry-run --json` runs the same resolution as
+			// `--yes --dry-run` — JSON mode never enters the interactive walk.
+			if (json) {
+				const result = yield* runUpgrade({ file, resolver, dryRun, workspaceResolver }).pipe(Effect.result);
+				const o = upgradeJsonOutcome(result, dryRun);
+				yield* Effect.sync(() => {
+					if (o.stderr !== "") process.stderr.write(o.stderr);
+					process.stdout.write(o.stdout);
+					process.exitCode = o.exitCode;
 				});
 				return;
 			}
