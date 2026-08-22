@@ -104,21 +104,9 @@ catalogs: {
 
 The value is `"workspace"`, never `"workspace:^"` — the colon form reads as the pnpm workspace protocol, which cannot resolve for consumers of a published config dependency. Packages are enumerated from `<root>/packages/*` (the root is found by walking up from the config file to the nearest `pnpm-workspace.yaml`) and filtered on `publishConfig.access === "public"`, since source manifests are typically `private: true` and flipped at build time.
 
-Three behaviors differ from registry-sourced entries:
+Two behaviors differ from registry-sourced entries:
 
 - **The release-age gate exempts them.** An unpublished next version has no publish timestamp, so the gate would otherwise hold every workspace entry forever.
 - **`--yes` and `--check` apply the workspace version even outside the caret range.** `^0.2.0` does not contain `0.3.0`, but the workspace version is this repo's own declared next release, not a surprise registry major.
-- **The build syncs them.** When any entry declares `source: "workspace"`, the `PnpmConfigPlugin` build rewrites drifted range (and derived peer) literals back into the config source and emits the rewritten values in the same build, so the source converges instead of re-detecting drift forever.
 
-## Change notification: `onCatalogUpdate`
-
-`PnpmConfigPlugin({ onCatalogUpdate: (changes) => { ... }, ... })` fires once per build whose workspace-source sync rewrote at least one entry, after the source write succeeds, and never on a no-op. `changes` is a `CatalogChanges` array of `{ catalog, pkg, from, to }`. This package never interprets the changes — the consuming repo's callback decides what to do with them (for example, write a changeset).
-
-A callback MUST gate itself on its own environment check: `onCatalogUpdate` makes a build mutating, and a developer's `build:dev`, a PR CI build, and the release validation build must all leave the repo untouched. The gate is an environment variable the sync workflow sets; the callback checks it and returns early otherwise:
-
-```ts
-onCatalogUpdate: async (changes) => {
-  if (process.env.CATALOG_SYNC !== "1") return;
-  await writeChangeset(changes);
-},
-```
+Builds never write. The `PnpmConfigPlugin` build reads the config exactly as authored — the CLI owns all source rewriting: `upgrade --yes` applies workspace drift, and `upgrade --check` is the CI drift gate. A sync workflow runs the CLI, not the build.

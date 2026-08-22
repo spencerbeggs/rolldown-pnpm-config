@@ -12,15 +12,13 @@ release-age gate and take their sole resolved candidate automatically on
 every non-interactive path (`--yes`, `--preview`, `--check`, and the CI
 table fallback).
 
-The plugin build now converges workspace-sourced catalog drift into the
-config source in a single build, and notifies consumers of what changed
-via a new `PluginConfig.onCatalogUpdate` callback along with the exported
-`CatalogChange`/`CatalogChanges` types.
-
 Add `upgrade --check`: a pure drift gate that resolves exactly as `--yes`
 would, never writes, and exits `0` when every catalog entry is in sync or
 `1` when anything would have been rewritten — for release validation
-pipelines.
+pipelines. Each drift row is annotated with the entry's version source
+(`(workspace)` or `(registry)`), and a resolution failure is labeled
+distinctly from drift. Builds never write: the CLI owns all source
+rewriting.
 
 ## Bug Fixes
 

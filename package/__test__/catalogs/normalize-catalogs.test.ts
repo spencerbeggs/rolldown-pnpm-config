@@ -59,8 +59,7 @@ describe("normalizeCatalogs", () => {
 		// PIN: a future reserved key inside `catalogs` (e.g. a function-valued
 		// callback) must be ignored — the failure mode is "catalog silently not
 		// found", indistinguishable from "nothing to update". The typed authoring
-		// surface keeps the map pure data (the onCatalogUpdate callback is a
-		// SIBLING of catalogs on PluginConfig), but untyped JS consumers can pass
+		// surface keeps the map pure data, but untyped JS consumers can pass
 		// anything.
 		const out = normalizeCatalogs({
 			// Deliberately violating the type to pin runtime behavior.

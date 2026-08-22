@@ -42,10 +42,9 @@ type Mutual<A, B> = MutualExact<DeepMutable<A>, DeepMutable<B>>;
 type MutualExact<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 
 // 1) Key coverage: PluginConfig's keys (minus catalogs, the export-only
-//    `local` key, the metadata-only `name` key, and the build-only
-//    `onCatalogUpdate` callback) exactly equal the value-checked descriptor
-//    keys plus publicHoistPattern.
-type AuthoredKeys = Exclude<keyof PluginConfig, "catalogs" | "local" | "name" | "onCatalogUpdate">;
+//    `local` key, and the metadata-only `name` key) exactly equal the
+//    value-checked descriptor keys plus publicHoistPattern.
+type AuthoredKeys = Exclude<keyof PluginConfig, "catalogs" | "local" | "name">;
 type DerivedKeys = keyof DerivedPluginConfig | "publicHoistPattern" | "peerDependencyRules";
 type _AssertKeyCoverage = Expect<Mutual<AuthoredKeys, DerivedKeys>>;
 
