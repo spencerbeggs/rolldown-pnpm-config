@@ -197,7 +197,7 @@ export function runUpgrade(opts: {
 	/** Workspace-backed resolver for entries with `source: "workspace"`. */
 	workspaceResolver?: Resolver;
 }): Effect.Effect<
-	{ updated: number; skipped: string[]; conflicts: InteropConflict[]; rejected: RejectedEdit[] },
+	{ updated: number; skipped: string[]; conflicts: InteropConflict[]; rejected: RejectedEdit[]; changed: string[] },
 	UpgradeError
 > {
 	return Effect.gen(function* () {
@@ -230,6 +230,11 @@ export function runUpgrade(opts: {
 		const interopEdits: Edit[] = [];
 		const warnings: string[] = [];
 		const changedSpans = new Set<number>();
+		const changedPkgs = new Set<string>();
+		const markChanged = (entry: CatalogEntry): void => {
+			changedSpans.add(entry.rangeSpan[0]);
+			changedPkgs.add(`${entry.catalog}.${entry.pkg}`);
+		};
 
 		for (const entry of entries) {
 			if (entry.strategy === "interop") continue;
@@ -275,23 +280,31 @@ export function runUpgrade(opts: {
 					const expected = yield* detectPeerDrift(entry).pipe(Effect.catch(() => Effect.succeed(null)));
 					if (expected !== null) {
 						edits.push(peerEdit(entry.peer.span, expected));
-						changedSpans.add(entry.rangeSpan[0]);
+						markChanged(entry);
 						continue;
 					}
 				} else if (!entry.peer && entry.strategy && derived !== null) {
 					edits.push(peerInsert(at, derived.range));
-					changedSpans.add(entry.rangeSpan[0]);
+					markChanged(entry);
 					continue;
 				}
 				skipped.push(`${entry.catalog}.${entry.pkg}`);
 				continue;
 			}
 			const candidates = yield* planEntry(entry, versions).pipe(Effect.catch(() => Effect.succeed([])));
-			const inRange = candidates.find((c) => c.kind === "in-range");
+			// A workspace-sourced entry tracks its workspace's single next version,
+			// which for a 0.x caret routinely falls OUTSIDE the current range (^0.2.0
+			// does not contain 0.3.0) — so it takes the sole non-keep candidate. The
+			// never-cross-a-range rule protects against surprise REGISTRY majors; the
+			// workspace version is this repo's own declared next release.
+			const inRange =
+				entry.source === "workspace"
+					? candidates.find((c) => c.kind !== "keep")
+					: candidates.find((c) => c.kind === "in-range");
 			const at = entry.rangeSpan[1];
 			if (inRange) {
 				edits.push(rangeEdit(entry.rangeSpan, inRange.range));
-				changedSpans.add(entry.rangeSpan[0]);
+				markChanged(entry);
 				if (entry.peer && inRange.peerRange) {
 					edits.push(peerEdit(entry.peer.span, inRange.peerRange));
 				} else if (!entry.peer && entry.strategy && inRange.peerRange) {
@@ -301,14 +314,14 @@ export function runUpgrade(opts: {
 				// Already at newest, but the strategy declares a managed peer that does not exist yet:
 				// materialize it from the current range.
 				edits.push(peerInsert(at, derived.range));
-				changedSpans.add(entry.rangeSpan[0]);
+				markChanged(entry);
 			} else if (entry.peer && entry.strategy) {
 				// Already at newest, but an existing peer literal may have drifted from
 				// the strategy: resync it (parity with the interactive walk).
 				const expected = yield* detectPeerDrift(entry).pipe(Effect.catch(() => Effect.succeed(null)));
 				if (expected !== null) {
 					edits.push(peerEdit(entry.peer.span, expected));
-					changedSpans.add(entry.rangeSpan[0]);
+					markChanged(entry);
 				}
 			}
 		}
@@ -333,7 +346,7 @@ export function runUpgrade(opts: {
 			}
 			const result = yield* runInterop(members, opts.resolver);
 			interopEdits.push(...buildInteropEdits(group, result));
-			for (const e of group) if (interopEntryChanged(e, result)) changedSpans.add(e.rangeSpan[0]);
+			for (const e of group) if (interopEntryChanged(e, result)) markChanged(e);
 			conflicts.push(...result.conflicts);
 		}
 
@@ -374,7 +387,7 @@ export function runUpgrade(opts: {
 		}
 
 		const updated = changedSpans.size;
-		return { updated, skipped, conflicts, rejected };
+		return { updated, skipped, conflicts, rejected, changed: [...changedPkgs] };
 	});
 }
 
@@ -503,6 +516,25 @@ export function runUpgradePreview(opts: {
 }
 
 /**
+ * Map a check run's drift list to the process outcome. `--check` is a pure
+ * gate: exit 0 when every entry is in sync, exit 1 when an `upgrade --yes`
+ * would rewrite anything — the exit code IS the contract (a release
+ * validation phase calls this), and it never writes.
+ *
+ * @internal
+ */
+export function checkOutcome(changed: readonly string[]): { exitCode: 0 | 1; text: string } {
+	if (changed.length === 0) {
+		return { exitCode: 0, text: "Catalogs are in sync.\n" };
+	}
+	const list = changed.map((c) => `  ${c}`).join("\n");
+	return {
+		exitCode: 1,
+		text: `Catalog drift detected in ${changed.length} package(s):\n${list}\nRun \`rolldown-pnpm-config upgrade --yes\` to apply.\n`,
+	};
+}
+
+/**
  * Resolve the target file: the passed path, or autodetect in cwd.
  *
  * @internal
@@ -524,6 +556,7 @@ const dryRunFlag = Flag.boolean("dry-run").pipe(Flag.withDefault(false));
 const catalogOption = Flag.string("catalog").pipe(Flag.optional);
 const previewFlag = Flag.boolean("preview").pipe(Flag.withDefault(false));
 const fullFlag = Flag.boolean("full").pipe(Flag.withDefault(false));
+const checkFlag = Flag.boolean("check").pipe(Flag.withDefault(false));
 
 /**
  * The "upgrade" command. The default path runs the interactive table;
@@ -535,8 +568,16 @@ const fullFlag = Flag.boolean("full").pipe(Flag.withDefault(false));
  */
 export const upgradeCommand = Command.make(
 	"upgrade",
-	{ file: fileArg, yes: yesFlag, dryRun: dryRunFlag, catalog: catalogOption, preview: previewFlag, full: fullFlag },
-	({ file: fileOpt, yes, dryRun, catalog, preview, full }) =>
+	{
+		file: fileArg,
+		yes: yesFlag,
+		dryRun: dryRunFlag,
+		catalog: catalogOption,
+		preview: previewFlag,
+		full: fullFlag,
+		check: checkFlag,
+	},
+	({ file: fileOpt, yes, dryRun, catalog, preview, full, check }) =>
 		Effect.gen(function* () {
 			const file = yield* resolveTargetFile(fileOpt);
 			const resolver = yield* RegistryResolver;
@@ -545,6 +586,18 @@ export const upgradeCommand = Command.make(
 			// the config file. Construction is lazy — a config with no workspace-sourced
 			// entries never touches the filesystem through this resolver.
 			const workspaceResolver = makeWorkspaceResolver(findWorkspaceRoot(dirname(file)));
+			// --check is a pure drift gate: resolve exactly as --yes would, write
+			// NOTHING (dryRun is forced regardless of other flags), and exit non-zero
+			// when anything would have been rewritten.
+			if (check) {
+				const result = yield* runUpgrade({ file, resolver, workspaceResolver, dryRun: true });
+				const outcome = checkOutcome(result.changed);
+				yield* Effect.sync(() => {
+					process.stdout.write(outcome.text);
+					process.exitCode = outcome.exitCode;
+				});
+				return;
+			}
 			if (preview) {
 				const text = yield* runUpgradePreview({ file, resolver, full, color: caps.color, workspaceResolver });
 				yield* Effect.sync(() => process.stdout.write(`${text}\n`));
