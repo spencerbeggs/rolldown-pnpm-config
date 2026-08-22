@@ -43,6 +43,18 @@ describe("normalizeCatalogs", () => {
 		expect(out["silk:peers"]).toBeUndefined();
 	});
 
+	it("does not leak the source field into the emitted catalog", () => {
+		const out = normalizeCatalogs({
+			effected: {
+				packages: {
+					"@effected/app": { range: "^0.7.0", peer: "^0.7.0", strategy: "lock-minor", source: "workspace" },
+				},
+			},
+		});
+		expect(out.effected).toEqual({ "@effected/app": "^0.7.0" });
+		expect(out["effected:peers"]).toEqual({ "@effected/app": "^0.7.0" });
+	});
+
 	it("processes two catalogs in a single call independently", () => {
 		const out = normalizeCatalogs({
 			silk: { packages: { a: "^1.0.0" } },

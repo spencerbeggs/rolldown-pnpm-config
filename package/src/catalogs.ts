@@ -7,14 +7,33 @@
 export type PeerStrategy = "lock" | "lock-minor" | "interop";
 
 /**
+ * Where a catalog entry's `range` is resolved from by the `upgrade` CLI.
+ * `"registry"` (the default when omitted) queries published versions;
+ * `"workspace"` reads the local workspace's NEXT release versions (current
+ * manifest versions overlaid with pending changeset bumps). Orthogonal to
+ * `strategy`, which governs how `peer` is derived from `range` — collapsing
+ * the two would drop peer materialization entirely. CLI-only metadata; the
+ * runtime ignores it.
+ *
+ * @public
+ */
+export type VersionSource = "registry" | "workspace";
+
+/**
  * A package's version: a bare range, or an object carrying a materialized peer
- * range (`peer`) and optional CLI recompute `strategy`.
+ * range (`peer`), optional CLI recompute `strategy`, and optional CLI version
+ * `source`.
  *
  * @public
  */
 export type CatalogPackageSpec =
 	| string
-	| { readonly range: string; readonly peer?: string; readonly strategy?: PeerStrategy };
+	| {
+			readonly range: string;
+			readonly peer?: string;
+			readonly strategy?: PeerStrategy;
+			readonly source?: VersionSource;
+	  };
 
 /**
  * One catalog's declaration: a map of package name to version spec.
