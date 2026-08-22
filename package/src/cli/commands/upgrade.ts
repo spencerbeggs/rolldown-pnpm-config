@@ -36,7 +36,15 @@ import { findWorkspaceRoot, makeWorkspaceResolver } from "../workspace-resolve.j
  *
  * @internal
  */
-export class UpgradeError extends Data.TaggedError("UpgradeError")<{ readonly message: string }> {}
+export class UpgradeError extends Data.TaggedError("UpgradeError")<{
+	readonly message: string;
+	/**
+	 * Failure family for machine consumers: `"peer-strategy"` for a refusal to
+	 * apply with an incompatible peer strategy, absent (→ `"resolution"` in the
+	 * JSON documents) for everything else.
+	 */
+	readonly kind?: "peer-strategy";
+}> {}
 
 /**
  * One changed entry in a non-interactive run: its `catalog.pkg` name, the
@@ -415,6 +423,7 @@ export function runUpgrade(opts: {
 			return yield* Effect.fail(
 				new UpgradeError({
 					message: `Refusing to apply with an incompatible peer strategy:\n${warnings.map((w) => `  ${w}`).join("\n")}`,
+					kind: "peer-strategy",
 				}),
 			);
 		}
@@ -666,7 +675,11 @@ export function checkJsonOutcome(result: Result.Result<UpgradeRunResult, Upgrade
 		const message = result.failure.message;
 		return {
 			exitCode: 1,
-			stdout: jsonLine({ command: "check", inSync: false, error: { kind: "resolution", message } }),
+			stdout: jsonLine({
+				command: "check",
+				inSync: false,
+				error: { kind: result.failure.kind ?? "resolution", message },
+			}),
 			stderr: checkFailureOutcome(message).text,
 		};
 	}
@@ -680,9 +693,12 @@ export function checkJsonOutcome(result: Result.Result<UpgradeRunResult, Upgrade
 
 /**
  * The `--yes --json` / `--dry-run --json` outcome. `applied` reports whether
- * the run wrote (false under dry-run); `changed` uses the same row object as
- * check's `drift`. A failure emits an error document on stdout with a non-zero
- * exit and the human message on stderr.
+ * the run wrote at least one change — always false under dry-run AND on an
+ * already-in-sync run, so a consumer keying on it never reads a no-op as a
+ * real apply; `changed` uses the same row object as check's `drift`. A failure
+ * emits an error document on stdout with a non-zero exit and the human message
+ * on stderr; `error.kind` is `"peer-strategy"` for a peer-strategy refusal and
+ * `"resolution"` otherwise.
  *
  * @internal
  */
@@ -694,7 +710,11 @@ export function upgradeJsonOutcome(
 		const message = result.failure.message;
 		return {
 			exitCode: 1,
-			stdout: jsonLine({ command: "upgrade", applied: false, error: { kind: "resolution", message } }),
+			stdout: jsonLine({
+				command: "upgrade",
+				applied: false,
+				error: { kind: result.failure.kind ?? "resolution", message },
+			}),
 			stderr: `${message}\n`,
 		};
 	}
@@ -703,7 +723,7 @@ export function upgradeJsonOutcome(
 		exitCode: 0,
 		stdout: jsonLine({
 			command: "upgrade",
-			applied: !dryRun,
+			applied: !dryRun && r.updated > 0,
 			updated: r.updated,
 			changed: r.changed.map(driftRowJson),
 			skipped: r.skipped,

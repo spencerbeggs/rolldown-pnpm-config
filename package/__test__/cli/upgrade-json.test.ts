@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import type { Result } from "effect";
-import { Effect } from "effect";
+import { Effect, Result } from "effect";
 import { describe, expect, it } from "vitest";
 import type { UpgradeRunResult } from "../../src/cli/commands/upgrade.js";
 import {
@@ -128,6 +127,45 @@ describe("upgradeJsonOutcome", () => {
 		expect(doc.applied).toBe(true);
 		expect(doc.changed).toHaveLength(2);
 		expect(readFileSync(file, "utf8")).toContain('"@fix/bumped": { range: "^0.3.0", source: "workspace" }');
+	});
+
+	it("reports applied:false on an already-in-sync --yes run", async () => {
+		const synced = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
+export const plugin = PnpmConfigPlugin({
+ name: "@test/cfg",
+ catalogs: {
+  effected: { packages: { "@fix/bumped": { range: "^0.3.0", source: "workspace" } } },
+  silk: { packages: { typescript: "^5.9.3" } },
+ },
+});
+`;
+		const file = writeTmpConfig(synced);
+		const before = readFileSync(file, "utf8");
+		const result = await Effect.runPromise(
+			runUpgrade({ file, resolver: registry, workspaceResolver }).pipe(Effect.result),
+		);
+		const out = upgradeJsonOutcome(result, false);
+		const doc = parseOnlyJson(out.stdout) as { applied: boolean; updated: number; changed: unknown[] };
+		// Nothing was written, so a bash consumer keying on .applied must not
+		// read this no-op run as a real apply.
+		expect(doc.applied).toBe(false);
+		expect(doc.updated).toBe(0);
+		expect(doc.changed).toEqual([]);
+		expect(out.exitCode).toBe(0);
+		expect(readFileSync(file, "utf8")).toBe(before);
+	});
+
+	it("labels a peer-strategy refusal distinctly from a resolution failure", () => {
+		const failure = Result.fail(
+			new UpgradeError({
+				message: "Refusing to apply with an incompatible peer strategy:\n  @fix/bumped",
+				kind: "peer-strategy",
+			}),
+		);
+		const upgradeDoc = parseOnlyJson(upgradeJsonOutcome(failure, false).stdout) as { error: { kind: string } };
+		expect(upgradeDoc.error.kind).toBe("peer-strategy");
+		const checkDoc = parseOnlyJson(checkJsonOutcome(failure).stdout) as { error: { kind: string } };
+		expect(checkDoc.error.kind).toBe("peer-strategy");
 	});
 
 	it("emits an error document with a non-zero exit on failure", async () => {
