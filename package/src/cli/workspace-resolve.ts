@@ -1,8 +1,11 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { SemVer } from "@effected/semver";
 import { Effect, Layer } from "effect";
 import { RegistryResolver, ResolveError } from "./resolve.js";
+
+/** The RegistryResolver service shape, shared by the registry and workspace implementations. */
+type ResolverShape = (typeof RegistryResolver)["Service"];
 
 /** The subset of a workspace package manifest the resolver reads. */
 interface Manifest {
@@ -138,19 +141,53 @@ export function readWorkspaceVersions(rootDir: string): Map<string, string> {
  * @internal
  */
 export function WorkspaceResolverLive(rootDir: string): Layer.Layer<RegistryResolver> {
-	return Layer.sync(RegistryResolver, () => {
-		const manifests = readManifests(rootDir);
-		const versions = readWorkspaceVersions(rootDir);
-		return {
-			versions: (pkg: string) => {
-				const v = versions.get(pkg);
-				return v === undefined
-					? Effect.fail(new ResolveError({ pkg, message: `${pkg} is not a publishable workspace package` }))
-					: Effect.succeed([v]);
-			},
-			times: () => Effect.succeed({}),
-			peerDependencies: (pkg: string) => Effect.succeed(manifests.get(pkg)?.peerDependencies ?? {}),
-			pnpmConfig: () => Effect.succeed<string | null>(null),
-		};
-	});
+	return Layer.sync(RegistryResolver, () => makeWorkspaceResolver(rootDir));
+}
+
+/**
+ * The plain (layer-less) workspace resolver value, for callers that route
+ * per-entry between the registry service and the workspace instead of
+ * providing one layer for the whole run. Reads lazily on first use so
+ * constructing it for a config with no workspace-sourced entries costs nothing.
+ *
+ * @internal
+ */
+export function makeWorkspaceResolver(rootDir: string): ResolverShape {
+	let manifests: Map<string, Manifest> | undefined;
+	let versions: Map<string, string> | undefined;
+	const load = (): { manifests: Map<string, Manifest>; versions: Map<string, string> } => {
+		manifests ??= readManifests(rootDir);
+		versions ??= readWorkspaceVersions(rootDir);
+		return { manifests, versions };
+	};
+	return {
+		versions: (pkg: string) => {
+			const v = load().versions.get(pkg);
+			return v === undefined
+				? Effect.fail(new ResolveError({ pkg, message: `${pkg} is not a publishable workspace package` }))
+				: Effect.succeed([v]);
+		},
+		times: () => Effect.succeed({}),
+		peerDependencies: (pkg: string) => Effect.succeed(load().manifests.get(pkg)?.peerDependencies ?? {}),
+		pnpmConfig: () => Effect.succeed<string | null>(null),
+	};
+}
+
+/**
+ * Walk upward from `startDir` to the nearest directory containing
+ * `pnpm-workspace.yaml`, falling back to `startDir` itself. The config file an
+ * upgrade run rewrites may live in a nested package (e.g.
+ * `packages/<name>/savvy.build.ts`), while the workspace versions live at the
+ * repo root.
+ *
+ * @internal
+ */
+export function findWorkspaceRoot(startDir: string): string {
+	let dir = resolve(startDir);
+	for (;;) {
+		if (existsSync(join(dir, "pnpm-workspace.yaml"))) return dir;
+		const parent = dirname(dir);
+		if (parent === dir) return resolve(startDir);
+		dir = parent;
+	}
 }

@@ -110,10 +110,11 @@ export function discoverCatalogEntries(
 			const pkg = pkgKey.type === "Identifier" ? (pkgKey.name as string) : String(pkgKey.value);
 			const value = pkgProp.value as Node;
 
-			// Resolve the range literal node and any peer/strategy.
+			// Resolve the range literal node and any peer/strategy/source.
 			let rangeNode: Node | undefined;
 			let peerNode: Node | undefined;
 			let strategy: "lock" | "lock-minor" | "interop" | undefined;
+			let source: "registry" | "workspace" | undefined;
 
 			if (value.type === "Literal" && typeof value.value === "string") {
 				rangeNode = value;
@@ -125,6 +126,10 @@ export function discoverCatalogEntries(
 				const s = prop(value, "strategy");
 				if (s?.type === "Literal" && (s.value === "lock" || s.value === "lock-minor" || s.value === "interop")) {
 					strategy = s.value as "lock" | "lock-minor" | "interop";
+				}
+				const src = prop(value, "source");
+				if (src?.type === "Literal" && (src.value === "registry" || src.value === "workspace")) {
+					source = src.value as "registry" | "workspace";
 				}
 			}
 
@@ -145,6 +150,7 @@ export function discoverCatalogEntries(
 					? { peer: { value: peerNode.value as string, span: [peerNode.start, peerNode.end] as [number, number] } }
 					: {}),
 				...(strategy ? { strategy } : {}),
+				...(source ? { source } : {}),
 			});
 		}
 	}

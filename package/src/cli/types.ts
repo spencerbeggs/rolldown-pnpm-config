@@ -1,4 +1,4 @@
-import type { PeerStrategy } from "../catalogs.js";
+import type { PeerStrategy, VersionSource } from "../catalogs.js";
 
 /** A version literal discovered in a config, with its byte-offset span. */
 export interface CatalogEntry {
@@ -11,6 +11,8 @@ export interface CatalogEntry {
 	/** Present when the package declares a materialized peer literal. */
 	readonly peer?: { readonly value: string; readonly span: readonly [number, number] };
 	readonly strategy?: PeerStrategy;
+	/** Where the range resolves from; absent means the registry. */
+	readonly source?: VersionSource;
 }
 
 /**

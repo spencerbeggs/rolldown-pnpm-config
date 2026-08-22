@@ -1,4 +1,5 @@
 import { readFileSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import type { PartialReleaseAgeGate } from "@effected/npm";
 import { ReleaseAgeGate } from "@effected/npm";
@@ -26,6 +27,7 @@ import type { RejectedEdit } from "../validate.js";
 import { validateEdits } from "../validate.js";
 import { buildWalkItems } from "../walk-plan.js";
 import type { Decision, WalkItem } from "../walk-types.js";
+import { findWorkspaceRoot, makeWorkspaceResolver } from "../workspace-resolve.js";
 
 /**
  * Typed failure raised when the upgrade run cannot complete.
@@ -72,6 +74,10 @@ export const RESOLVE_CONCURRENCY = 12;
  * @param onProgress - Optional callback invoked after each package resolves with
  *   `(resolved, total)`. Useful for emitting CLI progress feedback. Called with
  *   `(0, total)` before any work starts so callers can emit the initial banner.
+ * @param workspace - Optional workspace-backed resolver. An entry whose
+ *   `source` is `"workspace"` resolves through it instead of the registry, and
+ *   is EXEMPT from the release-age gate: its next version is unpublished, so
+ *   `times` is empty and the gate would otherwise hold it forever.
  *
  * @internal
  */
@@ -81,8 +87,10 @@ export function resolveGatedVersions(
 	gate: ReleaseAgeGate,
 	now: number,
 	onProgress?: (resolved: number, total: number) => void,
+	workspace?: Resolver,
 ): Effect.Effect<{ gated: Map<string, string[]>; raw: Map<string, string[]>; unresolved: string[] }, never> {
 	const uniquePkgs = [...new Set(entries.map((e) => e.pkg))];
+	const workspacePkgs = new Set(entries.filter((e) => e.source === "workspace").map((e) => e.pkg));
 	const total = uniquePkgs.length;
 	// Counter is captured in the closure; only one JS thread increments it so it
 	// is safe without an atomic wrapper even under concurrent fibers.
@@ -92,10 +100,19 @@ export function resolveGatedVersions(
 		uniquePkgs,
 		(pkg) =>
 			Effect.gen(function* () {
-				const vr = yield* resolver.versions(pkg).pipe(Effect.result);
+				const fromWorkspace = workspace !== undefined && workspacePkgs.has(pkg);
+				const vr = yield* (fromWorkspace ? workspace : resolver).versions(pkg).pipe(Effect.result);
 				if (Result.isFailure(vr)) {
 					onProgress?.(++resolved, total);
 					return [pkg, [] as string[], [] as string[]] as const;
+				}
+				// A workspace-sourced next version is unpublished: it has no publish
+				// timestamp, so the age gate would drop it as un-timestamped. Workspace
+				// entries are EXEMPT from the gate, not blocked by it — the version came
+				// from this repo's own manifests and pending changesets, not the registry.
+				if (fromWorkspace) {
+					onProgress?.(++resolved, total);
+					return [pkg, vr.success, vr.success] as const;
 				}
 				// Fail-closed: if the publish-times fetch fails, an empty map makes
 				// gate.filterVersions drop every version (all timestamps unknown). This is a
@@ -177,6 +194,8 @@ export function runUpgrade(opts: {
 	onProgress?: (resolved: number, total: number) => void;
 	/** Compute everything, report it, but skip the write. Honors `--yes --dry-run`. */
 	dryRun?: boolean;
+	/** Workspace-backed resolver for entries with `source: "workspace"`. */
+	workspaceResolver?: Resolver;
 }): Effect.Effect<
 	{ updated: number; skipped: string[]; conflicts: InteropConflict[]; rejected: RejectedEdit[] },
 	UpgradeError
@@ -191,7 +210,14 @@ export function runUpgrade(opts: {
 			catch: (e) => new UpgradeError({ message: String(e) }),
 		});
 		const gate = yield* computeGate(source, opts.file, opts.resolver);
-		const versionsByPkg = yield* resolveGatedVersions(entries, opts.resolver, gate, Date.now(), opts.onProgress);
+		const versionsByPkg = yield* resolveGatedVersions(
+			entries,
+			opts.resolver,
+			gate,
+			Date.now(),
+			opts.onProgress,
+			opts.workspaceResolver,
+		);
 
 		// A package the registry cannot resolve is almost always a typo in the config.
 		// Under --yes there is nobody to read a warning, and silently skipping it would
@@ -445,6 +471,8 @@ export function runUpgradePreview(opts: {
 	resolver: Resolver;
 	full: boolean;
 	color?: boolean;
+	/** Workspace-backed resolver for entries with `source: "workspace"`. */
+	workspaceResolver?: Resolver;
 }): Effect.Effect<string, UpgradeError> {
 	return Effect.gen(function* () {
 		const source = yield* Effect.try({
@@ -456,7 +484,14 @@ export function runUpgradePreview(opts: {
 			catch: (e) => new UpgradeError({ message: String(e) }),
 		});
 		const gate = yield* computeGate(source, opts.file, opts.resolver);
-		const versions = yield* resolveGatedVersions(discovered.entries, opts.resolver, gate, Date.now());
+		const versions = yield* resolveGatedVersions(
+			discovered.entries,
+			opts.resolver,
+			gate,
+			Date.now(),
+			undefined,
+			opts.workspaceResolver,
+		);
 		const items = yield* buildWalkItems(discovered.entries, versions.gated).pipe(
 			Effect.catch((e) => Effect.fail(new UpgradeError({ message: e.message }))),
 		);
@@ -506,8 +541,12 @@ export const upgradeCommand = Command.make(
 			const file = yield* resolveTargetFile(fileOpt);
 			const resolver = yield* RegistryResolver;
 			const caps = detectCapabilities();
+			// Entries with `source: "workspace"` resolve from the workspace containing
+			// the config file. Construction is lazy — a config with no workspace-sourced
+			// entries never touches the filesystem through this resolver.
+			const workspaceResolver = makeWorkspaceResolver(findWorkspaceRoot(dirname(file)));
 			if (preview) {
-				const text = yield* runUpgradePreview({ file, resolver, full, color: caps.color });
+				const text = yield* runUpgradePreview({ file, resolver, full, color: caps.color, workspaceResolver });
 				yield* Effect.sync(() => process.stdout.write(`${text}\n`));
 				return;
 			}
@@ -516,6 +555,7 @@ export const upgradeCommand = Command.make(
 					file,
 					resolver,
 					dryRun,
+					workspaceResolver,
 					...(caps.interactive ? { onProgress: writeResolveProgress } : {}),
 				});
 				yield* Effect.sync(() =>
@@ -550,6 +590,7 @@ export const upgradeCommand = Command.make(
 				gate,
 				Date.now(),
 				caps.interactive ? writeResolveProgress : undefined,
+				workspaceResolver,
 			);
 			const items = yield* buildWalkItems(entries, versions.gated).pipe(
 				Effect.catch((e) => Effect.fail(new UpgradeError({ message: e.message }))),
