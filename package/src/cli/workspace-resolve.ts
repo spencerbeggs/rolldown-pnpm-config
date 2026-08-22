@@ -1,6 +1,8 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { SemVer } from "@effected/semver";
+import { getWorkspacePackagesSync } from "@effected/workspaces";
+import { nodeSyncOps } from "@effected/workspaces/node-sync";
 import { Effect, Layer } from "effect";
 import { RegistryResolver, ResolveError } from "./resolve.js";
 
@@ -11,8 +13,7 @@ type ResolverShape = (typeof RegistryResolver)["Service"];
 interface Manifest {
 	readonly name: string;
 	readonly version: string;
-	readonly peerDependencies?: Record<string, string>;
-	readonly publishConfig?: { readonly access?: string };
+	readonly peerDependencies?: Readonly<Record<string, string>>;
 }
 
 /** A changeset bump level, ordered weakest to strongest. */
@@ -24,32 +25,31 @@ const BUMP_ORDER: Record<Bump, number> = { patch: 0, minor: 1, major: 2 };
 const FRONTMATTER_LINE_RE = /^\s*["']?([^"':\s]+)["']?\s*:\s*(major|minor|patch)\s*$/;
 
 /**
- * Read every publishable workspace package manifest under `<rootDir>/packages`.
+ * Read every publishable workspace package manifest under `rootDir`, honoring
+ * the workspace's own `pnpm-workspace.yaml` `packages:` globs (including
+ * exclusion patterns) via `@effected/workspaces` — never a hardcoded
+ * `packages/` directory.
  *
  * Publishability is `publishConfig.access === "public"`, NOT `private === false`:
  * source manifests in the target repos are uniformly `private: true` and are
  * flipped at build time, so filtering on `private` yields an empty map.
- * Unreadable or malformed manifests are skipped rather than failing.
+ * The sync discovery facade is total by contract — an unreadable or malformed
+ * manifest (including a version-less workspace root) is skipped, never raised —
+ * which is exactly this resolver's degrade-don't-fail contract; the Effect
+ * surface (`WorkspaceDiscovery`) instead fails typed on any unusable member.
  *
  * @internal
  */
 export function readManifests(rootDir: string): Map<string, Manifest> {
 	const out = new Map<string, Manifest>();
-	const pkgsDir = join(rootDir, "packages");
-	if (!existsSync(pkgsDir)) return out;
-	for (const entry of readdirSync(pkgsDir, { withFileTypes: true })) {
-		if (!entry.isDirectory()) continue;
-		const manifestPath = join(pkgsDir, entry.name, "package.json");
-		if (!existsSync(manifestPath)) continue;
-		let manifest: Manifest;
-		try {
-			manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as Manifest;
-		} catch {
-			continue;
-		}
-		if (typeof manifest.name !== "string" || typeof manifest.version !== "string") continue;
-		if (manifest.publishConfig?.access !== "public") continue;
-		out.set(manifest.name, manifest);
+	for (const pkg of getWorkspacePackagesSync(rootDir, nodeSyncOps)) {
+		if (pkg.isRootWorkspace) continue;
+		if (pkg.publishConfig?.access !== "public") continue;
+		out.set(pkg.name, {
+			name: pkg.name,
+			version: pkg.version,
+			peerDependencies: pkg.peerDependencies,
+		});
 	}
 	return out;
 }

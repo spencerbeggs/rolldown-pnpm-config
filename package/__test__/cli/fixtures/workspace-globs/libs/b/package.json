@@ -1,0 +1,8 @@
+{
+	"name": "@glob/lib-b",
+	"version": "0.5.0",
+	"private": true,
+	"publishConfig": {
+		"access": "public"
+	}
+}

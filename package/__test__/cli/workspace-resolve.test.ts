@@ -5,14 +5,18 @@ import { RegistryResolver } from "../../src/cli/resolve.js";
 import { WorkspaceResolverLive, readWorkspaceVersions } from "../../src/cli/workspace-resolve.js";
 
 const FIXTURE = fileURLToPath(new URL("./fixtures/workspace-next/", import.meta.url));
+const GLOB_FIXTURE = fileURLToPath(new URL("./fixtures/workspace-globs/", import.meta.url));
 
-const use = <A, E>(f: (r: (typeof RegistryResolver)["Service"]) => Effect.Effect<A, E>): Promise<A> =>
+const useAt = <A, E>(root: string, f: (r: (typeof RegistryResolver)["Service"]) => Effect.Effect<A, E>): Promise<A> =>
 	Effect.runPromise(
 		Effect.gen(function* () {
 			const r = yield* RegistryResolver;
 			return yield* f(r);
-		}).pipe(Effect.provide(WorkspaceResolverLive(FIXTURE))),
+		}).pipe(Effect.provide(WorkspaceResolverLive(root))),
 	);
+
+const use = <A, E>(f: (r: (typeof RegistryResolver)["Service"]) => Effect.Effect<A, E>): Promise<A> =>
+	useAt(FIXTURE, f);
 
 describe("WorkspaceResolverLive", () => {
 	it("returns the next version for a package with a pending changeset", async () => {
@@ -59,5 +63,43 @@ describe("readWorkspaceVersions", () => {
 
 	it("returns an empty map when the root has no packages directory", () => {
 		expect(readWorkspaceVersions("/nonexistent/nowhere")).toEqual(new Map());
+	});
+});
+
+describe("glob-declared workspace layouts", () => {
+	it("enumerates packages from the pnpm-workspace.yaml globs, not a hardcoded packages/ directory", () => {
+		const map = readWorkspaceVersions(GLOB_FIXTURE);
+		expect(map).toEqual(
+			new Map([
+				["@glob/lib-a", "1.1.0"],
+				["@glob/lib-b", "0.5.0"],
+				["@glob/cli", "2.0.0"],
+			]),
+		);
+	});
+
+	it("does not enumerate a packages/ directory the workspace globs never declared", () => {
+		const map = readWorkspaceVersions(GLOB_FIXTURE);
+		expect(map.has("@glob/legacy")).toBe(false);
+	});
+
+	it("honors exclusion patterns in the workspace globs", () => {
+		const map = readWorkspaceVersions(GLOB_FIXTURE);
+		expect(map.has("@glob/excluded")).toBe(false);
+	});
+
+	it("resolves a glob-enumerated package through the resolver layer", async () => {
+		const versions = await useAt(GLOB_FIXTURE, (r) => r.versions("@glob/cli"));
+		expect(versions).toEqual(["2.0.0"]);
+	});
+
+	it("reads peerDependencies from a glob-enumerated manifest", async () => {
+		const peers = await useAt(GLOB_FIXTURE, (r) => r.peerDependencies("@glob/lib-a", "1.1.0"));
+		expect(peers).toEqual({ "@glob/lib-b": "^0.5.0" });
+	});
+
+	it("fails with ResolveError for a package outside the declared globs", async () => {
+		const err = await useAt(GLOB_FIXTURE, (r) => r.versions("@glob/legacy").pipe(Effect.flip));
+		expect(err._tag).toBe("ResolveError");
 	});
 });

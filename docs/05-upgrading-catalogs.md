@@ -102,7 +102,7 @@ catalogs: {
 }
 ```
 
-The value is `"workspace"`, never `"workspace:^"` — the colon form reads as the pnpm workspace protocol, which cannot resolve for consumers of a published config dependency. Packages are enumerated from `<root>/packages/*` (the root is found by walking up from the config file to the nearest `pnpm-workspace.yaml`) and filtered on `publishConfig.access === "public"`, since source manifests are typically `private: true` and flipped at build time.
+The value is `"workspace"`, never `"workspace:^"` — the colon form reads as the pnpm workspace protocol, which cannot resolve for consumers of a published config dependency. Packages are enumerated following the `packages:` globs declared in the workspace's own `pnpm-workspace.yaml` — including nested globs and exclusion patterns, via `@effected/workspaces` (the root is found by walking up from the config file to the nearest `pnpm-workspace.yaml`) — and filtered on `publishConfig.access === "public"`, since source manifests are typically `private: true` and flipped at build time.
 
 Two behaviors differ from registry-sourced entries:
 
