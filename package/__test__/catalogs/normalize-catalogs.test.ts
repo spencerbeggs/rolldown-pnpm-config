@@ -55,6 +55,26 @@ describe("normalizeCatalogs", () => {
 		expect(out["effected:peers"]).toEqual({ "@effected/app": "^0.7.0" });
 	});
 
+	it("ignores a non-catalog sibling key without throwing or emitting a bogus catalog", () => {
+		// PIN: a future reserved key inside `catalogs` (e.g. a function-valued
+		// callback) must be ignored — the failure mode is "catalog silently not
+		// found", indistinguishable from "nothing to update". The typed authoring
+		// surface keeps the map pure data (the onCatalogUpdate callback is a
+		// SIBLING of catalogs on PluginConfig), but untyped JS consumers can pass
+		// anything.
+		const out = normalizeCatalogs({
+			// Deliberately violating the type to pin runtime behavior.
+			onUpdate: (() => {}) as unknown as Parameters<typeof normalizeCatalogs>[0][string],
+			// A declaration with no packages map must also be inert.
+			broken: {} as Parameters<typeof normalizeCatalogs>[0][string],
+			silk: { packages: { typescript: "^5.9.0" } },
+		});
+		expect(out.silk).toEqual({ typescript: "^5.9.0" });
+		expect(out.onUpdate).toBeUndefined();
+		expect(out.broken).toBeUndefined();
+		expect(Object.keys(out)).toEqual(["silk"]);
+	});
+
 	it("processes two catalogs in a single call independently", () => {
 		const out = normalizeCatalogs({
 			silk: { packages: { a: "^1.0.0" } },

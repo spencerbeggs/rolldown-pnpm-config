@@ -124,4 +124,24 @@ export default PnpmConfigPlugin({
 		expect(entries.find((e) => e.pkg === "@fix/bumped")?.source).toBe("workspace");
 		expect(entries.find((e) => e.pkg === "@fix/other")?.source).toBeUndefined();
 	});
+
+	it("ignores a non-catalog sibling key inside catalogs without losing the real catalogs", () => {
+		// PIN: a function-valued or packages-less sibling inside `catalogs` must
+		// not break the walk — the failure mode ("catalog silently not found") is
+		// indistinguishable from "nothing to update".
+		const src = `
+import { PnpmConfigPlugin } from "rolldown-pnpm-config";
+export default PnpmConfigPlugin({
+	catalogs: {
+		onUpdate: () => {},
+		broken: {},
+		effected: { packages: { "@fix/bumped": { range: "^0.2.0", source: "workspace" } } },
+	},
+});
+`;
+		const { entries, skipped } = discoverCatalogEntries(src, "config.ts");
+		expect(entries).toHaveLength(1);
+		expect(entries[0]?.pkg).toBe("@fix/bumped");
+		expect(skipped).toEqual([]);
+	});
 });

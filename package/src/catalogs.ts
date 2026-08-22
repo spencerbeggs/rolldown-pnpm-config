@@ -77,6 +77,15 @@ export interface CatalogDeclaration {
 export function normalizeCatalogs(input: Record<string, CatalogDeclaration>): Record<string, Record<string, string>> {
 	const out: Record<string, Record<string, string>> = {};
 	for (const [name, decl] of Object.entries(input)) {
+		// Defensive: an untyped JS consumer (or a future reserved key) may place a
+		// non-declaration sibling inside `catalogs` — a function, or an object with
+		// no `packages` map. It must be IGNORED, not thrown on: the failure mode
+		// "catalog silently not found" is already indistinguishable from "nothing
+		// to update", so crashing here would be strictly worse. The discover walk
+		// in the upgrade CLI skips such siblings the same way.
+		if (typeof decl !== "object" || decl === null || typeof decl.packages !== "object" || decl.packages === null) {
+			continue;
+		}
 		const base: Record<string, string> = {};
 		const peers: Record<string, string> = {};
 		for (const [pkg, spec] of Object.entries(decl.packages)) {
