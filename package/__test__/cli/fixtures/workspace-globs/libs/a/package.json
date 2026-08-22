@@ -1,0 +1,11 @@
+{
+	"name": "@glob/lib-a",
+	"version": "1.0.0",
+	"private": true,
+	"publishConfig": {
+		"access": "public"
+	},
+	"peerDependencies": {
+		"@glob/lib-b": "^0.5.0"
+	}
+}

@@ -136,6 +136,9 @@ importers:
       '@effected/semver':
         specifier: ^0.5.0
         version: 0.5.0(effect@4.0.0-rc.109)
+      '@effected/workspaces':
+        specifier: ^0.17.0
+        version: 0.17.0(@effected/jsonc@0.7.0(effect@4.0.0-rc.109))(effect@4.0.0-rc.109)
       '@effected/yaml':
         specifier: ^0.10.0
         version: 0.10.0(effect@4.0.0-rc.109)

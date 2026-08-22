@@ -4,6 +4,7 @@ import type { PeerRangeError, PeerWarning } from "./peer-range.js";
 import { derivePeerRange } from "./peer-range.js";
 import { planEntry } from "./plan.js";
 import type { CatalogEntry } from "./types.js";
+import { versionKeyOf } from "./version-key.js";
 import type { WalkItem } from "./walk-types.js";
 
 /**
@@ -21,7 +22,9 @@ export function buildWalkItems(
 	return Effect.gen(function* () {
 		const items: WalkItem[] = [];
 		for (const entry of entries) {
-			const versions = versionsByPkg.get(entry.pkg) ?? [];
+			// Route-aware lookup: the maps from resolveGatedVersions key each
+			// (pkg × route) pair separately (see versionKeyOf).
+			const versions = versionsByPkg.get(versionKeyOf(entry)) ?? [];
 			const candidates = yield* planEntry(entry, [...versions]);
 			const driftPeer = yield* detectPeerDrift(entry);
 			let peerWarning: PeerWarning | null = null;

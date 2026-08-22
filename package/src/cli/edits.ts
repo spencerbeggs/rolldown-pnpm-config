@@ -1,4 +1,5 @@
 import type { PlannedEdit } from "./types.js";
+import { versionKeyOf } from "./version-key.js";
 import type { Decision } from "./walk-types.js";
 
 /**
@@ -17,11 +18,13 @@ export function buildEdits(decisions: readonly Decision[]): PlannedEdit[] {
 	for (const { item, chosen } of decisions) {
 		const { entry } = item;
 		const pkg = entry.pkg;
+		const versionKey = versionKeyOf(entry);
 		const insertAt = entry.rangeSpan[1];
 		const range = (span: readonly [number, number], value: string): PlannedEdit => ({
 			span,
 			text: JSON.stringify(value),
 			pkg,
+			versionKey,
 			kind: "range",
 			value,
 		});
@@ -29,6 +32,7 @@ export function buildEdits(decisions: readonly Decision[]): PlannedEdit[] {
 			span,
 			text: JSON.stringify(value),
 			pkg,
+			versionKey,
 			kind: "peer",
 			value,
 		});
@@ -36,6 +40,7 @@ export function buildEdits(decisions: readonly Decision[]): PlannedEdit[] {
 			span: [insertAt, insertAt],
 			text: `, peer: ${JSON.stringify(value)}`,
 			pkg,
+			versionKey,
 			kind: "peer",
 			value,
 		});

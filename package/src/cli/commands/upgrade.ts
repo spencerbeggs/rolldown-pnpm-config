@@ -1,9 +1,11 @@
 import { readFileSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import type { PartialReleaseAgeGate } from "@effected/npm";
 import { ReleaseAgeGate } from "@effected/npm";
 import { Data, Effect, Option, Result } from "effect";
 import { Argument, Command, Flag } from "effect/unstable/cli";
+import type { VersionSource } from "../../catalogs.js";
 import { discoverCatalogEntries } from "../discover.js";
 import { detectPeerDrift } from "../drift.js";
 import { buildEdits } from "../edits.js";
@@ -24,15 +26,57 @@ import { detectCapabilities } from "../ui/env.js";
 import { runWalk } from "../ui/run-walk.js";
 import type { RejectedEdit } from "../validate.js";
 import { validateEdits } from "../validate.js";
+import { versionKeyOf } from "../version-key.js";
 import { buildWalkItems } from "../walk-plan.js";
 import type { Decision, WalkItem } from "../walk-types.js";
+import { findWorkspaceRoot, makeWorkspaceResolver } from "../workspace-resolve.js";
 
 /**
  * Typed failure raised when the upgrade run cannot complete.
  *
  * @internal
  */
-export class UpgradeError extends Data.TaggedError("UpgradeError")<{ readonly message: string }> {}
+export class UpgradeError extends Data.TaggedError("UpgradeError")<{
+	readonly message: string;
+	/**
+	 * Failure family for machine consumers: `"peer-strategy"` for a refusal to
+	 * apply with an incompatible peer strategy, absent (→ `"resolution"` in the
+	 * JSON documents) for everything else.
+	 */
+	readonly kind?: "peer-strategy";
+}> {}
+
+/**
+ * One changed entry in a non-interactive run: its `catalog.pkg` name, the
+ * range it moves from (and to, when the change is a range bump rather than a
+ * peer-only resync), and which version source it resolved from — so `--check`'s
+ * drift list can say which rows track the workspace and which the registry,
+ * and `--json` can emit a self-describing from→to row.
+ *
+ * @internal
+ */
+export interface CheckDriftRow {
+	readonly name: string;
+	readonly catalog: string;
+	readonly pkg: string;
+	readonly from: string;
+	/** The new range, absent for a peer-only resync/materialize (the range itself is unchanged). */
+	readonly to?: string;
+	readonly source: VersionSource;
+}
+
+/**
+ * What a non-interactive `runUpgrade` reports back to its caller.
+ *
+ * @internal
+ */
+export interface UpgradeRunResult {
+	readonly updated: number;
+	readonly skipped: string[];
+	readonly conflicts: InteropConflict[];
+	readonly rejected: RejectedEdit[];
+	readonly changed: CheckDriftRow[];
+}
 
 interface Resolver {
 	readonly versions: (pkg: string) => Effect.Effect<string[], unknown>;
@@ -67,11 +111,19 @@ export function computeGate(source: string, file: string, resolver: Resolver): E
 export const RESOLVE_CONCURRENCY = 12;
 
 /**
- * Fetch and age-gate the version list for each unique package.
+ * Fetch and age-gate the version list for each unique (pkg × route) pair.
+ * The returned maps are keyed by `versionKeyOf(entry)`, NOT the bare package
+ * name: the same name can appear workspace-sourced in one catalog and
+ * registry-sourced in another, and the two routes must neither share a version
+ * list nor a gate exemption.
  *
  * @param onProgress - Optional callback invoked after each package resolves with
  *   `(resolved, total)`. Useful for emitting CLI progress feedback. Called with
  *   `(0, total)` before any work starts so callers can emit the initial banner.
+ * @param workspace - Optional workspace-backed resolver. An entry whose
+ *   `source` is `"workspace"` resolves through it instead of the registry, and
+ *   is EXEMPT from the release-age gate: its next version is unpublished, so
+ *   `times` is empty and the gate would otherwise hold it forever.
  *
  * @internal
  */
@@ -81,21 +133,38 @@ export function resolveGatedVersions(
 	gate: ReleaseAgeGate,
 	now: number,
 	onProgress?: (resolved: number, total: number) => void,
+	workspace?: Resolver,
 ): Effect.Effect<{ gated: Map<string, string[]>; raw: Map<string, string[]>; unresolved: string[] }, never> {
-	const uniquePkgs = [...new Set(entries.map((e) => e.pkg))];
-	const total = uniquePkgs.length;
+	// One resolution per unique (pkg × route) pair. The route is workspace only
+	// when the caller supplied a workspace resolver AND the entry declares
+	// `source: "workspace"` — an entry keyed to the workspace route without a
+	// workspace resolver still resolves (and gates) through the registry.
+	const pairs = new Map<string, { pkg: string; fromWorkspace: boolean }>();
+	for (const e of entries) {
+		pairs.set(versionKeyOf(e), { pkg: e.pkg, fromWorkspace: workspace !== undefined && e.source === "workspace" });
+	}
+	const total = pairs.size;
 	// Counter is captured in the closure; only one JS thread increments it so it
 	// is safe without an atomic wrapper even under concurrent fibers.
 	let resolved = 0;
 	onProgress?.(0, total);
 	return Effect.forEach(
-		uniquePkgs,
-		(pkg) =>
+		[...pairs],
+		([key, { pkg, fromWorkspace }]) =>
 			Effect.gen(function* () {
-				const vr = yield* resolver.versions(pkg).pipe(Effect.result);
+				const routed = fromWorkspace && workspace !== undefined ? workspace : resolver;
+				const vr = yield* routed.versions(pkg).pipe(Effect.result);
 				if (Result.isFailure(vr)) {
 					onProgress?.(++resolved, total);
-					return [pkg, [] as string[], [] as string[]] as const;
+					return [key, pkg, [] as string[], [] as string[]] as const;
+				}
+				// A workspace-sourced next version is unpublished: it has no publish
+				// timestamp, so the age gate would drop it as un-timestamped. The workspace
+				// route is EXEMPT from the gate, not blocked by it — the version came
+				// from this repo's own manifests and pending changesets, not the registry.
+				if (fromWorkspace) {
+					onProgress?.(++resolved, total);
+					return [key, pkg, vr.success, vr.success] as const;
 				}
 				// Fail-closed: if the publish-times fetch fails, an empty map makes
 				// gate.filterVersions drop every version (all timestamps unknown). This is a
@@ -110,17 +179,17 @@ export function resolveGatedVersions(
 						: ({} as Record<string, string>);
 				onProgress?.(++resolved, total);
 				const gated: string[] = [...gate.filterVersions(vr.success, times, pkg, now)];
-				return [pkg, gated, vr.success] as const;
+				return [key, pkg, gated, vr.success] as const;
 			}),
 		{ concurrency: RESOLVE_CONCURRENCY },
 	).pipe(
-		Effect.map((triples) => ({
+		Effect.map((rows) => ({
 			// `gated` is the only candidate source — it keeps the fail-closed semantics
 			// above. `raw` is ONLY a validation input: validating a derived range against
 			// the gated list would spuriously reject a package whose satisfying version
 			// was published inside the gate window.
-			gated: new Map(triples.map(([pkg, gated]) => [pkg, gated])),
-			raw: new Map(triples.map(([pkg, , raw]) => [pkg, raw])),
+			gated: new Map(rows.map(([key, , gated]) => [key, gated])),
+			raw: new Map(rows.map(([key, , , raw]) => [key, raw])),
 			// Packages the registry could not resolve AT ALL — a misspelt name, a package
 			// that does not exist, an auth failure. DISTINCT from a package whose versions
 			// all fell to the release-age gate (raw non-empty, gated empty), which is a
@@ -128,7 +197,8 @@ export function resolveGatedVersions(
 			// Without this, a typo'd name produced an empty version list, planned to
 			// keep-only, counted as up to date, and was hidden from the table entirely —
 			// the author never learned the package does not exist.
-			unresolved: triples.filter(([, , raw]) => raw.length === 0).map(([pkg]) => pkg),
+			// Name-based and deduped: a name failing on either route is reported once.
+			unresolved: [...new Set(rows.filter(([, , , raw]) => raw.length === 0).map(([, pkg]) => pkg))],
 		})),
 	);
 }
@@ -177,10 +247,9 @@ export function runUpgrade(opts: {
 	onProgress?: (resolved: number, total: number) => void;
 	/** Compute everything, report it, but skip the write. Honors `--yes --dry-run`. */
 	dryRun?: boolean;
-}): Effect.Effect<
-	{ updated: number; skipped: string[]; conflicts: InteropConflict[]; rejected: RejectedEdit[] },
-	UpgradeError
-> {
+	/** Workspace-backed resolver for entries with `source: "workspace"`. */
+	workspaceResolver?: Resolver;
+}): Effect.Effect<UpgradeRunResult, UpgradeError> {
 	return Effect.gen(function* () {
 		const source = yield* Effect.try({
 			try: () => readFileSync(opts.file, "utf8"),
@@ -191,7 +260,14 @@ export function runUpgrade(opts: {
 			catch: (e) => new UpgradeError({ message: String(e) }),
 		});
 		const gate = yield* computeGate(source, opts.file, opts.resolver);
-		const versionsByPkg = yield* resolveGatedVersions(entries, opts.resolver, gate, Date.now(), opts.onProgress);
+		const versionsByPkg = yield* resolveGatedVersions(
+			entries,
+			opts.resolver,
+			gate,
+			Date.now(),
+			opts.onProgress,
+			opts.workspaceResolver,
+		);
 
 		// A package the registry cannot resolve is almost always a typo in the config.
 		// Under --yes there is nobody to read a warning, and silently skipping it would
@@ -204,15 +280,30 @@ export function runUpgrade(opts: {
 		const interopEdits: Edit[] = [];
 		const warnings: string[] = [];
 		const changedSpans = new Set<number>();
+		const changedPkgs = new Map<string, CheckDriftRow>();
+		const markChanged = (entry: CatalogEntry, to?: string): void => {
+			changedSpans.add(entry.rangeSpan[0]);
+			const name = `${entry.catalog}.${entry.pkg}`;
+			changedPkgs.set(name, {
+				name,
+				catalog: entry.catalog,
+				pkg: entry.pkg,
+				from: entry.currentRange,
+				...(to !== undefined ? { to } : {}),
+				source: entry.source ?? "registry",
+			});
+		};
 
 		for (const entry of entries) {
 			if (entry.strategy === "interop") continue;
-			const versions = versionsByPkg.gated.get(entry.pkg) ?? [];
+			const versionKey = versionKeyOf(entry);
+			const versions = versionsByPkg.gated.get(versionKey) ?? [];
 			const pkg = entry.pkg;
 			const rangeEdit = (span: readonly [number, number], value: string): PlannedEdit => ({
 				span,
 				text: JSON.stringify(value),
 				pkg,
+				versionKey,
 				kind: "range",
 				value,
 			});
@@ -220,6 +311,7 @@ export function runUpgrade(opts: {
 				span,
 				text: JSON.stringify(value),
 				pkg,
+				versionKey,
 				kind: "peer",
 				value,
 			});
@@ -227,6 +319,7 @@ export function runUpgrade(opts: {
 				span: [at, at],
 				text: `, peer: ${JSON.stringify(value)}`,
 				pkg,
+				versionKey,
 				kind: "peer",
 				value,
 			});
@@ -249,23 +342,31 @@ export function runUpgrade(opts: {
 					const expected = yield* detectPeerDrift(entry).pipe(Effect.catch(() => Effect.succeed(null)));
 					if (expected !== null) {
 						edits.push(peerEdit(entry.peer.span, expected));
-						changedSpans.add(entry.rangeSpan[0]);
+						markChanged(entry);
 						continue;
 					}
 				} else if (!entry.peer && entry.strategy && derived !== null) {
 					edits.push(peerInsert(at, derived.range));
-					changedSpans.add(entry.rangeSpan[0]);
+					markChanged(entry);
 					continue;
 				}
 				skipped.push(`${entry.catalog}.${entry.pkg}`);
 				continue;
 			}
 			const candidates = yield* planEntry(entry, versions).pipe(Effect.catch(() => Effect.succeed([])));
-			const inRange = candidates.find((c) => c.kind === "in-range");
+			// A workspace-sourced entry tracks its workspace's single next version,
+			// which for a 0.x caret routinely falls OUTSIDE the current range (^0.2.0
+			// does not contain 0.3.0) — so it takes the sole non-keep candidate. The
+			// never-cross-a-range rule protects against surprise REGISTRY majors; the
+			// workspace version is this repo's own declared next release.
+			const inRange =
+				entry.source === "workspace"
+					? candidates.find((c) => c.kind !== "keep")
+					: candidates.find((c) => c.kind === "in-range");
 			const at = entry.rangeSpan[1];
 			if (inRange) {
 				edits.push(rangeEdit(entry.rangeSpan, inRange.range));
-				changedSpans.add(entry.rangeSpan[0]);
+				markChanged(entry, inRange.range);
 				if (entry.peer && inRange.peerRange) {
 					edits.push(peerEdit(entry.peer.span, inRange.peerRange));
 				} else if (!entry.peer && entry.strategy && inRange.peerRange) {
@@ -275,14 +376,14 @@ export function runUpgrade(opts: {
 				// Already at newest, but the strategy declares a managed peer that does not exist yet:
 				// materialize it from the current range.
 				edits.push(peerInsert(at, derived.range));
-				changedSpans.add(entry.rangeSpan[0]);
+				markChanged(entry);
 			} else if (entry.peer && entry.strategy) {
 				// Already at newest, but an existing peer literal may have drifted from
 				// the strategy: resync it (parity with the interactive walk).
 				const expected = yield* detectPeerDrift(entry).pipe(Effect.catch(() => Effect.succeed(null)));
 				if (expected !== null) {
 					edits.push(peerEdit(entry.peer.span, expected));
-					changedSpans.add(entry.rangeSpan[0]);
+					markChanged(entry);
 				}
 			}
 		}
@@ -299,7 +400,7 @@ export function runUpgrade(opts: {
 		for (const [, group] of byCatalog) {
 			const members: GroupMember[] = [];
 			for (const e of group) {
-				const versions = versionsByPkg.gated.get(e.pkg) ?? [];
+				const versions = versionsByPkg.gated.get(versionKeyOf(e)) ?? [];
 				const cands = yield* planEntry(e, versions).pipe(Effect.catch(() => Effect.succeed([])));
 				const inRange = cands.find((c) => c.kind === "in-range");
 				const ceiling = inRange ? inRange.version : e.currentRange.replace(/^[\^~]/, "");
@@ -307,7 +408,14 @@ export function runUpgrade(opts: {
 			}
 			const result = yield* runInterop(members, opts.resolver);
 			interopEdits.push(...buildInteropEdits(group, result));
-			for (const e of group) if (interopEntryChanged(e, result)) changedSpans.add(e.rangeSpan[0]);
+			for (const e of group) {
+				if (!interopEntryChanged(e, result)) continue;
+				// Annotate the row with the new range when the range itself moved; a
+				// peer-only interop change keeps `to` absent, like the strategy paths.
+				const next = result.resolved.get(e.pkg);
+				const nextRange = next === undefined ? undefined : `${e.operator}${next}`;
+				markChanged(e, nextRange !== undefined && nextRange !== e.currentRange ? nextRange : undefined);
+			}
 			conflicts.push(...result.conflicts);
 		}
 
@@ -315,6 +423,7 @@ export function runUpgrade(opts: {
 			return yield* Effect.fail(
 				new UpgradeError({
 					message: `Refusing to apply with an incompatible peer strategy:\n${warnings.map((w) => `  ${w}`).join("\n")}`,
+					kind: "peer-strategy",
 				}),
 			);
 		}
@@ -348,7 +457,13 @@ export function runUpgrade(opts: {
 		}
 
 		const updated = changedSpans.size;
-		return { updated, skipped, conflicts, rejected };
+		return {
+			updated,
+			skipped,
+			conflicts,
+			rejected,
+			changed: [...changedPkgs.values()],
+		};
 	});
 }
 
@@ -419,7 +534,16 @@ export function unresolvedMessage(unresolved: readonly string[]): string {
 export function projectDecisions(items: readonly WalkItem[], full: boolean): Decision[] {
 	const out: Decision[] = [];
 	for (const i of items) {
-		const inRange = i.candidates.find((c) => c.kind === "in-range");
+		// MUST mirror runUpgrade's pick rule: a workspace-sourced entry takes the
+		// sole non-keep candidate even when it falls outside the current range
+		// (a 0.x caret routinely excludes the workspace's next version). This
+		// projection backs --preview and the non-interactive terminal fallback —
+		// diverging here would render a pending workspace bump as unchanged while
+		// --yes writes it and --check exits 1.
+		const inRange =
+			i.entry.source === "workspace"
+				? i.candidates.find((c) => c.kind !== "keep")
+				: i.candidates.find((c) => c.kind === "in-range");
 		if (inRange) {
 			out.push({ item: i, chosen: inRange });
 			continue;
@@ -445,6 +569,8 @@ export function runUpgradePreview(opts: {
 	resolver: Resolver;
 	full: boolean;
 	color?: boolean;
+	/** Workspace-backed resolver for entries with `source: "workspace"`. */
+	workspaceResolver?: Resolver;
 }): Effect.Effect<string, UpgradeError> {
 	return Effect.gen(function* () {
 		const source = yield* Effect.try({
@@ -456,7 +582,14 @@ export function runUpgradePreview(opts: {
 			catch: (e) => new UpgradeError({ message: String(e) }),
 		});
 		const gate = yield* computeGate(source, opts.file, opts.resolver);
-		const versions = yield* resolveGatedVersions(discovered.entries, opts.resolver, gate, Date.now());
+		const versions = yield* resolveGatedVersions(
+			discovered.entries,
+			opts.resolver,
+			gate,
+			Date.now(),
+			undefined,
+			opts.workspaceResolver,
+		);
 		const items = yield* buildWalkItems(discovered.entries, versions.gated).pipe(
 			Effect.catch((e) => Effect.fail(new UpgradeError({ message: e.message }))),
 		);
@@ -465,6 +598,166 @@ export function runUpgradePreview(opts: {
 		// up-to-date and would otherwise be invisible in the projection.
 		return versions.unresolved.length > 0 ? `${text}\n⚠ ${unresolvedMessage(versions.unresolved)}` : text;
 	});
+}
+
+/**
+ * Map a check run's drift list to the process outcome. `--check` is a pure
+ * gate: exit 0 when every entry is in sync, exit 1 when an `upgrade --yes`
+ * would rewrite anything — the exit code IS the contract (a release
+ * validation phase calls this), and it never writes.
+ *
+ * @internal
+ */
+export function checkOutcome(changed: readonly CheckDriftRow[]): { exitCode: 0 | 1; text: string } {
+	if (changed.length === 0) {
+		return { exitCode: 0, text: "Catalogs are in sync.\n" };
+	}
+	// Each row is annotated with its version source, so a mixed catalog's output
+	// says which rows track the workspace and which track the registry.
+	const list = changed.map((c) => `  ${c.name}  (${c.source})`).join("\n");
+	return {
+		exitCode: 1,
+		text: `Catalog drift detected in ${changed.length} package(s):\n${list}\nRun \`rolldown-pnpm-config upgrade --yes\` to apply.\n`,
+	};
+}
+
+/**
+ * Map a check run's FAILURE (a resolution failure or peer warning — an
+ * UpgradeError, not drift) to the process outcome. Shares --check's single
+ * non-zero exit code with drift, so the OUTPUT must name the failure family:
+ * a gate consuming the exit code reports every non-zero as "drifted", and
+ * without this label the CI log lies about a typo'd package or auth failure.
+ *
+ * @internal
+ */
+export function checkFailureOutcome(message: string): { exitCode: 1; text: string } {
+	const indented = message
+		.split("\n")
+		.map((l) => `  ${l}`)
+		.join("\n");
+	return {
+		exitCode: 1,
+		text: `Catalog check failed before drift could be evaluated (resolution error, not drift):\n${indented}\n`,
+	};
+}
+
+/** Project a drift row to its stable `--json` object: catalog/pkg/from/to?/source, camelCase, `to` omitted (never null) when unknown. */
+function driftRowJson(row: CheckDriftRow): Record<string, unknown> {
+	return {
+		catalog: row.catalog,
+		pkg: row.pkg,
+		from: row.from,
+		...(row.to !== undefined ? { to: row.to } : {}),
+		source: row.source,
+	};
+}
+
+/** Serialize one single-line JSON document, newline-terminated — the ONLY bytes `--json` puts on stdout. */
+function jsonLine(doc: Record<string, unknown>): string {
+	return `${JSON.stringify(doc)}\n`;
+}
+
+/**
+ * The `--check --json` outcome. stdout carries exactly one single-line JSON
+ * document in EVERY case — including the resolution-failure family, which
+ * keeps its non-zero exit but must never leave a bash gate with exit 1 and an
+ * empty stdout. The human failure label stays on stderr; the in-sync/drift
+ * text is superseded by the document.
+ *
+ * @internal
+ */
+export function checkJsonOutcome(result: Result.Result<UpgradeRunResult, UpgradeError>): {
+	exitCode: 0 | 1;
+	stdout: string;
+	stderr: string;
+} {
+	if (Result.isFailure(result)) {
+		const message = result.failure.message;
+		return {
+			exitCode: 1,
+			stdout: jsonLine({
+				command: "check",
+				inSync: false,
+				error: { kind: result.failure.kind ?? "resolution", message },
+			}),
+			stderr: checkFailureOutcome(message).text,
+		};
+	}
+	const changed = result.success.changed;
+	return {
+		exitCode: changed.length === 0 ? 0 : 1,
+		stdout: jsonLine({ command: "check", inSync: changed.length === 0, drift: changed.map(driftRowJson) }),
+		stderr: "",
+	};
+}
+
+/**
+ * The `--yes --json` / `--dry-run --json` outcome. `applied` reports whether
+ * the run wrote at least one change — always false under dry-run AND on an
+ * already-in-sync run, so a consumer keying on it never reads a no-op as a
+ * real apply; `changed` uses the same row object as check's `drift`. A failure
+ * emits an error document on stdout with a non-zero exit and the human message
+ * on stderr; `error.kind` is `"peer-strategy"` for a peer-strategy refusal and
+ * `"resolution"` otherwise.
+ *
+ * @internal
+ */
+export function upgradeJsonOutcome(
+	result: Result.Result<UpgradeRunResult, UpgradeError>,
+	dryRun: boolean,
+): { exitCode: 0 | 1; stdout: string; stderr: string } {
+	if (Result.isFailure(result)) {
+		const message = result.failure.message;
+		return {
+			exitCode: 1,
+			stdout: jsonLine({
+				command: "upgrade",
+				applied: false,
+				error: { kind: result.failure.kind ?? "resolution", message },
+			}),
+			stderr: `${message}\n`,
+		};
+	}
+	const r = result.success;
+	return {
+		exitCode: 0,
+		stdout: jsonLine({
+			command: "upgrade",
+			applied: !dryRun && r.updated > 0,
+			updated: r.updated,
+			changed: r.changed.map(driftRowJson),
+			skipped: r.skipped,
+			conflicts: r.conflicts.map((c) => ({ pkg: c.pkg, ceiling: c.ceiling, blockedBy: c.blockedBy })),
+		}),
+		stderr: "",
+	};
+}
+
+/**
+ * Reject `--json` outside the non-interactive modes it exists for. JSON mode
+ * is a machine contract (a GitHub Action parsing stdout from bash); the
+ * interactive table and the preview views have no meaningful document to emit.
+ * Returns the rejection to fail with, or null when the combination is valid.
+ *
+ * @internal
+ */
+export function validateJsonMode(flags: {
+	json: boolean;
+	check: boolean;
+	yes: boolean;
+	dryRun: boolean;
+	preview: boolean;
+}): UpgradeError | null {
+	if (!flags.json) return null;
+	if (flags.preview) {
+		return new UpgradeError({ message: "--json cannot be combined with --preview; use --check, --yes, or --dry-run" });
+	}
+	if (!flags.check && !flags.yes && !flags.dryRun) {
+		return new UpgradeError({
+			message: "--json requires a non-interactive mode: combine it with --check, --yes, or --dry-run",
+		});
+	}
+	return null;
 }
 
 /**
@@ -489,6 +782,8 @@ const dryRunFlag = Flag.boolean("dry-run").pipe(Flag.withDefault(false));
 const catalogOption = Flag.string("catalog").pipe(Flag.optional);
 const previewFlag = Flag.boolean("preview").pipe(Flag.withDefault(false));
 const fullFlag = Flag.boolean("full").pipe(Flag.withDefault(false));
+const checkFlag = Flag.boolean("check").pipe(Flag.withDefault(false));
+const jsonFlag = Flag.boolean("json").pipe(Flag.withDefault(false));
 
 /**
  * The "upgrade" command. The default path runs the interactive table;
@@ -500,14 +795,75 @@ const fullFlag = Flag.boolean("full").pipe(Flag.withDefault(false));
  */
 export const upgradeCommand = Command.make(
 	"upgrade",
-	{ file: fileArg, yes: yesFlag, dryRun: dryRunFlag, catalog: catalogOption, preview: previewFlag, full: fullFlag },
-	({ file: fileOpt, yes, dryRun, catalog, preview, full }) =>
+	{
+		file: fileArg,
+		yes: yesFlag,
+		dryRun: dryRunFlag,
+		catalog: catalogOption,
+		preview: previewFlag,
+		full: fullFlag,
+		check: checkFlag,
+		json: jsonFlag,
+	},
+	({ file: fileOpt, yes, dryRun, catalog, preview, full, check, json }) =>
 		Effect.gen(function* () {
+			// JSON mode is for non-interactive consumers only — reject before touching
+			// the filesystem so the failure is fast and unambiguous.
+			const jsonRejection = validateJsonMode({ json, check, yes, dryRun, preview });
+			if (jsonRejection !== null) {
+				return yield* Effect.fail(jsonRejection);
+			}
 			const file = yield* resolveTargetFile(fileOpt);
 			const resolver = yield* RegistryResolver;
 			const caps = detectCapabilities();
+			// Entries with `source: "workspace"` resolve from the workspace containing
+			// the config file. Construction is lazy — a config with no workspace-sourced
+			// entries never touches the filesystem through this resolver.
+			const workspaceResolver = makeWorkspaceResolver(findWorkspaceRoot(dirname(file)));
+			// --check is a pure drift gate: resolve exactly as --yes would, write
+			// NOTHING (dryRun is forced regardless of other flags), and exit non-zero
+			// when anything would have been rewritten.
+			if (check) {
+				// A resolution failure (typo'd name, auth, peer warning) shares the
+				// non-zero exit with drift, but its output must NOT read as drift —
+				// the consuming gate reports every non-zero as "catalog drifted".
+				const result = yield* runUpgrade({ file, resolver, workspaceResolver, dryRun: true }).pipe(Effect.result);
+				if (json) {
+					// stdout carries exactly one JSON document (a bash consumer feeds it
+					// straight to jq); the human failure label moves to stderr.
+					const o = checkJsonOutcome(result);
+					yield* Effect.sync(() => {
+						if (o.stderr !== "") process.stderr.write(o.stderr);
+						process.stdout.write(o.stdout);
+						process.exitCode = o.exitCode;
+					});
+					return;
+				}
+				const failed = Result.isFailure(result);
+				const outcome = failed ? checkFailureOutcome(result.failure.message) : checkOutcome(result.success.changed);
+				yield* Effect.sync(() => {
+					// Drift and in-sync are the gate's normal answers → stdout (as before);
+					// a resolution failure is an error → stderr.
+					(failed ? process.stderr : process.stdout).write(outcome.text);
+					process.exitCode = outcome.exitCode;
+				});
+				return;
+			}
+			// `--yes --json` and `--dry-run --json`: the non-interactive core with a
+			// machine-readable report. `--dry-run --json` runs the same resolution as
+			// `--yes --dry-run` — JSON mode never enters the interactive walk.
+			if (json) {
+				const result = yield* runUpgrade({ file, resolver, dryRun, workspaceResolver }).pipe(Effect.result);
+				const o = upgradeJsonOutcome(result, dryRun);
+				yield* Effect.sync(() => {
+					if (o.stderr !== "") process.stderr.write(o.stderr);
+					process.stdout.write(o.stdout);
+					process.exitCode = o.exitCode;
+				});
+				return;
+			}
 			if (preview) {
-				const text = yield* runUpgradePreview({ file, resolver, full, color: caps.color });
+				const text = yield* runUpgradePreview({ file, resolver, full, color: caps.color, workspaceResolver });
 				yield* Effect.sync(() => process.stdout.write(`${text}\n`));
 				return;
 			}
@@ -516,6 +872,7 @@ export const upgradeCommand = Command.make(
 					file,
 					resolver,
 					dryRun,
+					workspaceResolver,
 					...(caps.interactive ? { onProgress: writeResolveProgress } : {}),
 				});
 				yield* Effect.sync(() =>
@@ -550,6 +907,7 @@ export const upgradeCommand = Command.make(
 				gate,
 				Date.now(),
 				caps.interactive ? writeResolveProgress : undefined,
+				workspaceResolver,
 			);
 			const items = yield* buildWalkItems(entries, versions.gated).pipe(
 				Effect.catch((e) => Effect.fail(new UpgradeError({ message: e.message }))),

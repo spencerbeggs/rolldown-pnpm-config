@@ -41,6 +41,8 @@ npx rolldown-pnpm-config upgrade
 | `--catalog <name>` | Restricts the table to a single named catalog. |
 | `--preview` | Non-interactive projection: resolves every package, takes the default picks and prints the colorized summary — no table, no write. |
 | `--full` | Applies to the non-interactive projection (`--preview` and the CI fallback): includes up-to-date entries the projection would otherwise omit. The interactive table already shows every entry, so the flag is a no-op there. |
+| `--check` | Pure drift gate: resolves exactly as `--yes` would, writes nothing (even combined with `--yes`), and exits `0` when every entry is in sync or `1` when anything would have been rewritten. The exit code is the contract — release validation phases call this. |
+| `--json` | Machine-readable output for the non-interactive modes (`--check`, `--yes`, `--dry-run`). stdout carries exactly one single-line JSON document; all human-facing text moves to stderr or is suppressed. Exit codes are unchanged. Rejected with the interactive path and with `--preview`. |
 
 `--yes` is the unattended path — useful in scripts or a scheduled job:
 
@@ -62,6 +64,17 @@ npx rolldown-pnpm-config upgrade --dry-run
 npx rolldown-pnpm-config upgrade --preview
 # example output (varies by environment)
 ```
+
+### `--json` output
+
+`--json` is for scripts and CI (a GitHub Action parsing the CLI from bash): stdout is exactly one single-line JSON document — nothing else — so a captured `$(...)` feeds straight to `jq`:
+
+```bash
+out=$(npx rolldown-pnpm-config upgrade --check --json) || echo "catalogs drifted or check failed"
+echo "$out" | jq -r '.drift[] | "\(.catalog).\(.pkg): \(.from) -> \(.to // "?") (\(.source))"'
+```
+
+`upgrade --check --json` emits `{"command":"check","inSync":true|false,"drift":[...]}` where each drift row is `{"catalog":"effected","pkg":"@effected/app","from":"^0.7.0","to":"^0.8.0","source":"workspace"}` (`to` is omitted for a peer-only resync). A failure keeps the non-zero exit but still emits a document — `{"command":"check","inSync":false,"error":{"kind":"resolution","message":"..."}}` — so a bash gate never sees exit `1` with an empty stdout; the human-readable failure label goes to stderr. `error.kind` is `"peer-strategy"` when the run refused to apply with an incompatible peer strategy, and `"resolution"` for every other failure. `upgrade --yes --json` and `upgrade --dry-run --json` emit `{"command":"upgrade","applied":true|false,"updated":n,"changed":[...],"skipped":[...],"conflicts":[...]}` with `changed` rows in the same shape as `drift`; `applied` is `true` only when the run wrote at least one change — it is `false` under `--dry-run` and on an already-in-sync run, so keying on it never mistakes a no-op for a real apply. Without one of those modes, `--json` fails fast — JSON mode never enters the interactive table.
 
 A prerelease-pinned package (for example `^3.0.0-next.8`) is offered same-track prerelease candidates (`next.9` and beyond) alongside the usual stable ones, instead of being frozen until a stable release ships. A package name the registry cannot resolve at all — a typo, a removed package, an auth failure — is surfaced as its own warning rather than silently treated as up to date: the table banners it, `--preview` appends it to the projection and `--yes` fails the run outright.
 
@@ -86,3 +99,26 @@ The `peer` value is materialized in source. The runtime emits it verbatim as a s
 - `lock-minor` floors a stable version's patch to `.0`, operator preserved (`^6.5.0`). On a prerelease version, flooring would exclude the very version being catalogued, so `lock-minor` degrades to `lock` behavior and reports a warning instead.
 
 When you bump a package that has a `strategy`, the command recomputes its `peer` to match. If a package declares a `strategy` but has no `peer` yet, the command materializes one from the current range. Packages without a `strategy` are left exactly as written, even when you keep the current range for a package that does have one.
+
+## Workspace-sourced entries
+
+An object-form entry can declare `source: "workspace"` to resolve its range from the local workspace's **next release versions** instead of the npm registry — each package's current manifest version overlaid with any pending changeset bump. `source` is orthogonal to `strategy`: `source` decides where the range comes from, `strategy` still decides how `peer` is derived from it.
+
+```ts
+catalogs: {
+  effected: {
+    packages: {
+      "@effected/semver": { range: "^0.5.0", peer: "^0.5.0", strategy: "lock-minor", source: "workspace" },
+    },
+  },
+}
+```
+
+The value is `"workspace"`, never `"workspace:^"` — the colon form reads as the pnpm workspace protocol, which cannot resolve for consumers of a published config dependency. Packages are enumerated following the `packages:` globs declared in the workspace's own `pnpm-workspace.yaml` — including nested globs and exclusion patterns, via `@effected/workspaces` (the root is found by walking up from the config file to the nearest `pnpm-workspace.yaml`). Every workspace package with a name and a version is resolvable — there is no publishability filter: catalog membership and publish policy are the author's decisions, not the resolver's.
+
+Two behaviors differ from registry-sourced entries:
+
+- **The release-age gate exempts them.** An unpublished next version has no publish timestamp, so the gate would otherwise hold every workspace entry forever.
+- **`--yes` and `--check` apply the workspace version even outside the caret range.** `^0.2.0` does not contain `0.3.0`, but the workspace version is this repo's own declared next release, not a surprise registry major.
+
+Builds never write. The `PnpmConfigPlugin` build reads the config exactly as authored — the CLI owns all source rewriting: `upgrade --yes` applies workspace drift, and `upgrade --check` is the CI drift gate. A sync workflow runs the CLI, not the build.

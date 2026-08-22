@@ -1,0 +1,8 @@
+{
+	"name": "@glob/cli",
+	"version": "2.0.0",
+	"private": true,
+	"publishConfig": {
+		"access": "public"
+	}
+}

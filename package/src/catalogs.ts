@@ -7,14 +7,33 @@
 export type PeerStrategy = "lock" | "lock-minor" | "interop";
 
 /**
+ * Where a catalog entry's `range` is resolved from by the `upgrade` CLI.
+ * `"registry"` (the default when omitted) queries published versions;
+ * `"workspace"` reads the local workspace's NEXT release versions (current
+ * manifest versions overlaid with pending changeset bumps). Orthogonal to
+ * `strategy`, which governs how `peer` is derived from `range` — collapsing
+ * the two would drop peer materialization entirely. CLI-only metadata; the
+ * runtime ignores it.
+ *
+ * @public
+ */
+export type VersionSource = "registry" | "workspace";
+
+/**
  * A package's version: a bare range, or an object carrying a materialized peer
- * range (`peer`) and optional CLI recompute `strategy`.
+ * range (`peer`), optional CLI recompute `strategy`, and optional CLI version
+ * `source`.
  *
  * @public
  */
 export type CatalogPackageSpec =
 	| string
-	| { readonly range: string; readonly peer?: string; readonly strategy?: PeerStrategy };
+	| {
+			readonly range: string;
+			readonly peer?: string;
+			readonly strategy?: PeerStrategy;
+			readonly source?: VersionSource;
+	  };
 
 /**
  * One catalog's declaration: a map of package name to version spec.
@@ -38,6 +57,15 @@ export interface CatalogDeclaration {
 export function normalizeCatalogs(input: Record<string, CatalogDeclaration>): Record<string, Record<string, string>> {
 	const out: Record<string, Record<string, string>> = {};
 	for (const [name, decl] of Object.entries(input)) {
+		// Defensive: an untyped JS consumer (or a future reserved key) may place a
+		// non-declaration sibling inside `catalogs` — a function, or an object with
+		// no `packages` map. It must be IGNORED, not thrown on: the failure mode
+		// "catalog silently not found" is already indistinguishable from "nothing
+		// to update", so crashing here would be strictly worse. The discover walk
+		// in the upgrade CLI skips such siblings the same way.
+		if (typeof decl !== "object" || decl === null || typeof decl.packages !== "object" || decl.packages === null) {
+			continue;
+		}
 		const base: Record<string, string> = {};
 		const peers: Record<string, string> = {};
 		for (const [pkg, spec] of Object.entries(decl.packages)) {

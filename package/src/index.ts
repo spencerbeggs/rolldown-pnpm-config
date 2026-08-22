@@ -1,4 +1,4 @@
-export type { CatalogDeclaration, CatalogPackageSpec, PeerStrategy } from "./catalogs.js";
+export type { CatalogDeclaration, CatalogPackageSpec, PeerStrategy, VersionSource } from "./catalogs.js";
 export type { FieldInput, LocalDirective, PluginConfig } from "./define-plugin.js";
 export type { AllowedVersionsFromCatalogs } from "./plugin/allowed-versions.js";
 export { PnpmConfigPlugin } from "./plugin/index.js";

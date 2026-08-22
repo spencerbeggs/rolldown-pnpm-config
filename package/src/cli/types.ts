@@ -1,4 +1,4 @@
-import type { PeerStrategy } from "../catalogs.js";
+import type { PeerStrategy, VersionSource } from "../catalogs.js";
 
 /** A version literal discovered in a config, with its byte-offset span. */
 export interface CatalogEntry {
@@ -11,6 +11,8 @@ export interface CatalogEntry {
 	/** Present when the package declares a materialized peer literal. */
 	readonly peer?: { readonly value: string; readonly span: readonly [number, number] };
 	readonly strategy?: PeerStrategy;
+	/** Where the range resolves from; absent means the registry. */
+	readonly source?: VersionSource;
 }
 
 /**
@@ -40,6 +42,12 @@ export interface Edit {
 /** A span replacement that remembers which package and range it came from, for validation. */
 export interface PlannedEdit extends Edit {
 	readonly pkg: string;
+	/**
+	 * Route-aware key into the resolved-version maps (see `versionKeyOf`), so a
+	 * workspace-sourced edit is never validated against the registry list of a
+	 * same-named registry entry. Defaults to `pkg` (the registry route).
+	 */
+	readonly versionKey?: string;
 	/** Whether this edit rewrites the package's range literal or its peer literal. */
 	readonly kind: "range" | "peer";
 	/** The unquoted range being written, e.g. "^5.9.3". */

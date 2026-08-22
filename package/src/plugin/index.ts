@@ -42,6 +42,9 @@ export function createPnpmConfigPlugin(config: PluginConfig, deps: PluginDeps = 
 		// `dirname(configFile)` root the `export` CLI uses, so build and export
 		// derive the same owned patches. A build invoked from a different cwd would
 		// diverge; run the build from the config's package directory.
+		// Builds NEVER write: workspace-sourced entries are rewritten only by the
+		// `upgrade` CLI (`--yes` applies, `--check` gates); the build reads the
+		// config as authored.
 		(frozen ??= Effect.runPromise(deps.freeze(withResolvedBuildPatches(config, process.cwd()))));
 
 	return {

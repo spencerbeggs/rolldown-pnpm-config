@@ -39,3 +39,4 @@ docs/superpowers/
 .mcp.json
 # vanilla rolldown example build artifact (emitted to project root per docs)
 examples/rolldown/pnpmfile.mjs
+.claude/dogfood
