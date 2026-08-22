@@ -5,6 +5,7 @@ import type { PartialReleaseAgeGate } from "@effected/npm";
 import { ReleaseAgeGate } from "@effected/npm";
 import { Data, Effect, Option, Result } from "effect";
 import { Argument, Command, Flag } from "effect/unstable/cli";
+import type { VersionSource } from "../../catalogs.js";
 import { discoverCatalogEntries } from "../discover.js";
 import { detectPeerDrift } from "../drift.js";
 import { buildEdits } from "../edits.js";
@@ -35,6 +36,18 @@ import { findWorkspaceRoot, makeWorkspaceResolver } from "../workspace-resolve.j
  * @internal
  */
 export class UpgradeError extends Data.TaggedError("UpgradeError")<{ readonly message: string }> {}
+
+/**
+ * One changed entry in a non-interactive run: its `catalog.pkg` name and which
+ * version source it resolved from — so `--check`'s drift list can say which
+ * rows track the workspace and which track the registry.
+ *
+ * @internal
+ */
+export interface CheckDriftRow {
+	readonly name: string;
+	readonly source: VersionSource;
+}
 
 interface Resolver {
 	readonly versions: (pkg: string) => Effect.Effect<string[], unknown>;
@@ -197,7 +210,13 @@ export function runUpgrade(opts: {
 	/** Workspace-backed resolver for entries with `source: "workspace"`. */
 	workspaceResolver?: Resolver;
 }): Effect.Effect<
-	{ updated: number; skipped: string[]; conflicts: InteropConflict[]; rejected: RejectedEdit[]; changed: string[] },
+	{
+		updated: number;
+		skipped: string[];
+		conflicts: InteropConflict[];
+		rejected: RejectedEdit[];
+		changed: CheckDriftRow[];
+	},
 	UpgradeError
 > {
 	return Effect.gen(function* () {
@@ -230,10 +249,10 @@ export function runUpgrade(opts: {
 		const interopEdits: Edit[] = [];
 		const warnings: string[] = [];
 		const changedSpans = new Set<number>();
-		const changedPkgs = new Set<string>();
+		const changedPkgs = new Map<string, VersionSource>();
 		const markChanged = (entry: CatalogEntry): void => {
 			changedSpans.add(entry.rangeSpan[0]);
-			changedPkgs.add(`${entry.catalog}.${entry.pkg}`);
+			changedPkgs.set(`${entry.catalog}.${entry.pkg}`, entry.source ?? "registry");
 		};
 
 		for (const entry of entries) {
@@ -387,7 +406,13 @@ export function runUpgrade(opts: {
 		}
 
 		const updated = changedSpans.size;
-		return { updated, skipped, conflicts, rejected, changed: [...changedPkgs] };
+		return {
+			updated,
+			skipped,
+			conflicts,
+			rejected,
+			changed: [...changedPkgs].map(([name, source]) => ({ name, source })),
+		};
 	});
 }
 
@@ -523,11 +548,13 @@ export function runUpgradePreview(opts: {
  *
  * @internal
  */
-export function checkOutcome(changed: readonly string[]): { exitCode: 0 | 1; text: string } {
+export function checkOutcome(changed: readonly CheckDriftRow[]): { exitCode: 0 | 1; text: string } {
 	if (changed.length === 0) {
 		return { exitCode: 0, text: "Catalogs are in sync.\n" };
 	}
-	const list = changed.map((c) => `  ${c}`).join("\n");
+	// Each row is annotated with its version source, so a mixed catalog's output
+	// says which rows track the workspace and which track the registry.
+	const list = changed.map((c) => `  ${c.name}  (${c.source})`).join("\n");
 	return {
 		exitCode: 1,
 		text: `Catalog drift detected in ${changed.length} package(s):\n${list}\nRun \`rolldown-pnpm-config upgrade --yes\` to apply.\n`,
