@@ -1,0 +1,11 @@
+{
+	"name": "@fix/bumped",
+	"version": "0.2.0",
+	"private": true,
+	"publishConfig": {
+		"access": "public"
+	},
+	"peerDependencies": {
+		"@fix/untouched": "^0.1.0"
+	}
+}
