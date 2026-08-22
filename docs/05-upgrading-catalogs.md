@@ -41,6 +41,7 @@ npx rolldown-pnpm-config upgrade
 | `--catalog <name>` | Restricts the table to a single named catalog. |
 | `--preview` | Non-interactive projection: resolves every package, takes the default picks and prints the colorized summary — no table, no write. |
 | `--full` | Applies to the non-interactive projection (`--preview` and the CI fallback): includes up-to-date entries the projection would otherwise omit. The interactive table already shows every entry, so the flag is a no-op there. |
+| `--check` | Pure drift gate: resolves exactly as `--yes` would, writes nothing (even combined with `--yes`), and exits `0` when every entry is in sync or `1` when anything would have been rewritten. The exit code is the contract — release validation phases call this. |
 
 `--yes` is the unattended path — useful in scripts or a scheduled job:
 
@@ -86,3 +87,38 @@ The `peer` value is materialized in source. The runtime emits it verbatim as a s
 - `lock-minor` floors a stable version's patch to `.0`, operator preserved (`^6.5.0`). On a prerelease version, flooring would exclude the very version being catalogued, so `lock-minor` degrades to `lock` behavior and reports a warning instead.
 
 When you bump a package that has a `strategy`, the command recomputes its `peer` to match. If a package declares a `strategy` but has no `peer` yet, the command materializes one from the current range. Packages without a `strategy` are left exactly as written, even when you keep the current range for a package that does have one.
+
+## Workspace-sourced entries
+
+An object-form entry can declare `source: "workspace"` to resolve its range from the local workspace's **next release versions** instead of the npm registry — each publishable package's current manifest version overlaid with any pending changeset bump. `source` is orthogonal to `strategy`: `source` decides where the range comes from, `strategy` still decides how `peer` is derived from it.
+
+```ts
+catalogs: {
+  effected: {
+    packages: {
+      "@effected/semver": { range: "^0.5.0", peer: "^0.5.0", strategy: "lock-minor", source: "workspace" },
+    },
+  },
+}
+```
+
+The value is `"workspace"`, never `"workspace:^"` — the colon form reads as the pnpm workspace protocol, which cannot resolve for consumers of a published config dependency. Packages are enumerated from `<root>/packages/*` (the root is found by walking up from the config file to the nearest `pnpm-workspace.yaml`) and filtered on `publishConfig.access === "public"`, since source manifests are typically `private: true` and flipped at build time.
+
+Three behaviors differ from registry-sourced entries:
+
+- **The release-age gate exempts them.** An unpublished next version has no publish timestamp, so the gate would otherwise hold every workspace entry forever.
+- **`--yes` and `--check` apply the workspace version even outside the caret range.** `^0.2.0` does not contain `0.3.0`, but the workspace version is this repo's own declared next release, not a surprise registry major.
+- **The build syncs them.** When any entry declares `source: "workspace"`, the `PnpmConfigPlugin` build rewrites drifted range (and derived peer) literals back into the config source and emits the rewritten values in the same build, so the source converges instead of re-detecting drift forever.
+
+## Change notification: `onCatalogUpdate`
+
+`PnpmConfigPlugin({ onCatalogUpdate: (changes) => { ... }, ... })` fires once per build whose workspace-source sync rewrote at least one entry, after the source write succeeds, and never on a no-op. `changes` is a `CatalogChanges` array of `{ catalog, pkg, from, to }`. This package never interprets the changes — the consuming repo's callback decides what to do with them (for example, write a changeset).
+
+A callback MUST gate itself on its own environment check: `onCatalogUpdate` makes a build mutating, and a developer's `build:dev`, a PR CI build, and the release validation build must all leave the repo untouched. The gate is an environment variable the sync workflow sets; the callback checks it and returns early otherwise:
+
+```ts
+onCatalogUpdate: async (changes) => {
+  if (process.env.CATALOG_SYNC !== "1") return;
+  await writeChangeset(changes);
+},
+```

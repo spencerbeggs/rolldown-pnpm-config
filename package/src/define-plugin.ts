@@ -1,4 +1,4 @@
-import type { CatalogDeclaration } from "./catalogs.js";
+import type { CatalogChanges, CatalogDeclaration } from "./catalogs.js";
 import type { AllowedVersionsFromCatalogs } from "./plugin/allowed-versions.js";
 import type { Enforcement } from "./runtime/types.js";
 
@@ -39,6 +39,19 @@ export interface PluginConfig {
 	readonly name: string;
 	/** The catalogs to inject into pnpm config, keyed by catalog name. */
 	readonly catalogs: Record<string, CatalogDeclaration>;
+	/**
+	 * Fired once per build whose workspace-source sync rewrote at least one
+	 * catalog entry, after the source write succeeds; never fired on a no-op.
+	 * This package never interprets the changes — the consuming repo's callback
+	 * decides what to do with them (e.g. write a changeset).
+	 *
+	 * A consumer's callback MUST gate itself on its own environment check:
+	 * `onCatalogUpdate` makes a build mutating, and a developer's `build:dev`, a
+	 * PR CI build, and the release validation build must all leave the repo
+	 * untouched. The gate is an environment variable the sync workflow sets; the
+	 * callback checks it and returns early otherwise.
+	 */
+	readonly onCatalogUpdate?: (changes: CatalogChanges) => void | Promise<void>;
 	/**
 	 * Export-only overrides. Each field set here replaces the corresponding
 	 * generated field when running `rolldown-pnpm-config export`. Ignored by the

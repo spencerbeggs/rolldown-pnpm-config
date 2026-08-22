@@ -36,6 +36,26 @@ export type CatalogPackageSpec =
 	  };
 
 /**
+ * One rewritten catalog entry: the catalog and package it names, and the range
+ * literal that moved (`from` → `to`).
+ *
+ * @public
+ */
+export interface CatalogChange {
+	readonly catalog: string;
+	readonly pkg: string;
+	readonly from: string;
+	readonly to: string;
+}
+
+/**
+ * The set of catalog entries one rewrite moved, passed to `onCatalogUpdate`.
+ *
+ * @public
+ */
+export type CatalogChanges = ReadonlyArray<CatalogChange>;
+
+/**
  * One catalog's declaration: a map of package name to version spec.
  *
  * @public

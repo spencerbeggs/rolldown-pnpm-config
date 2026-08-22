@@ -6,6 +6,7 @@ import type { Base, Manifest } from "../runtime/types.js";
 import type { ConfigError } from "./freeze.js";
 import { freeze } from "./freeze.js";
 import { emitCatalogsModule, emitPnpmfileModule } from "./serialize.js";
+import { syncWorkspaceCatalogs } from "./workspace-sync.js";
 
 interface Frozen {
 	readonly base: Base;
@@ -24,6 +25,8 @@ const CATALOGS_SPEC = "rolldown-pnpm-config/virtual/catalogs";
 export interface PluginDeps {
 	/** Injectable freeze function; defaults to the real Effect implementation. */
 	readonly freeze: (config: PluginConfig) => Effect.Effect<Frozen, ConfigError>;
+	/** Root the workspace-source sync and patch discovery resolve from; defaults to process.cwd(). */
+	readonly cwd?: string;
 }
 
 /**
@@ -42,7 +45,22 @@ export function createPnpmConfigPlugin(config: PluginConfig, deps: PluginDeps = 
 		// `dirname(configFile)` root the `export` CLI uses, so build and export
 		// derive the same owned patches. A build invoked from a different cwd would
 		// diverge; run the build from the config's package directory.
-		(frozen ??= Effect.runPromise(deps.freeze(withResolvedBuildPatches(config, process.cwd()))));
+		(frozen ??= Effect.runPromise(
+			Effect.gen(function* () {
+				const cwd = deps.cwd ?? process.cwd();
+				// Workspace-source sync runs BEFORE freeze so this build's emitted
+				// catalogs already carry the rewritten values; the callback fires only
+				// after the source write succeeded, and never on a no-op.
+				const synced = yield* syncWorkspaceCatalogs(config, cwd);
+				if (synced.changes.length > 0 && config.onCatalogUpdate !== undefined) {
+					const notify = config.onCatalogUpdate;
+					yield* Effect.promise(async () => {
+						await notify(synced.changes);
+					});
+				}
+				return yield* deps.freeze(withResolvedBuildPatches(synced.config, cwd));
+			}),
+		));
 
 	return {
 		name: "rolldown-pnpm-config",
