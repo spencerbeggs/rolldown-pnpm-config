@@ -26,6 +26,7 @@ import { detectCapabilities } from "../ui/env.js";
 import { runWalk } from "../ui/run-walk.js";
 import type { RejectedEdit } from "../validate.js";
 import { validateEdits } from "../validate.js";
+import { versionKeyOf } from "../version-key.js";
 import { buildWalkItems } from "../walk-plan.js";
 import type { Decision, WalkItem } from "../walk-types.js";
 import { findWorkspaceRoot, makeWorkspaceResolver } from "../workspace-resolve.js";
@@ -102,7 +103,11 @@ export function computeGate(source: string, file: string, resolver: Resolver): E
 export const RESOLVE_CONCURRENCY = 12;
 
 /**
- * Fetch and age-gate the version list for each unique package.
+ * Fetch and age-gate the version list for each unique (pkg × route) pair.
+ * The returned maps are keyed by `versionKeyOf(entry)`, NOT the bare package
+ * name: the same name can appear workspace-sourced in one catalog and
+ * registry-sourced in another, and the two routes must neither share a version
+ * list nor a gate exemption.
  *
  * @param onProgress - Optional callback invoked after each package resolves with
  *   `(resolved, total)`. Useful for emitting CLI progress feedback. Called with
@@ -122,30 +127,36 @@ export function resolveGatedVersions(
 	onProgress?: (resolved: number, total: number) => void,
 	workspace?: Resolver,
 ): Effect.Effect<{ gated: Map<string, string[]>; raw: Map<string, string[]>; unresolved: string[] }, never> {
-	const uniquePkgs = [...new Set(entries.map((e) => e.pkg))];
-	const workspacePkgs = new Set(entries.filter((e) => e.source === "workspace").map((e) => e.pkg));
-	const total = uniquePkgs.length;
+	// One resolution per unique (pkg × route) pair. The route is workspace only
+	// when the caller supplied a workspace resolver AND the entry declares
+	// `source: "workspace"` — an entry keyed to the workspace route without a
+	// workspace resolver still resolves (and gates) through the registry.
+	const pairs = new Map<string, { pkg: string; fromWorkspace: boolean }>();
+	for (const e of entries) {
+		pairs.set(versionKeyOf(e), { pkg: e.pkg, fromWorkspace: workspace !== undefined && e.source === "workspace" });
+	}
+	const total = pairs.size;
 	// Counter is captured in the closure; only one JS thread increments it so it
 	// is safe without an atomic wrapper even under concurrent fibers.
 	let resolved = 0;
 	onProgress?.(0, total);
 	return Effect.forEach(
-		uniquePkgs,
-		(pkg) =>
+		[...pairs],
+		([key, { pkg, fromWorkspace }]) =>
 			Effect.gen(function* () {
-				const fromWorkspace = workspace !== undefined && workspacePkgs.has(pkg);
-				const vr = yield* (fromWorkspace ? workspace : resolver).versions(pkg).pipe(Effect.result);
+				const routed = fromWorkspace && workspace !== undefined ? workspace : resolver;
+				const vr = yield* routed.versions(pkg).pipe(Effect.result);
 				if (Result.isFailure(vr)) {
 					onProgress?.(++resolved, total);
-					return [pkg, [] as string[], [] as string[]] as const;
+					return [key, pkg, [] as string[], [] as string[]] as const;
 				}
 				// A workspace-sourced next version is unpublished: it has no publish
-				// timestamp, so the age gate would drop it as un-timestamped. Workspace
-				// entries are EXEMPT from the gate, not blocked by it — the version came
+				// timestamp, so the age gate would drop it as un-timestamped. The workspace
+				// route is EXEMPT from the gate, not blocked by it — the version came
 				// from this repo's own manifests and pending changesets, not the registry.
 				if (fromWorkspace) {
 					onProgress?.(++resolved, total);
-					return [pkg, vr.success, vr.success] as const;
+					return [key, pkg, vr.success, vr.success] as const;
 				}
 				// Fail-closed: if the publish-times fetch fails, an empty map makes
 				// gate.filterVersions drop every version (all timestamps unknown). This is a
@@ -160,17 +171,17 @@ export function resolveGatedVersions(
 						: ({} as Record<string, string>);
 				onProgress?.(++resolved, total);
 				const gated: string[] = [...gate.filterVersions(vr.success, times, pkg, now)];
-				return [pkg, gated, vr.success] as const;
+				return [key, pkg, gated, vr.success] as const;
 			}),
 		{ concurrency: RESOLVE_CONCURRENCY },
 	).pipe(
-		Effect.map((triples) => ({
+		Effect.map((rows) => ({
 			// `gated` is the only candidate source — it keeps the fail-closed semantics
 			// above. `raw` is ONLY a validation input: validating a derived range against
 			// the gated list would spuriously reject a package whose satisfying version
 			// was published inside the gate window.
-			gated: new Map(triples.map(([pkg, gated]) => [pkg, gated])),
-			raw: new Map(triples.map(([pkg, , raw]) => [pkg, raw])),
+			gated: new Map(rows.map(([key, , gated]) => [key, gated])),
+			raw: new Map(rows.map(([key, , , raw]) => [key, raw])),
 			// Packages the registry could not resolve AT ALL — a misspelt name, a package
 			// that does not exist, an auth failure. DISTINCT from a package whose versions
 			// all fell to the release-age gate (raw non-empty, gated empty), which is a
@@ -178,7 +189,8 @@ export function resolveGatedVersions(
 			// Without this, a typo'd name produced an empty version list, planned to
 			// keep-only, counted as up to date, and was hidden from the table entirely —
 			// the author never learned the package does not exist.
-			unresolved: triples.filter(([, , raw]) => raw.length === 0).map(([pkg]) => pkg),
+			// Name-based and deduped: a name failing on either route is reported once.
+			unresolved: [...new Set(rows.filter(([, , , raw]) => raw.length === 0).map(([, pkg]) => pkg))],
 		})),
 	);
 }
@@ -276,12 +288,14 @@ export function runUpgrade(opts: {
 
 		for (const entry of entries) {
 			if (entry.strategy === "interop") continue;
-			const versions = versionsByPkg.gated.get(entry.pkg) ?? [];
+			const versionKey = versionKeyOf(entry);
+			const versions = versionsByPkg.gated.get(versionKey) ?? [];
 			const pkg = entry.pkg;
 			const rangeEdit = (span: readonly [number, number], value: string): PlannedEdit => ({
 				span,
 				text: JSON.stringify(value),
 				pkg,
+				versionKey,
 				kind: "range",
 				value,
 			});
@@ -289,6 +303,7 @@ export function runUpgrade(opts: {
 				span,
 				text: JSON.stringify(value),
 				pkg,
+				versionKey,
 				kind: "peer",
 				value,
 			});
@@ -296,6 +311,7 @@ export function runUpgrade(opts: {
 				span: [at, at],
 				text: `, peer: ${JSON.stringify(value)}`,
 				pkg,
+				versionKey,
 				kind: "peer",
 				value,
 			});
@@ -376,7 +392,7 @@ export function runUpgrade(opts: {
 		for (const [, group] of byCatalog) {
 			const members: GroupMember[] = [];
 			for (const e of group) {
-				const versions = versionsByPkg.gated.get(e.pkg) ?? [];
+				const versions = versionsByPkg.gated.get(versionKeyOf(e)) ?? [];
 				const cands = yield* planEntry(e, versions).pipe(Effect.catch(() => Effect.succeed([])));
 				const inRange = cands.find((c) => c.kind === "in-range");
 				const ceiling = inRange ? inRange.version : e.currentRange.replace(/^[\^~]/, "");

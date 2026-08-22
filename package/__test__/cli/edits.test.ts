@@ -35,8 +35,8 @@ describe("buildEdits", () => {
 		const e = entry({ rangeSpan: [0, 8], peer: { value: "^1.0.0", span: [10, 18] }, strategy: "lock-minor" });
 		const d: Decision = { item: item(e), chosen: cand({ range: "^1.2.0", peerRange: "^1.2.0" }) };
 		expect(buildEdits([d])).toEqual([
-			{ span: [0, 8], text: '"^1.2.0"', pkg: "x", kind: "range", value: "^1.2.0" },
-			{ span: [10, 18], text: '"^1.2.0"', pkg: "x", kind: "peer", value: "^1.2.0" },
+			{ span: [0, 8], text: '"^1.2.0"', pkg: "x", versionKey: "x", kind: "range", value: "^1.2.0" },
+			{ span: [10, 18], text: '"^1.2.0"', pkg: "x", versionKey: "x", kind: "peer", value: "^1.2.0" },
 		]);
 	});
 
@@ -48,15 +48,17 @@ describe("buildEdits", () => {
 	it("emits a peer-only resync edit when keeping but the peer drifted", () => {
 		const e = entry({ peer: { value: "^1.0.0", span: [10, 18] }, strategy: "lock-minor" });
 		const d: Decision = { item: item(e, { driftPeer: "^1.1.0" }), chosen: cand({ kind: "keep", range: "^1.0.0" }) };
-		expect(buildEdits([d])).toEqual([{ span: [10, 18], text: '"^1.1.0"', pkg: "x", kind: "peer", value: "^1.1.0" }]);
+		expect(buildEdits([d])).toEqual([
+			{ span: [10, 18], text: '"^1.1.0"', pkg: "x", versionKey: "x", kind: "peer", value: "^1.1.0" },
+		]);
 	});
 
 	it("inserts a new peer literal on upgrade when strategy is set but no peer exists", () => {
 		const e = entry({ rangeSpan: [10, 18], strategy: "lock-minor" }); // no peer
 		const d: Decision = { item: item(e), chosen: cand({ range: "^1.2.0", peerRange: "^1.2.0" }) };
 		expect(buildEdits([d])).toEqual([
-			{ span: [10, 18], text: '"^1.2.0"', pkg: "x", kind: "range", value: "^1.2.0" },
-			{ span: [18, 18], text: ', peer: "^1.2.0"', pkg: "x", kind: "peer", value: "^1.2.0" },
+			{ span: [10, 18], text: '"^1.2.0"', pkg: "x", versionKey: "x", kind: "range", value: "^1.2.0" },
+			{ span: [18, 18], text: ', peer: "^1.2.0"', pkg: "x", versionKey: "x", kind: "peer", value: "^1.2.0" },
 		]);
 	});
 
@@ -67,7 +69,7 @@ describe("buildEdits", () => {
 			chosen: cand({ kind: "keep", range: "^1.0.0" }),
 		};
 		expect(buildEdits([d])).toEqual([
-			{ span: [18, 18], text: ', peer: "^1.0.0"', pkg: "x", kind: "peer", value: "^1.0.0" },
+			{ span: [18, 18], text: ', peer: "^1.0.0"', pkg: "x", versionKey: "x", kind: "peer", value: "^1.0.0" },
 		]);
 	});
 
@@ -121,8 +123,8 @@ describe("buildEdits", () => {
 			},
 		]);
 		expect(edits).toEqual([
-			{ span: [0, 9], text: '"^3.21.9"', pkg: "effect", kind: "range", value: "^3.21.9" },
-			{ span: [20, 29], text: '"^3.21.9"', pkg: "effect", kind: "peer", value: "^3.21.9" },
+			{ span: [0, 9], text: '"^3.21.9"', pkg: "effect", versionKey: "effect", kind: "range", value: "^3.21.9" },
+			{ span: [20, 29], text: '"^3.21.9"', pkg: "effect", versionKey: "effect", kind: "peer", value: "^3.21.9" },
 		]);
 	});
 });

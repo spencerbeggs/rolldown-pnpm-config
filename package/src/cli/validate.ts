@@ -50,9 +50,10 @@ export function rangeIsSatisfiable(range: string, versions: readonly string[]): 
  * same drift and re-reject it forever. A package is either fully updated or
  * not touched at all.
  *
- * `versionsByPkg` MUST be the UNGATED version list. Validating against the
- * release-age-gated list would spuriously reject a package whose only matching
- * version was published inside the gate window.
+ * `versionsByPkg` MUST be the UNGATED version list, keyed by each edit's
+ * route-aware `versionKey` (bare package name for registry-routed edits).
+ * Validating against the release-age-gated list would spuriously reject a
+ * package whose only matching version was published inside the gate window.
  *
  * @internal
  */
@@ -61,17 +62,22 @@ export function validateEdits(
 	versionsByPkg: ReadonlyMap<string, readonly string[]>,
 ): Effect.Effect<{ accepted: PlannedEdit[]; rejected: RejectedEdit[] }, never> {
 	return Effect.gen(function* () {
+		// Group by the route-aware version key (falling back to the bare name):
+		// a workspace-sourced edit and a registry-sourced edit for the SAME name
+		// validate against different version lists and reject independently.
 		const byPkg = new Map<string, PlannedEdit[]>();
 		for (const e of edits) {
-			const group = byPkg.get(e.pkg) ?? [];
+			const key = e.versionKey ?? e.pkg;
+			const group = byPkg.get(key) ?? [];
 			group.push(e);
-			byPkg.set(e.pkg, group);
+			byPkg.set(key, group);
 		}
 
 		const accepted: PlannedEdit[] = [];
 		const rejected: RejectedEdit[] = [];
-		for (const [pkg, group] of byPkg) {
-			const versions = versionsByPkg.get(pkg) ?? [];
+		for (const [key, group] of byPkg) {
+			const pkg = group[0]?.pkg ?? key;
+			const versions = versionsByPkg.get(key) ?? [];
 			const checked: { edit: PlannedEdit; ok: boolean }[] = [];
 			for (const e of group) {
 				checked.push({ edit: e, ok: yield* rangeIsSatisfiable(e.value, versions) });
