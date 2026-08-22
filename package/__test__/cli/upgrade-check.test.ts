@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { Effect } from "effect";
 import { describe, expect, it } from "vitest";
-import { checkOutcome, runUpgrade } from "../../src/cli/commands/upgrade.js";
+import { checkFailureOutcome, checkOutcome, runUpgrade } from "../../src/cli/commands/upgrade.js";
 import { makeWorkspaceResolver } from "../../src/cli/workspace-resolve.js";
 import { makeStubResolver } from "./utils/stub-resolver.js";
 import { writeTmpConfig } from "./utils/tmp-config.js";
@@ -69,5 +69,24 @@ describe("checkOutcome", () => {
 	it("exits 0 when nothing drifted", () => {
 		const out = checkOutcome([]);
 		expect(out.exitCode).toBe(0);
+	});
+
+	it("never labels a drift result as a resolution error", () => {
+		const out = checkOutcome(["effected.@fix/bumped"]);
+		expect(out.text).toContain("Catalog drift detected");
+		expect(out.text).not.toContain("resolution error");
+	});
+});
+
+describe("checkFailureOutcome", () => {
+	// PIN: --check exits non-zero on drift AND on resolution/peer failures, and
+	// the consuming gate treats any non-zero as "drifted". The OUTPUT must name
+	// the failure family so a human reading the CI log is not lied to.
+	it("exits 1 and labels the failure as a resolution error, never as drift", () => {
+		const out = checkFailureOutcome("Could not resolve 1 package(s) from the registry:\n  @fix/typo");
+		expect(out.exitCode).toBe(1);
+		expect(out.text).toContain("resolution error");
+		expect(out.text).toContain("@fix/typo");
+		expect(out.text).not.toContain("Catalog drift detected");
 	});
 });

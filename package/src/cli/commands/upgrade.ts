@@ -535,6 +535,26 @@ export function checkOutcome(changed: readonly string[]): { exitCode: 0 | 1; tex
 }
 
 /**
+ * Map a check run's FAILURE (a resolution failure or peer warning — an
+ * UpgradeError, not drift) to the process outcome. Shares --check's single
+ * non-zero exit code with drift, so the OUTPUT must name the failure family:
+ * a gate consuming the exit code reports every non-zero as "drifted", and
+ * without this label the CI log lies about a typo'd package or auth failure.
+ *
+ * @internal
+ */
+export function checkFailureOutcome(message: string): { exitCode: 1; text: string } {
+	const indented = message
+		.split("\n")
+		.map((l) => `  ${l}`)
+		.join("\n");
+	return {
+		exitCode: 1,
+		text: `Catalog check failed before drift could be evaluated (resolution error, not drift):\n${indented}\n`,
+	};
+}
+
+/**
  * Resolve the target file: the passed path, or autodetect in cwd.
  *
  * @internal
@@ -590,10 +610,16 @@ export const upgradeCommand = Command.make(
 			// NOTHING (dryRun is forced regardless of other flags), and exit non-zero
 			// when anything would have been rewritten.
 			if (check) {
-				const result = yield* runUpgrade({ file, resolver, workspaceResolver, dryRun: true });
-				const outcome = checkOutcome(result.changed);
+				// A resolution failure (typo'd name, auth, peer warning) shares the
+				// non-zero exit with drift, but its output must NOT read as drift —
+				// the consuming gate reports every non-zero as "catalog drifted".
+				const result = yield* runUpgrade({ file, resolver, workspaceResolver, dryRun: true }).pipe(Effect.result);
+				const failed = Result.isFailure(result);
+				const outcome = failed ? checkFailureOutcome(result.failure.message) : checkOutcome(result.success.changed);
 				yield* Effect.sync(() => {
-					process.stdout.write(outcome.text);
+					// Drift and in-sync are the gate's normal answers → stdout (as before);
+					// a resolution failure is an error → stderr.
+					(failed ? process.stderr : process.stdout).write(outcome.text);
 					process.exitCode = outcome.exitCode;
 				});
 				return;
