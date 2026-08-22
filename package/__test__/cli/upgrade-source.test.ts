@@ -2,10 +2,12 @@ import { fileURLToPath } from "node:url";
 import { ReleaseAgeGate } from "@effected/npm";
 import { Effect } from "effect";
 import { describe, expect, it } from "vitest";
-import { resolveGatedVersions } from "../../src/cli/commands/upgrade.js";
+import { projectDecisions, resolveGatedVersions } from "../../src/cli/commands/upgrade.js";
 import { discoverCatalogEntries } from "../../src/cli/discover.js";
+import { renderSummary } from "../../src/cli/summary.js";
 import type { CatalogEntry } from "../../src/cli/types.js";
 import { versionKeyOf } from "../../src/cli/version-key.js";
+import { buildWalkItems } from "../../src/cli/walk-plan.js";
 import { makeWorkspaceResolver } from "../../src/cli/workspace-resolve.js";
 
 const FIXTURE = fileURLToPath(new URL("./fixtures/workspace-next/", import.meta.url));
@@ -137,6 +139,30 @@ describe("source routing in resolveGatedVersions", () => {
 			),
 		);
 		expect(out.unresolved).toEqual(["@fix/missing"]);
+	});
+});
+
+describe("projectDecisions parity with runUpgrade for workspace entries", () => {
+	it("picks the workspace sole non-keep candidate so --preview matches what --yes writes", async () => {
+		// runUpgrade applies the sole non-keep candidate for a workspace entry even
+		// when the next version falls outside the current range (^0.2.0 does not
+		// contain 0.3.0 for a 0.x caret). The projection behind --preview and the
+		// non-interactive terminal fallback must make the SAME pick — otherwise a
+		// pending workspace bump renders as unchanged while --yes writes it.
+		const e = entry("@fix/bumped", "^0.2.0", "workspace");
+		const items = await Effect.runPromise(buildWalkItems([e], new Map([[versionKeyOf(e), ["0.3.0"]]])));
+		const decisions = projectDecisions(items, false);
+		expect(decisions).toHaveLength(1);
+		expect(decisions[0]?.chosen.kind).not.toBe("keep");
+		expect(decisions[0]?.chosen.range).toBe("^0.3.0");
+		// The rendered preview shows the bump, not an unchanged row.
+		expect(renderSummary(decisions, undefined, { color: false })).toContain("^0.3.0");
+	});
+
+	it("still never crosses the range for a registry entry", async () => {
+		const e = entry("left-pad", "^0.2.0");
+		const items = await Effect.runPromise(buildWalkItems([e], new Map([["left-pad", ["0.3.0"]]])));
+		expect(projectDecisions(items, false)).toEqual([]);
 	});
 });
 

@@ -525,7 +525,16 @@ export function unresolvedMessage(unresolved: readonly string[]): string {
 export function projectDecisions(items: readonly WalkItem[], full: boolean): Decision[] {
 	const out: Decision[] = [];
 	for (const i of items) {
-		const inRange = i.candidates.find((c) => c.kind === "in-range");
+		// MUST mirror runUpgrade's pick rule: a workspace-sourced entry takes the
+		// sole non-keep candidate even when it falls outside the current range
+		// (a 0.x caret routinely excludes the workspace's next version). This
+		// projection backs --preview and the non-interactive terminal fallback —
+		// diverging here would render a pending workspace bump as unchanged while
+		// --yes writes it and --check exits 1.
+		const inRange =
+			i.entry.source === "workspace"
+				? i.candidates.find((c) => c.kind !== "keep")
+				: i.candidates.find((c) => c.kind === "in-range");
 		if (inRange) {
 			out.push({ item: i, chosen: inRange });
 			continue;
