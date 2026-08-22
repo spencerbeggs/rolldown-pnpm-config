@@ -102,7 +102,7 @@ When you bump a package that has a `strategy`, the command recomputes its `peer`
 
 ## Workspace-sourced entries
 
-An object-form entry can declare `source: "workspace"` to resolve its range from the local workspace's **next release versions** instead of the npm registry — each publishable package's current manifest version overlaid with any pending changeset bump. `source` is orthogonal to `strategy`: `source` decides where the range comes from, `strategy` still decides how `peer` is derived from it.
+An object-form entry can declare `source: "workspace"` to resolve its range from the local workspace's **next release versions** instead of the npm registry — each package's current manifest version overlaid with any pending changeset bump. `source` is orthogonal to `strategy`: `source` decides where the range comes from, `strategy` still decides how `peer` is derived from it.
 
 ```ts
 catalogs: {
@@ -114,7 +114,7 @@ catalogs: {
 }
 ```
 
-The value is `"workspace"`, never `"workspace:^"` — the colon form reads as the pnpm workspace protocol, which cannot resolve for consumers of a published config dependency. Packages are enumerated following the `packages:` globs declared in the workspace's own `pnpm-workspace.yaml` — including nested globs and exclusion patterns, via `@effected/workspaces` (the root is found by walking up from the config file to the nearest `pnpm-workspace.yaml`) — and filtered on `publishConfig.access === "public"`, since source manifests are typically `private: true` and flipped at build time.
+The value is `"workspace"`, never `"workspace:^"` — the colon form reads as the pnpm workspace protocol, which cannot resolve for consumers of a published config dependency. Packages are enumerated following the `packages:` globs declared in the workspace's own `pnpm-workspace.yaml` — including nested globs and exclusion patterns, via `@effected/workspaces` (the root is found by walking up from the config file to the nearest `pnpm-workspace.yaml`). Every workspace package with a name and a version is resolvable — there is no publishability filter: catalog membership and publish policy are the author's decisions, not the resolver's.
 
 Two behaviors differ from registry-sourced entries:
 

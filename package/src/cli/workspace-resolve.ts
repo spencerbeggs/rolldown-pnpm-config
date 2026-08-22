@@ -25,14 +25,16 @@ const BUMP_ORDER: Record<Bump, number> = { patch: 0, minor: 1, major: 2 };
 const FRONTMATTER_LINE_RE = /^\s*["']?([^"':\s]+)["']?\s*:\s*(major|minor|patch)\s*$/;
 
 /**
- * Read every publishable workspace package manifest under `rootDir`, honoring
- * the workspace's own `pnpm-workspace.yaml` `packages:` globs (including
- * exclusion patterns) via `@effected/workspaces` — never a hardcoded
- * `packages/` directory.
+ * Read every workspace package manifest under `rootDir` with a usable name and
+ * version, honoring the workspace's own `pnpm-workspace.yaml` `packages:`
+ * globs (including exclusion patterns) via `@effected/workspaces` — never a
+ * hardcoded `packages/` directory.
  *
- * Publishability is `publishConfig.access === "public"`, NOT `private === false`:
- * source manifests in the target repos are uniformly `private: true` and are
- * flipped at build time, so filtering on `private` yields an empty map.
+ * There is deliberately NO publishability filter: the resolver's job is
+ * finding packages and their versions, full stop. Whether and how a package
+ * publishes is the author's decision, made elsewhere — and catalog membership
+ * is already an explicit choice in the consuming config.
+ *
  * The sync discovery facade is total by contract — an unreadable or malformed
  * manifest (including a version-less workspace root) is skipped, never raised —
  * which is exactly this resolver's degrade-don't-fail contract; the Effect
@@ -43,8 +45,6 @@ const FRONTMATTER_LINE_RE = /^\s*["']?([^"':\s]+)["']?\s*:\s*(major|minor|patch)
 export function readManifests(rootDir: string): Map<string, Manifest> {
 	const out = new Map<string, Manifest>();
 	for (const pkg of getWorkspacePackagesSync(rootDir, nodeSyncOps)) {
-		if (pkg.isRootWorkspace) continue;
-		if (pkg.publishConfig?.access !== "public") continue;
 		out.set(pkg.name, {
 			name: pkg.name,
 			version: pkg.version,
@@ -100,7 +100,7 @@ function applyPendingBumps(rootDir: string, versions: Map<string, string>): void
 	const bumps = readPendingBumps(rootDir);
 	for (const [pkg, bump] of bumps) {
 		const current = versions.get(pkg);
-		// A changeset naming a non-publishable package must not introduce an entry.
+		// A changeset naming a package outside the workspace must not introduce an entry.
 		if (current === undefined) continue;
 		let parsed: SemVer;
 		try {
@@ -113,7 +113,7 @@ function applyPendingBumps(rootDir: string, versions: Map<string, string>): void
 }
 
 /**
- * Read every publishable workspace package's NEXT release version: the current
+ * Read every workspace package's NEXT release version: the current
  * manifest version overlaid with the bump implied by any pending changeset.
  * Absent or unreadable `.changeset/` degrades to current versions.
  *
@@ -164,7 +164,7 @@ export function makeWorkspaceResolver(rootDir: string): ResolverShape {
 		versions: (pkg: string) => {
 			const v = load().versions.get(pkg);
 			return v === undefined
-				? Effect.fail(new ResolveError({ pkg, message: `${pkg} is not a publishable workspace package` }))
+				? Effect.fail(new ResolveError({ pkg, message: `${pkg} is not a workspace package` }))
 				: Effect.succeed([v]);
 		},
 		times: () => Effect.succeed({}),

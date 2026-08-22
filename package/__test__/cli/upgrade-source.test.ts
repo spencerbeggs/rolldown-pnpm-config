@@ -90,10 +90,10 @@ describe("source routing in resolveGatedVersions", () => {
 		expect(out.gated.get("left-pad")).toEqual(["1.0.0", "1.1.0"]);
 	});
 
-	it("reports a workspace-sourced entry the workspace cannot resolve as unresolved", async () => {
+	it("reports a workspace-sourced entry naming a package outside the workspace as unresolved", async () => {
 		const out = await Effect.runPromise(
 			resolveGatedVersions(
-				[entry("@fix/internal", "^0.1.0", "workspace")],
+				[entry("@fix/missing", "^0.1.0", "workspace")],
 				trackingRegistry(),
 				ReleaseAgeGate.combine(),
 				Date.now(),
@@ -101,7 +101,7 @@ describe("source routing in resolveGatedVersions", () => {
 				makeWorkspaceResolver(FIXTURE),
 			),
 		);
-		expect(out.unresolved).toEqual(["@fix/internal"]);
+		expect(out.unresolved).toEqual(["@fix/missing"]);
 	});
 });
 

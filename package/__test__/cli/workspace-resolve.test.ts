@@ -29,8 +29,13 @@ describe("WorkspaceResolverLive", () => {
 		expect(versions).toEqual(["0.1.0"]);
 	});
 
-	it("fails with ResolveError for a package that is not publishable", async () => {
-		const err = await use((r) => r.versions("@fix/internal").pipe(Effect.flip));
+	it("resolves a package with no publishConfig — publish policy is not the resolver's concern", async () => {
+		const versions = await use((r) => r.versions("@fix/internal"));
+		expect(versions).toEqual(["0.1.0"]);
+	});
+
+	it("fails with ResolveError for a name that is not in the workspace at all", async () => {
+		const err = await use((r) => r.versions("@fix/missing").pipe(Effect.flip));
 		expect(err._tag).toBe("ResolveError");
 	});
 
@@ -51,11 +56,12 @@ describe("WorkspaceResolverLive", () => {
 });
 
 describe("readWorkspaceVersions", () => {
-	it("overlays pending changeset bumps and filters on publishConfig.access", () => {
+	it("overlays pending changeset bumps over every workspace member with a name and version", () => {
 		const map = readWorkspaceVersions(FIXTURE);
 		expect(map).toEqual(
 			new Map([
 				["@fix/bumped", "0.3.0"],
+				["@fix/internal", "0.1.0"],
 				["@fix/untouched", "0.1.0"],
 			]),
 		);
@@ -73,6 +79,7 @@ describe("glob-declared workspace layouts", () => {
 			new Map([
 				["@glob/lib-a", "1.1.0"],
 				["@glob/lib-b", "0.5.0"],
+				["@glob/internal", "0.1.0"],
 				["@glob/cli", "2.0.0"],
 			]),
 		);
