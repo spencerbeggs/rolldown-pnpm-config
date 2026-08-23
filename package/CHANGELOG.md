@@ -1,5 +1,17 @@
 # rolldown-pnpm-config
 
+## 0.7.1
+
+### Dependencies
+
+* | Dependency           | Type       | Action  | From    | To      |                                                                          |
+  | -------------------- | ---------- | ------- | ------- | ------- | ------------------------------------------------------------------------ |
+  | @effected/workspaces | dependency | updated | ^0.17.0 | ^0.17.1 | [#93][#93] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
+
+### Patch Changes
+
+[#93]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/93
+
 ## 0.7.0
 
 ### Features

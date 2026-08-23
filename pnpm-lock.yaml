@@ -48,6 +48,19 @@ catalogs:
     effect:
       specifier: 4.0.0-rc.109
       version: 4.0.0-rc.109
+  effected:
+    '@effected/npm':
+      specifier: ^0.11.1
+      version: 0.11.1
+    '@effected/semver':
+      specifier: ^0.5.0
+      version: 0.5.0
+    '@effected/workspaces':
+      specifier: ^0.17.1
+      version: 0.17.1
+    '@effected/yaml':
+      specifier: ^0.10.0
+      version: 0.10.0
   silk:
     '@types/node':
       specifier: ^26.2.0
@@ -131,16 +144,16 @@ importers:
         specifier: catalog:effect
         version: 4.0.0-rc.109(effect@4.0.0-rc.109)(redis@6.2.1)
       '@effected/npm':
-        specifier: ^0.11.1
+        specifier: catalog:effected
         version: 0.11.1(@effected/semver@0.5.0(effect@4.0.0-rc.109))(effect@4.0.0-rc.109)
       '@effected/semver':
-        specifier: ^0.5.0
+        specifier: catalog:effected
         version: 0.5.0(effect@4.0.0-rc.109)
       '@effected/workspaces':
-        specifier: ^0.17.1
+        specifier: catalog:effected
         version: 0.17.1(@effected/jsonc@0.7.0(effect@4.0.0-rc.109))(effect@4.0.0-rc.109)
       '@effected/yaml':
-        specifier: ^0.10.0
+        specifier: catalog:effected
         version: 0.10.0(effect@4.0.0-rc.109)
       effect:
         specifier: catalog:effect
