@@ -41,13 +41,13 @@
 		"effect": "catalog:effect",
 		"ink": "^7.1.1",
 		"ink-tab": "^5.2.0",
-		"oxc-parser": "^0.146.0",
+		"oxc-parser": "^0.147.0",
 		"react": "catalog:silk",
 		"std-env": "^4.2.0",
 		"std-osc8": "^0.2.0"
 	},
 	"devDependencies": {
-		"@savvy-web/bundler": "^2.1.24",
+		"@savvy-web/bundler": "^2.1.25",
 		"@types/node": "catalog:silk",
 		"@types/react": "catalog:silk",
 		"ink-testing-library": "^4.0.0",
