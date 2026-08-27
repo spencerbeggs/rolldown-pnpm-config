@@ -3,8 +3,6 @@
 	"extends": ["@savvy-web/silk/biome"],
 	"overrides": [
 		{
-			// Tests legitimately reach into known-present values and mirror the
-			// `FieldDescriptor<any>` source design; both rules are noise here.
 			"includes": ["**/__test__/**"],
 			"linter": {
 				"rules": {
