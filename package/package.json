@@ -41,7 +41,7 @@
 		"effect": "catalog:effect",
 		"ink": "^7.1.1",
 		"ink-tab": "^5.2.0",
-		"oxc-parser": "^0.147.0",
+		"oxc-parser": "^0.148.0",
 		"react": "catalog:silk",
 		"std-env": "^4.2.0",
 		"std-osc8": "^0.2.0"
