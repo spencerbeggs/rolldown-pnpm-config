@@ -36,18 +36,27 @@ const FRONTMATTER_LINE_RE = /^\s*["']?([^"':\s]+)["']?\s*:\s*(major|minor|patch)
  * is already an explicit choice in the consuming config.
  *
  * The sync discovery facade is total by contract — an unreadable or malformed
- * manifest (including a version-less workspace root) is skipped, never raised —
- * which is exactly this resolver's degrade-don't-fail contract; the Effect
- * surface (`WorkspaceDiscovery`) instead fails typed on any unusable member.
+ * manifest is skipped, never raised — which is exactly this resolver's
+ * degrade-don't-fail contract; the Effect surface (`WorkspaceDiscovery`)
+ * instead fails typed on any unusable member.
+ *
+ * Since `@effected/workspaces` 0.19, that enumeration yields the **root
+ * package first** and carries a member whose manifest declares no `version`
+ * (`WorkspacePackage.version` is an optional key) rather than dropping it —
+ * a private, version-less monorepo root being the ordinary shape. Such a
+ * member is filtered out here: this resolver maps a name to a concrete
+ * version, and an entry with no version has nothing to resolve to.
  *
  * @internal
  */
 export function readManifests(rootDir: string): Map<string, Manifest> {
 	const out = new Map<string, Manifest>();
 	for (const pkg of getWorkspacePackagesSync(rootDir, nodeSyncOps)) {
+		const version = pkg.version;
+		if (version === undefined) continue;
 		out.set(pkg.name, {
 			name: pkg.name,
-			version: pkg.version,
+			version,
 			peerDependencies: pkg.peerDependencies,
 		});
 	}
