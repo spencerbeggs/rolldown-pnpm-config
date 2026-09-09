@@ -5,71 +5,106 @@ repository.
 
 ## Project Status
 
-This is a **base template repository** for developing and publishing Node.js
-modules to npm and GitHub Packages. It is not a working library — it contains
-placeholder source code in `src/` that should be replaced when starting a new
-project.
+`rolldown-pnpm-config` is a working, released library for authoring pnpm
+config-dependency plugins, published from `package/` through the changesets
+release flow. There is no source at the repo root. The workspace also contains
+`examples/*` — three example consumer workspaces (`rolldown`, `savvy`,
+`tsdown`) that exercise the plugin under different bundlers rather than owning
+any part of it.
 
-The design documentation system is available via Claude Code skills and agents.
+### Documentation bundle (`okf/`)
 
-### Design Docs
+Architecture, decisions, and contracts live in the [OKF](https://github.com/okf-project/okf)
+knowledge bundle at `okf/`, indexed at `okf/index.md`. Load a concept when the
+task touches the area it covers; do not load the bundle by default.
 
-Architecture lives in `.claude/design/rolldown-pnpm-config/`. Load these when the task touches the area they cover; do not load them by default.
+- `okf/project.md` — the project's purpose, boundaries, and non-goals. Load
+  when you need the whole-repo frame before touching anything else.
+- `okf/modules/` (5) — one file per owned unit of code: `plugin-engine.md`
+  (the build-time engine, `PnpmConfigPlugin`, freeze), `runtime.md` (the
+  zero-dependency pnpmfile runtime, `createHooks`, strategy table),
+  `descriptors.md` (the 121-field descriptor table), `cli.md` (`upgrade`,
+  `export`, `preview`), `patches.md` (patch discovery and path rewrite). Load
+  the matching module before editing `package/src/**` under that area.
+- `okf/decisions/` (18) — a choice made, the alternatives rejected, and why.
+  Load before changing something that looks arbitrary — e.g. why builds never
+  write (`builds-never-write.md`), why Effect is fenced to build time
+  (`effect-at-build-time-only.md`), why the descriptor table is the single
+  source of truth (`descriptor-table-as-source-of-truth.md`), or why major
+  bumps are interactive-only (`major-bumps-interactive-only.md`) — before
+  reversing it.
+- `okf/interfaces/` (10) — contracts consumers depend on: the authoring
+  surface (`plugin-config.md`), the `{ base, manifest, name }` runtime payload
+  (`base-manifest-name.md`), virtual module specifiers (`virtual-modules.md`),
+  the managed-fields coverage list (`managed-pnpm-fields.md`), and the
+  `upgrade`/`export`/`preview` CLI contracts. Load before changing anything a
+  plugin author's config or a consumer's build depends on.
+- `okf/conventions/` (7) — rules to follow, not descriptions of current
+  behavior: import/module style, commit format, test layout, adding a managed
+  field only through the descriptor table, never unsetting `private` in
+  source, keeping `virtual.d.ts` self-contained, keeping the managed-fields
+  interface in step with the descriptor table.
+- `okf/runbooks/` (3) — ordered operational procedures: building the dual
+  outputs, recovering from a stale config-dependency lockfile, and the
+  release/publish flow. Load before running a build or a release, not after
+  something breaks.
+- `okf/glossary/` (8) — terms this project uses in a specific sense (`base`,
+  `manifest`, `freeze`, `strategy`, `divergence`, `enforcement`,
+  `interop-group`, `materialize`). Load when a word in this codebase doesn't
+  mean what the wider pnpm/Effect ecosystem means by it.
+- `okf/limitations/` (2) and `okf/references/pnpm-settings.md` — known edges
+  of a contract, and the mirrored citation point for what a pnpm setting
+  means when the docs and the schemastore schema disagree.
+- `okf/models/descriptor-table.md` — the maintainer-side shape of one
+  descriptor-table entry: what it contains, what freeze and the registry
+  derive from it, and what breaks if an entry is wrong. Load before adding or
+  editing a descriptor.
 
-- Current-state architecture → `@./.claude/design/rolldown-pnpm-config/architecture.md`. Load when: working on the engine in `package/src/**`, the consolidated `PnpmConfigPlugin({...})` authoring API, the descriptor table in `package/src/descriptors/` as the single source of truth, the derived strategies/registry/freeze/createHooks contract (freeze special-cases `peerDependencyRules`, resolving the `allowedVersionsFromCatalogs` directive in `package/src/plugin/allowed-versions.ts` and baking it into the base), the compile-time `PluginConfig` drift guard (three key-checked-only fields, including `peerDependencyRules`), the Effect v4 stack (`catalog:effect`, the vendored read-only `effect-smol` under `.repos/` as the v4 API authority), editing `package/package.json` dependencies (the v3 satellite peer closure was removed under v4 — do not re-add it), or touching `package/src/virtual.d.ts` (it ships uncompiled and must stay import-free/self-contained).
-- upgrade CLI → `@./.claude/design/rolldown-pnpm-config/upgrade-cli.md`. Load when: working on the `rolldown-pnpm-config upgrade` command under `package/src/cli/` — the discover → resolve → plan → validate → rewrite pipeline, the interactive radio-group table walk, the candidate tiers (including the `minor` tier), live interop peers (`package/src/cli/interop-live.ts`) and the interactive interop write path (no auto-downgrade; reentry only under `--yes`), the `--yes`/`--dry-run`/`--catalog`/`--preview`/`--full` flags, peer recompute/drift-resync/materialize, or config autodetect.
-- pnpm settings coverage matrix → `@./.claude/design/rolldown-pnpm-config/settings-coverage.md`. Load when: adding or auditing managed pnpm fields, editing the descriptor table in `package/src/descriptors/`, checking which of the 121 fields (and the not-covered ones) the plugin handles, or the authoring-layer `peerDependencyRules.allowedVersionsFromCatalogs` directive.
-- export/preview CLI → `@./.claude/design/rolldown-pnpm-config/export-cli.md`. Load when: working on the `rolldown-pnpm-config export` or `preview` commands under `package/src/cli/commands/`, the shared diff/render layer (`cli/ui/styled`, `cli/ui/ansi`, `cli/ui/env`, `cli/diff/`), local merge directives (`LocalDirective`, `excludeByRepo`, override preservation), patch distribution (the `package/src/patches/` module, `public/patches/` vs `patches/`, the `rewrite`/`merge` directives, export-side local path merge), or the preview views (Changes/Full/Simulated — the Simulated view is a plain annotated listing in `package/src/cli/simulated-view.ts` with the `package/src/cli/ui/legend.ts` legend).
+## Keeping the Bundle Current
 
-## Getting Started (After Cloning This Template)
+When a change alters the architecture, a contract, or the reasoning behind
+either, update the matching concept under `okf/` in the same branch and run
+`okfit validate`. Adding a concept is cheaper than letting an existing one go
+stale — a wrong concept costs more than a missing one.
 
-When starting a new project from this template, follow this lifecycle:
-
-1. **Rename the package** — Update `name` in `package.json` (e.g.,
-   `@spencerbeggs/my-new-lib`), update `repository.url` and `homepage`, and
-   update the `repo` field in `.changeset/config.json`
-2. **Replace placeholder code** — Delete the example `Foo`/`Bar` code in
-   `src/index.ts` and `src/index.test.ts`
-3. **Initialize design documentation** — Run `/design-init` to create your
-   first design document describing the library's architecture
-4. **Follow the design-first workflow** — Design docs → `/plan-create` →
-   implementation. This ensures Claude understands the full architecture before
-   writing code
-5. **Implement iteratively** — Use the plan to guide implementation, updating
-   design docs as the architecture evolves
+A migrated or newly written `Decision` stays `status: draft` until a human
+runs `okfit verify` on it; agents never author the `verified` field, and
+`generated.at` is stamped by `okfit sync`, never by hand.
 
 ## Build Pipeline
 
-This project uses
-[@savvy-web/rslib-builder](https://github.com/savvy-web/rslib-builder) to
-produce dual build outputs via [Rslib](https://rslib.rs/):
+Each package builds via `savvy.build.ts` (e.g. `package/savvy.build.ts`),
+which calls `build()` from [@savvy-web/bundler](https://github.com/savvy-web/bundler)
+— not Rslib. `turbo.json` wires `build:dev` and `build:prod` to it:
 
 | Output | Directory | Purpose |
 | ------ | --------- | ------- |
-| Development | `dist/dev/` | Local development with source maps |
-| Production | `dist/npm/` | Published to npm and GitHub Packages |
+| Development | `dist/dev/pkg/` | Local development with source maps |
+| Production | `dist/prod/npm/pkg/` | Published to npm |
+
+`build:prod` writes into `dist/prod/**` generally (a `declarations/` and
+`meta/` directory sit alongside `npm/`); there is no top-level `dist/npm/`.
 
 ### How `private: true` Works
 
 The source `package.json` is marked `"private": true` — **this is intentional
-and correct**. During the build, rslib-builder reads the `publishConfig` field
-and transforms the output `package.json`:
-
-- Sets `"private": false` based on `publishConfig.access`
-- Rewrites `exports` to point at compiled output
-- Strips `devDependencies`, `scripts`, `publishConfig`, and `devEngines`
-
-The `rslib.config.ts` `transform()` callback controls what gets removed. Never
-manually set `"private": false` in the source `package.json`.
+and correct**. `package/savvy.build.ts` calls `build({ dtsExternals:
+["rolldown"] })`; there is no `transform()` callback in this repo — the
+`package.json` transform (flipping `private` to `false` based on
+`publishConfig.access`, rewriting `exports`, stripping
+`devDependencies`/`scripts`/`publishConfig`/`devEngines`) is a built-in
+default of `@savvy-web/bundler`. Never manually set `"private": false` in the
+source `package.json` — see `okf/conventions/never-unset-private-in-source.md`.
 
 ### Publish Targets
 
-The `publishConfig.targets` array defines where packages are published:
-
-- **GitHub Packages** — `https://npm.pkg.github.com/` (from `dist/npm/`)
-- **npm registry** — `https://registry.npmjs.org/` (from `dist/npm/`)
-
-Both targets publish with provenance attestation enabled.
+`package/package.json`'s `publishConfig.targets` declares only `{ npm: true
+}`, and the resolved `dist/prod/targets.json` shows a single `npm` target
+publishing to `https://registry.npmjs.org`. The actual publish steps run in
+an external reusable workflow
+(`spencerbeggs/.github/.github/workflows/release.yml@main`) that lives
+outside this repo — see `okf/runbooks/release-and-publish.md` for what is
+verifiable here.
 
 ### Turbo Orchestration
 
@@ -83,19 +118,18 @@ Both targets publish with provenance attestation enabled.
 
 ## Savvy-Web Tool References
 
-This template depends on several `@savvy-web/*` packages. These are in active
+This project depends on several `@savvy-web/*` packages. These are in active
 development — if behavior seems unexpected, explore both the GitHub docs and the
 installed source.
 
 | Package | Purpose | GitHub | Local Source |
 | ------- | ------- | ------ | ------------ |
-| rslib-builder | Build pipeline, dual output, package.json transform | [savvy-web/rslib-builder](https://github.com/savvy-web/rslib-builder) | `node_modules/@savvy-web/rslib-builder/` |
+| bundler | Build pipeline, dual output, package.json transform | [savvy-web/bundler](https://github.com/savvy-web/bundler) | `node_modules/@savvy-web/bundler/` |
 | commitlint | Conventional commit + DCO enforcement | [savvy-web/commitlint](https://github.com/savvy-web/commitlint) | `node_modules/@savvy-web/commitlint/` |
 | changesets | Versioning, changelogs, release management | [savvy-web/changesets](https://github.com/savvy-web/changesets) | `node_modules/@savvy-web/changesets/` |
 | lint-staged | Pre-commit file linting via Biome | [savvy-web/lint-staged](https://github.com/savvy-web/lint-staged) | `node_modules/@savvy-web/lint-staged/` |
 
-TypeScript configuration extends from rslib-builder:
-`@savvy-web/rslib-builder/tsconfig/ecma/lib.json`
+`package/tsconfig.json` extends `@savvy-web/bundler/tsconfig/ecma.json`.
 
 ## Commands
 
@@ -172,10 +206,12 @@ All commits require:
 
 ### Publishing
 
-Packages publish to both GitHub Packages and npm with provenance via the
-[@savvy-web/changesets](https://github.com/savvy-web/changesets) release
-workflow. The GitHub Action is at
-[savvy-web/silk-release-action](https://github.com/savvy-web/silk-release-action).
+`package/package.json`'s `publishConfig.targets` declares only an `npm`
+target (see § Publish Targets). Versioning and changelog generation go
+through [@savvy-web/changesets](https://github.com/savvy-web/changesets). The
+release workflow (`.github/workflows/release.yml`) calls out to an external
+reusable workflow, `spencerbeggs/.github/.github/workflows/release.yml@main`,
+which is not in this repo — see `okf/runbooks/release-and-publish.md`.
 
 ## Testing
 

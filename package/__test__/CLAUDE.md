@@ -2,6 +2,10 @@
 
 This project uses `@vitest-agent/plugin` for test discovery. Tests live here in `__test__/`, not co-located in `src/`.
 
+See `okf/conventions/test-layout.md` for the canonical statement of this
+rule (why it's enforced, what breaks if it drifts). This file restates the
+directory shape and rules for quick reference while working here.
+
 ## Directory Structure
 
 ```text

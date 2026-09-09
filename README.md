@@ -15,7 +15,7 @@ Monorepo for `rolldown-pnpm-config`, a rolldown plugin that compiles your catalo
 
 - [`package/README.md`](./package/README.md) — npm-facing overview and quick start for the library.
 - [`docs/`](./docs) — user guide: getting started, using `@savvy-web/bundler`, the concepts behind the emitted pnpmfile, the full pnpm settings coverage reference, upgrading catalogs, exporting to `pnpm-workspace.yaml` and distributing dependency patches.
-- Architecture and design notes live in `.claude/design/rolldown-pnpm-config/`.
+- Architecture, decisions and internal contracts live in the [OKF](https://github.com/spencerbeggs/okfit) knowledge bundle at [`okf/`](./okf), indexed at [`okf/index.md`](./okf/index.md).
 
 ## Try it out
 

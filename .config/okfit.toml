@@ -1,0 +1,36 @@
+#:schema https://raw.githubusercontent.com/spencerbeggs/okfit/main/schemas/config/okfit-1.0.0.json
+
+[bundle]
+path = "okf"
+profile = "software-project"
+
+[actors]
+agent = "okfit/claude-code"
+humans = ["human:spencer"]
+
+[types.Runbook]
+description = "A repeatable operational procedure whose order matters."
+guidance = "Write the steps in the order they are performed, not as rules. Name the trigger that starts the procedure and the observable state that means it succeeded. Point resource at the script, workflow, or config the procedure drives."
+required = ["resource"]
+
+[types.Glossary]
+description = "A term this project uses in a specific, non-obvious sense."
+guidance = "Define the term as this repository means it, not as the wider ecosystem means it, and say plainly where the two differ. One term per concept. Point resource at the code where the term is realised."
+
+[types.Limitation]
+description = "A known edge of a contract: something that does not work, and why it is acceptable."
+guidance = "State the condition that triggers it and the observable symptom, not just the cause. Link the Interface or Module whose promise it bounds. If it is fixable and merely unfixed, say what the fix would take."
+
+[types.DataModel]
+description = "An internal source-of-truth structure other artifacts are derived from."
+guidance = "Document the shape from the maintainer's side: what an entry contains, what is derived from it, and what breaks if an entry is wrong. Distinct from Interface, which documents a promise to consumers. Point resource at the file that holds the structure."
+required = ["resource"]
+
+[lint]
+# Migrated Decisions land as `status: draft` and are verified by a human with
+# `okfit verify`, one at a time. Left at the default `error`, this lint makes a
+# clean `okfit validate` impossible for as long as any Decision is unverified,
+# which is the normal state of a freshly migrated bundle. Warn keeps the signal
+# without making the gate unreachable. Raise it back to `error` once the backlog
+# of draft Decisions is verified.
+require_verified_unmet = "warn"

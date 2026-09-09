@@ -33,7 +33,9 @@
 		"MD024": {
 			"siblings_only": true
 		},
-		"MD025": true,
+		"MD025": {
+			"front_matter_title": ""
+		},
 		"MD026": true,
 		"MD027": true,
 		"MD028": true,
@@ -90,7 +92,10 @@
 		"**/.git",
 		"**/__test__/**/fixtures/**",
 		"**/__fixtures__/**",
-		"**/.repos"
+		"**/.repos",
+		"**/okf/log.md",
+		"**/okf/index.md",
+		"**/okf/*/index.md"
 	],
 	"noBanner": true
 }

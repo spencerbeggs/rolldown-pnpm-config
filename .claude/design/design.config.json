@@ -1,9 +1,0 @@
-{
-	"modules": {
-		"rolldown-pnpm-config": {
-			"categories": ["architecture"],
-			"designDocsPath": ".claude/design/rolldown-pnpm-config",
-			"path": "package"
-		}
-	}
-}

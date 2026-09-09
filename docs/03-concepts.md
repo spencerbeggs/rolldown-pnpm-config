@@ -49,4 +49,4 @@ Divergences come in two kinds, which drive two separate warning boxes. An overri
 
 ## Where to go deeper
 
-For the internals — the strategy engine, the field registry, the build-time `freeze` step and the build-to-runtime emit pipeline — see the architecture design doc at `.claude/design/rolldown-pnpm-config/architecture.md`.
+For the internals — the strategy engine, the field registry, the build-time `freeze` step and the build-to-runtime emit pipeline — see the knowledge bundle at [`okf/`](../okf): [`okf/modules/`](../okf/modules) for each subsystem's boundary, [`okf/decisions/`](../okf/decisions) for why it is shaped that way, and [`okf/glossary/`](../okf/glossary) for the vocabulary used throughout.

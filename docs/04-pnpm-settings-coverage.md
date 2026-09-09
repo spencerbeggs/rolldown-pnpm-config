@@ -192,4 +192,4 @@ The following `pnpm-workspace.yaml` settings are not managed by this plugin.
 
 ## Contributors
 
-The authoritative field matrix (descriptor module, strategy, kind and anchor for every entry) lives at [`.claude/design/rolldown-pnpm-config/settings-coverage.md`](../.claude/design/rolldown-pnpm-config/settings-coverage.md). Update that file whenever the descriptor table in `package/src/descriptors/` changes.
+The authoritative field matrix (descriptor module, strategy, kind and anchor for every entry) lives at [`okf/interfaces/managed-pnpm-fields.md`](../okf/interfaces/managed-pnpm-fields.md). Update that file whenever the descriptor table in `package/src/descriptors/` changes.
