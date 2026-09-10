@@ -1,5 +1,21 @@
 # rolldown-pnpm-config
 
+## 0.7.13
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/workspaces | dependency | updated | ^0.20.1 | ^0.20.3 |
+
+[#148][#148]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#148]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/148
+
 ## 0.7.12
 
 ### Dependencies
@@ -197,23 +213,31 @@ Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contri
 
 ### Features
 
-- Add workspace-sourced catalog entries. Catalog packages can now declare&#10;`source: "workspace"` to resolve their version from the local next release
+- Add workspace-sourced catalog entries. Catalog packages can now declare
+  `source: "workspace"` to resolve their version from the local next release
   (package manifests plus pending changesets) instead of the registry.
   Workspace-sourced entries are exempt from the `upgrade` command's
   release-age gate and take their sole resolved candidate automatically on
   every non-interactive path (`--yes`, `--preview`, `--check`, and the CI
   table fallback).
 
-  Add `upgrade --check`: a pure drift gate that resolves exactly as `--yes`&#10;would, never writes, and exits `0` when every catalog entry is in sync or&#10;`1` when anything would have been rewritten — for release validation
+  Add `upgrade --check`: a pure drift gate that resolves exactly as `--yes`
+  would, never writes, and exits `0` when every catalog entry is in sync or
+  `1` when anything would have been rewritten — for release validation
   pipelines. Each drift row is annotated with the entry's version source
   (`(workspace)` or `(registry)`), and a resolution failure is labeled
   distinctly from drift. Builds never write: the CLI owns all source
   rewriting.
 
-  Add `upgrade --json` for the non-interactive modes (`--check`, `--yes`,&#10;`--dry-run`): stdout carries exactly one single-line JSON document —&#10;`{"command":"check","inSync":...,"drift":[...]}` or&#10;`{"command":"upgrade","applied":...,"changed":[...]}` with&#10;`{catalog, pkg, from, to?, source}` rows — and all human-facing text moves
+  Add `upgrade --json` for the non-interactive modes (`--check`, `--yes`,
+  `--dry-run`): stdout carries exactly one single-line JSON document —
+  `{"command":"check","inSync":...,"drift":[...]}` or
+  `{"command":"upgrade","applied":...,"changed":[...]}` with
+  `{catalog, pkg, from, to?, source}` rows — and all human-facing text moves
   to stderr, so bash consumers (a GitHub Action) can capture stdout and feed
   it straight to `jq`. A resolution failure still emits a document with the
-  non-zero exit; combining `--json` with the interactive path or `--preview`&#10;fails fast.
+  non-zero exit; combining `--json` with the interactive path or `--preview`
+  fails fast.
 
 ### Bug Fixes
 
@@ -724,7 +748,8 @@ A new `rolldown-pnpm-config upgrade` command keeps catalog versions current by r
   pnpm settings the plugin would otherwise inject at install time, written
   directly into the workspace file. The plugin is authoritative for the fields it
   manages (config-only fields like `confirmModulesPurge` are skipped); unknown
-  keys and local-only catalogs are preserved; and a new export-only `local` key on&#10;`PnpmConfigPlugin` overrides settings for the local export. Pass `--preview` to
+  keys and local-only catalogs are preserved; and a new export-only `local` key on
+  `PnpmConfigPlugin` overrides settings for the local export. Pass `--preview` to
   print the result without writing. This lets a repo that develops the plugin (and
   cannot consume it as a config dependency) test the exact catalogs and ranges
   downstream consumers will receive.
