@@ -1,5 +1,31 @@
 # rolldown-pnpm-config
 
+## 0.7.14
+
+### Refactoring
+
+- Port the `upgrade`, `export`, and `preview` CLI commands to the PascalCase `Argument`/`Flag` constructors introduced in Effect 4.0.0-rc.113 (`Argument.File`, `Flag.Boolean`, `Flag.String`). Flag and argument parsing is unchanged. [#153][#153]
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effect/platform-node | dependency | updated | 4.0.0-rc.112 | 4.0.0-rc.115 |
+| @effected/npm | dependency | updated | ^0.13.0 | ^0.14.0 |
+| @effected/semver | dependency | updated | ^0.6.0 | ^0.7.0 |
+| @effected/workspaces | dependency | updated | ^0.20.3 | ^0.21.0 |
+| @effected/yaml | dependency | updated | ^0.14.0 | ^0.15.0 |
+| effect | dependency | updated | 4.0.0-rc.112 | 4.0.0-rc.115 |
+| react | dependency | updated | ^19.2.8 | ^19.3.0 |
+
+[#153][#153]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#153]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/153
+
 ## 0.7.13
 
 ### Dependencies

@@ -1,6 +1,6 @@
 {
 	"name": "rolldown-pnpm-config",
-	"version": "0.7.13",
+	"version": "0.7.14",
 	"private": true,
 	"description": "A dogfooding example of our plugin",
 	"repository": {
