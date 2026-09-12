@@ -37,12 +37,13 @@ Effect line or to documentation that may not have caught up yet.
 
 The pin is not a fixed version number to be repeated indefinitely: the rule
 is that it tracks whatever version `catalog:effect` currently resolves to,
-and is re-pinned when that changes. At the time of writing,
-`.repos/config.json` pins `ref: "effect@4.0.0-rc.109"`,[^repos-config] while
-the `effect` version actually resolved through `pnpm-lock.yaml` is
-`4.0.0-rc.112`.[^lockfile] That gap between the two is possible in the
-ordinary course of dependency bumps and is a signal that the pin is due for
-a refresh, not evidence that vendoring the source was the wrong call.
+and is re-pinned when that changes. At the time of writing both agree:
+`.repos/config.json` pins `ref: "effect@4.0.0-rc.115"`[^repos-config] and
+`pnpm-lock.yaml` resolves `effect` to `4.0.0-rc.115`.[^lockfile] The two can
+drift apart in the ordinary course of dependency bumps (the pin sat at
+`rc.109` for one cycle while the lockfile had moved to `rc.112`); such a gap
+is a signal that the pin is due for a refresh, not evidence that vendoring
+the source was the wrong call.
 
 ## Alternatives rejected
 
@@ -55,8 +56,8 @@ a refresh, not evidence that vendoring the source was the wrong call.
 - **Vendor a fixed version and never re-pin it.** Rejected: a fixed vendored
   version would silently drift out of sync with whatever version the catalog
   actually resolves, reintroducing the same staleness problem vendoring was
-  meant to solve — as the current `rc.109`/`rc.112` gap demonstrates in
-  practice.[^repos-config][^lockfile]
+  meant to solve — as the `rc.109`/`rc.112` gap that opened during one bump
+  cycle demonstrated in practice.[^repos-config][^lockfile]
 
 ## Consequences
 
