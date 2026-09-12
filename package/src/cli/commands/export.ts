@@ -154,9 +154,9 @@ export function runExport(opts: {
 	});
 }
 
-const pathArg = Argument.file("path").pipe(Argument.optional);
-const dryRunFlag = Flag.boolean("dry-run").pipe(Flag.withDefault(false));
-const fullFlag = Flag.boolean("full").pipe(Flag.withDefault(false));
+const pathArg = Argument.File("path").pipe(Argument.optional);
+const dryRunFlag = Flag.Boolean("dry-run").pipe(Flag.withDefault(false));
+const fullFlag = Flag.Boolean("full").pipe(Flag.withDefault(false));
 
 /**
  * The "export" command. Materializes the plugin config into pnpm-workspace.yaml.

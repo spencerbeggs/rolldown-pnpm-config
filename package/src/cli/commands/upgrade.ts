@@ -776,14 +776,14 @@ export function resolveTargetFile(fileOpt: Option.Option<string>): Effect.Effect
 	});
 }
 
-const fileArg = Argument.file("file", { mustExist: true }).pipe(Argument.optional);
-const yesFlag = Flag.boolean("yes").pipe(Flag.withAlias("y"), Flag.withDefault(false));
-const dryRunFlag = Flag.boolean("dry-run").pipe(Flag.withDefault(false));
-const catalogOption = Flag.string("catalog").pipe(Flag.optional);
-const previewFlag = Flag.boolean("preview").pipe(Flag.withDefault(false));
-const fullFlag = Flag.boolean("full").pipe(Flag.withDefault(false));
-const checkFlag = Flag.boolean("check").pipe(Flag.withDefault(false));
-const jsonFlag = Flag.boolean("json").pipe(Flag.withDefault(false));
+const fileArg = Argument.File("file", { mustExist: true }).pipe(Argument.optional);
+const yesFlag = Flag.Boolean("yes").pipe(Flag.withAlias("y"), Flag.withDefault(false));
+const dryRunFlag = Flag.Boolean("dry-run").pipe(Flag.withDefault(false));
+const catalogOption = Flag.String("catalog").pipe(Flag.optional);
+const previewFlag = Flag.Boolean("preview").pipe(Flag.withDefault(false));
+const fullFlag = Flag.Boolean("full").pipe(Flag.withDefault(false));
+const checkFlag = Flag.Boolean("check").pipe(Flag.withDefault(false));
+const jsonFlag = Flag.Boolean("json").pipe(Flag.withDefault(false));
 
 /**
  * The "upgrade" command. The default path runs the interactive table;
