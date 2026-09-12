@@ -60,7 +60,7 @@ export function runPreviewViews(opts: { configFile: string; workspacePath?: stri
 	});
 }
 
-const pathArg = Argument.file("path").pipe(Argument.optional);
+const pathArg = Argument.File("path").pipe(Argument.optional);
 
 /**
  * The "preview" command: interactive ink-tab explorer of the export diff
