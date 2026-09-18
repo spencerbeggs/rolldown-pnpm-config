@@ -1,5 +1,15 @@
 # rolldown-pnpm-config
 
+## 0.8.0
+
+### Bug Fixes
+
+- pnpm v12 peer issues
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
 ## 0.7.17
 
 ### Dependencies
