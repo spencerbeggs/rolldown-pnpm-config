@@ -1,8 +1,7 @@
+import { Predicate } from "effect";
 import type { ChangeKind, DiffMeta, DiffNode } from "./types.js";
 
-function isObject(v: unknown): v is Record<string, unknown> {
-	return v !== null && typeof v === "object" && !Array.isArray(v);
-}
+const isObject = Predicate.isObject;
 
 /** Worst kind among children: changed if any differs, added/removed if uniform, else unchanged. */
 function rollup(children: readonly DiffNode[]): ChangeKind {

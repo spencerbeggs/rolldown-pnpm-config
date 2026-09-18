@@ -1,5 +1,5 @@
-import { Range, SemVer } from "@effected/semver";
 import { Effect } from "effect";
+import { parseRange, parseVersion } from "../semver-util.js";
 import type { PlannedEdit } from "./types.js";
 
 /** An edit dropped because no published version satisfies its range. @internal */
@@ -26,16 +26,13 @@ export interface RejectedEdit {
  *
  * @internal
  */
-export function rangeIsSatisfiable(range: string, versions: readonly string[]): Effect.Effect<boolean, never> {
-	return Effect.gen(function* () {
-		if (versions.length === 0) return true;
-		const parsedRange = yield* Range.parse(range).pipe(Effect.catch(() => Effect.succeed(null)));
-		if (parsedRange === null) return true;
-		for (const v of versions) {
-			const sv = yield* SemVer.parse(v).pipe(Effect.catch(() => Effect.succeed(null)));
-			if (sv && parsedRange.test(sv)) return true;
-		}
-		return false;
+export function rangeIsSatisfiable(range: string, versions: readonly string[]): boolean {
+	if (versions.length === 0) return true;
+	const parsedRange = parseRange(range);
+	if (parsedRange === null) return true;
+	return versions.some((v) => {
+		const sv = parseVersion(v);
+		return sv !== null && parsedRange.test(sv);
 	});
 }
 
@@ -61,7 +58,7 @@ export function validateEdits(
 	edits: readonly PlannedEdit[],
 	versionsByPkg: ReadonlyMap<string, readonly string[]>,
 ): Effect.Effect<{ accepted: PlannedEdit[]; rejected: RejectedEdit[] }, never> {
-	return Effect.gen(function* () {
+	return Effect.sync(() => {
 		// Group by the route-aware version key (falling back to the bare name):
 		// a workspace-sourced edit and a registry-sourced edit for the SAME name
 		// validate against different version lists and reject independently.
@@ -78,10 +75,7 @@ export function validateEdits(
 		for (const [key, group] of byPkg) {
 			const pkg = group[0]?.pkg ?? key;
 			const versions = versionsByPkg.get(key) ?? [];
-			const checked: { edit: PlannedEdit; ok: boolean }[] = [];
-			for (const e of group) {
-				checked.push({ edit: e, ok: yield* rangeIsSatisfiable(e.value, versions) });
-			}
+			const checked = group.map((edit) => ({ edit, ok: rangeIsSatisfiable(edit.value, versions) }));
 			const failing = checked.filter((c) => !c.ok);
 			if (failing.length === 0) {
 				accepted.push(...group);

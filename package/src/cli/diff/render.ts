@@ -15,7 +15,8 @@ const STYLE: Record<ChangeKind, ChangeStyle> = {
 	unchanged: "unchanged",
 };
 
-function scalarText(v: unknown): string {
+/** A scalar as YAML-shaped text: strings verbatim, everything else JSON. @internal */
+export function scalarText(v: unknown): string {
 	return typeof v === "string" ? v : JSON.stringify(v);
 }
 

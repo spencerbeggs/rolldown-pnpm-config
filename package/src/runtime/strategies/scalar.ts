@@ -33,9 +33,9 @@ export const securityFlag: Strategy = (base, local) => {
 };
 
 /**
- * `child ?? base`; flags when child lowers the value. Field-agnostic, so it
- * emits `setting: ""`; the runtime fills the field name. Detects
- * minimum-release-age loosening.
+ * `child ?? base`; flags when child lowers a managed numeric floor (e.g. the
+ * release-age quarantine). Field-agnostic, so it emits `setting: ""`; the
+ * runtime fills the field name.
  *
  * @internal
  */
@@ -47,7 +47,7 @@ export const securityMin: Strategy = (base, local) => {
 			setting: "",
 			managedValue: String(base),
 			localValue: String(local),
-			detail: `Shortens the release-age quarantine from ${base} to ${local} minutes.`,
+			detail: `Lowers a managed security minimum from ${base} to ${local}.`,
 			kind: "security",
 		});
 	}

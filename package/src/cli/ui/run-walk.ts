@@ -8,7 +8,9 @@ import { Walk } from "./Walk.js";
 /**
  * Render the interactive table inside an Effect, resolving with the collected
  * decisions once the user submits (or with an empty list when they cancel with
- * Esc, or when no rows are actionable), after Ink has fully exited.
+ * Esc, or when no rows are actionable), after Ink has fully exited. An Ink
+ * crash rejects `waitUntilExit()`, which `Effect.promise` surfaces as a
+ * defect rather than a hung fiber.
  *
  * @internal
  */
@@ -18,7 +20,7 @@ export function runWalk(
 	unresolved: readonly string[] = [],
 	interopModels: ReadonlyMap<string, GroupModel> = new Map(),
 ): Effect.Effect<Decision[]> {
-	return Effect.callback<Decision[]>((resume) => {
+	return Effect.promise(async () => {
 		let collected: readonly Decision[] = [];
 		const instance = render(
 			createElement(Walk, {
@@ -31,13 +33,7 @@ export function runWalk(
 				},
 			}),
 		);
-		// Resume on both paths: a normal exit succeeds with the collected
-		// decisions, but if Ink crashes or unmounts with an error
-		// `waitUntilExit()` rejects — resume with a defect so the fiber fails
-		// instead of hanging suspended forever (unhandled rejection).
-		void instance
-			.waitUntilExit()
-			.then(() => resume(Effect.succeed([...collected])))
-			.catch((err) => resume(Effect.die(err)));
+		await instance.waitUntilExit();
+		return [...collected];
 	});
 }

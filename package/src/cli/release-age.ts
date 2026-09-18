@@ -1,4 +1,5 @@
 import type { PartialReleaseAgeGate } from "@effected/npm";
+import { isWrappedField } from "../plugin/freeze.js";
 
 /**
  * Read a release-age gate from config and pnpm and combine it with
@@ -9,12 +10,7 @@ import type { PartialReleaseAgeGate } from "@effected/npm";
  */
 
 /** Unwrap a managed field that may be a bare value or a `{ value, enforcement }` FieldInput. */
-function fieldValue(raw: unknown): unknown {
-	if (raw && typeof raw === "object" && !Array.isArray(raw) && "value" in raw) {
-		return (raw as { value: unknown }).value;
-	}
-	return raw;
-}
+const fieldValue = (raw: unknown): unknown => (isWrappedField(raw) ? raw.value : raw);
 
 /** Read the release-age gate declared in a statically-evaluated PnpmConfigPlugin config. @internal */
 export function readConfigReleaseAge(config: Record<string, unknown> | null): PartialReleaseAgeGate | null {

@@ -1,3 +1,5 @@
+import { Predicate } from "effect";
+
 /** Default protocols whose existing-file override entries are preserved. @internal */
 export const DEFAULT_PRESERVE: readonly string[] = ["file", "link", "workspace", "portal"];
 
@@ -11,13 +13,9 @@ const DIRECTIVE_KEYS = new Set(["preserve", "value", "strategy"]);
  * @internal
  */
 export function isLocalDirective(v: unknown): boolean {
-	if (v === null || typeof v !== "object" || Array.isArray(v)) return false;
+	if (!Predicate.isObject(v)) return false;
 	const keys = Object.keys(v);
 	return keys.length > 0 && keys.every((k) => DIRECTIVE_KEYS.has(k));
-}
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-	return v !== null && typeof v === "object" && !Array.isArray(v);
 }
 
 /** Union/difference two records or two arrays; managed is the left operand. */
@@ -29,8 +27,8 @@ function combine(managed: unknown, value: unknown, strategy: "union" | "differen
 		const drop = new Set(v.map((x) => JSON.stringify(x)));
 		return m.filter((x) => !drop.has(JSON.stringify(x)));
 	}
-	const m = isRecord(managed) ? managed : {};
-	const v = isRecord(value) ? value : {};
+	const m = Predicate.isObject(managed) ? managed : {};
+	const v = Predicate.isObject(value) ? value : {};
 	if (strategy === "union") return { ...m, ...v };
 	const out: Record<string, unknown> = { ...m };
 	for (const k of Object.keys(v)) delete out[k];
@@ -68,8 +66,8 @@ export function applyLocalDirective(managed: unknown, raw: unknown, parsed: unkn
 	// 2. preserve (overrides only)
 	if (field === "overrides") {
 		const protocols = directive.preserve ?? DEFAULT_PRESERVE;
-		const base: Record<string, unknown> = isRecord(result) ? { ...result } : {};
-		if (isRecord(parsed)) {
+		const base: Record<string, unknown> = Predicate.isObject(result) ? { ...result } : {};
+		if (Predicate.isObject(parsed)) {
 			for (const [k, val] of Object.entries(parsed)) {
 				if (typeof val === "string" && protocols.some((p) => val.startsWith(`${p}:`))) base[k] = val;
 			}

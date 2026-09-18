@@ -10,6 +10,7 @@ import {
 	initTable,
 	peerFor,
 	tableDecisions,
+	tableLayout,
 	tableStep,
 	truncateEnd,
 } from "../walk-reducer.js";
@@ -84,24 +85,7 @@ export function Walk({
 		return createElement(Text, null, "Done.");
 	}
 
-	const pkgWidth = Math.max(...items.map((i) => i.entry.pkg.length));
-	const MAJOR_SUFFIX = " ⚠ major";
-	// Filled / hollow radio glyphs, matching `pnpm up -i`.
-	const SELECTED = "●";
-	const UNSELECTED = "○";
-	// Widest single candidate cell (range text, plus the major suffix when present)
-	// across all rows, so every cell reserves the same width whether or not that
-	// particular candidate happens to be major.
-	const cellWidth = Math.max(
-		...items.flatMap((i) => displayCandidates(i).map((c) => c.range.length + (c.isMajor ? MAJOR_SUFFIX.length : 0))),
-	);
-	// Every row emits the same number of cells (real or blank placeholders) so the
-	// peer separator lands in the same column regardless of how many candidates a
-	// given row has.
-	const maxCells = Math.max(...items.map((i) => displayCandidates(i).length));
-	// "● " / "○ " glyph-plus-space prefix width, common to every cell.
-	const BUBBLE_WIDTH = 2;
-	const blankCell = `${" ".repeat(BUBBLE_WIDTH + cellWidth)}  `;
+	const { pkgWidth, cellWidth, maxCells, blankCell, cellText } = tableLayout(items);
 
 	// Columns consumed by everything left of a row's trailing annotation, so a long
 	// peer-conflict message can be truncated to the terminal width instead of
@@ -143,18 +127,9 @@ export function Walk({
 		const candidates = displayCandidates(item);
 		const cells = candidates.map((c, ci) => {
 			const selected = ci === pick;
-			const bubble = selected ? SELECTED : UNSELECTED;
-			const major = c.isMajor ? MAJOR_SUFFIX : "";
-			// Pad the range+major content together so the major suffix never shifts
-			// a later column: every cell reserves cellWidth regardless of whether
-			// this particular candidate is major.
-			const content = `${c.range}${major}`.padEnd(cellWidth);
 			const color = cellColor(c, selected);
-			return createElement(Text, { key: c.kind, ...(color ? { color } : {}) }, `${bubble} ${content}  `);
+			return createElement(Text, { key: c.kind, ...(color ? { color } : {}) }, cellText(c, selected));
 		});
-		// Pad rows with fewer candidates than the widest row out to maxCells so
-		// every row emits the same total cell count and the peer separator lands
-		// in the same column.
 		for (let ci = candidates.length; ci < maxCells; ci++) {
 			cells.push(createElement(Text, { key: `blank-${ci}` }, blankCell));
 		}

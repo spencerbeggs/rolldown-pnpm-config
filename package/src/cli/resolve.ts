@@ -1,4 +1,4 @@
-import { Context, Data, Effect, Layer } from "effect";
+import { Context, Data, Effect, Layer, Predicate } from "effect";
 // The unstable/process index re-exports its modules as namespaces, so the
 // ChildProcessSpawner service class lives at ChildProcessSpawner.ChildProcessSpawner
 // (deep subpath imports are not in the package's exports map).
@@ -34,6 +34,19 @@ export class RegistryResolver extends Context.Service<
 	}
 >()("RegistryResolver") {}
 
+/**
+ * Drop pnpm's own notice lines from captured stdout. pnpm prints e.g.
+ * `[WARN] This project is configured to use 12.5.0… Your current pnpm is v12.4.2`
+ * (a `packageManager` mismatch) to STDOUT ahead of the `--json` payload, which
+ * would otherwise make every `pnpm view` unparseable and report each real
+ * package as an unresolvable typo.
+ *
+ * @internal
+ */
+export function stripPnpmNotices(stdout: string): string {
+	return stdout.replace(/^[ \t]*(?:\[WARN\]|\[ERR\]|WARN\b|ERR_PNPM_\w+)[^\n]*\n?/gm, "");
+}
+
 /** Parse `pnpm view ... versions --json` stdout: a JSON array, or a single JSON string. */
 export function parseVersions(pkg: string, stdout: string): Effect.Effect<string[], ResolveError> {
 	return Effect.try({
@@ -47,38 +60,34 @@ export function parseVersions(pkg: string, stdout: string): Effect.Effect<string
 	});
 }
 
-/** Parse `pnpm view <pkg> time --json` stdout: an object of version → ISO date. @internal */
-export function parseTimes(pkg: string, stdout: string): Effect.Effect<Record<string, string>, ResolveError> {
+/** Parse a `pnpm view ... --json` object of string values into a string record. */
+function parseStringRecord(
+	pkg: string,
+	stdout: string,
+	what: string,
+): Effect.Effect<Record<string, string>, ResolveError> {
 	return Effect.try({
 		try: () => {
 			const json = JSON.parse(stdout) as unknown;
-			if (json && typeof json === "object" && !Array.isArray(json)) {
-				const out: Record<string, string> = {};
-				for (const [k, v] of Object.entries(json as Record<string, unknown>)) out[k] = String(v);
-				return out;
-			}
-			throw new Error("unexpected shape");
+			if (!Predicate.isObject(json)) throw new Error("unexpected shape");
+			const out: Record<string, string> = {};
+			for (const [k, v] of Object.entries(json)) out[k] = String(v);
+			return out;
 		},
-		catch: () => new ResolveError({ pkg, message: `Could not parse times for ${pkg}` }),
+		catch: () => new ResolveError({ pkg, message: `Could not parse ${what} for ${pkg}` }),
 	});
+}
+
+/** Parse `pnpm view <pkg> time --json` stdout: an object of version → ISO date. @internal */
+export function parseTimes(pkg: string, stdout: string): Effect.Effect<Record<string, string>, ResolveError> {
+	return parseStringRecord(pkg, stdout, "times");
 }
 
 /** Parse `pnpm view <pkg>@<version> peerDependencies --json`; empty stdout → {}. @internal */
 export function parsePeerDeps(pkg: string, stdout: string): Effect.Effect<Record<string, string>, ResolveError> {
 	const trimmed = stdout.trim();
 	if (trimmed === "") return Effect.succeed({});
-	return Effect.try({
-		try: () => {
-			const json = JSON.parse(trimmed) as unknown;
-			if (json && typeof json === "object" && !Array.isArray(json)) {
-				const out: Record<string, string> = {};
-				for (const [k, v] of Object.entries(json as Record<string, unknown>)) out[k] = String(v);
-				return out;
-			}
-			throw new Error("unexpected shape");
-		},
-		catch: () => new ResolveError({ pkg, message: `Could not parse peerDependencies for ${pkg}` }),
-	});
+	return parseStringRecord(pkg, trimmed, "peerDependencies");
 }
 
 /**
@@ -90,37 +99,23 @@ export const RegistryResolverLive: Layer.Layer<RegistryResolver, never, Spawner>
 	RegistryResolver,
 	Effect.gen(function* () {
 		const spawner = yield* Spawner;
+		/** `pnpm view <spec> <field> --json` stdout, with a spawn failure typed against `pkg`. */
+		const pnpmView = (pkg: string, spec: string, field: string): Effect.Effect<string, ResolveError> =>
+			spawner.string(ChildProcess.make("pnpm", ["view", spec, field, "--json"])).pipe(
+				Effect.map(stripPnpmNotices),
+				Effect.mapError((e) => new ResolveError({ pkg, message: String(e) })),
+			);
 		return {
-			versions: (pkg: string) =>
-				Effect.gen(function* () {
-					const cmd = ChildProcess.make("pnpm", ["view", pkg, "versions", "--json"]);
-					const stdout = yield* spawner
-						.string(cmd)
-						.pipe(Effect.mapError((e) => new ResolveError({ pkg, message: String(e) })));
-					return yield* parseVersions(pkg, stdout);
-				}),
-			times: (pkg: string) =>
-				Effect.gen(function* () {
-					const cmd = ChildProcess.make("pnpm", ["view", pkg, "time", "--json"]);
-					const stdout = yield* spawner
-						.string(cmd)
-						.pipe(Effect.mapError((e) => new ResolveError({ pkg, message: String(e) })));
-					return yield* parseTimes(pkg, stdout);
-				}),
+			versions: (pkg: string) => pnpmView(pkg, pkg, "versions").pipe(Effect.flatMap((out) => parseVersions(pkg, out))),
+			times: (pkg: string) => pnpmView(pkg, pkg, "time").pipe(Effect.flatMap((out) => parseTimes(pkg, out))),
 			peerDependencies: (pkg: string, version: string) =>
-				Effect.gen(function* () {
-					const cmd = ChildProcess.make("pnpm", ["view", `${pkg}@${version}`, "peerDependencies", "--json"]);
-					const stdout = yield* spawner
-						.string(cmd)
-						.pipe(Effect.mapError((e) => new ResolveError({ pkg, message: String(e) })));
-					return yield* parsePeerDeps(pkg, stdout);
-				}),
+				pnpmView(pkg, `${pkg}@${version}`, "peerDependencies").pipe(Effect.flatMap((out) => parsePeerDeps(pkg, out))),
 			pnpmConfig: (key: string) =>
 				Effect.gen(function* () {
 					const cmd = ChildProcess.make("pnpm", ["config", "get", key]);
 					return yield* spawner.string(cmd).pipe(
-						Effect.map((s) => s.trim()),
-						Effect.catch(() => Effect.succeed<string | null>(null)),
+						Effect.map((s) => stripPnpmNotices(s).trim()),
+						Effect.orElseSucceed(() => null as string | null),
 					);
 				}),
 		};

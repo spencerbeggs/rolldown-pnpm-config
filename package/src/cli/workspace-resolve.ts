@@ -1,10 +1,11 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { SemVer } from "@effected/semver";
 import { getWorkspacePackagesSync } from "@effected/workspaces";
 import { nodeSyncOps } from "@effected/workspaces/node-sync";
 import { Effect, Layer } from "effect";
+import { parseVersion } from "../semver-util.js";
 import { RegistryResolver, ResolveError } from "./resolve.js";
+import { findWorkspaceFile } from "./workspace-file.js";
 
 /** The RegistryResolver service shape, shared by the registry and workspace implementations. */
 type ResolverShape = (typeof RegistryResolver)["Service"];
@@ -111,12 +112,8 @@ function applyPendingBumps(rootDir: string, versions: Map<string, string>): void
 		const current = versions.get(pkg);
 		// A changeset naming a package outside the workspace must not introduce an entry.
 		if (current === undefined) continue;
-		let parsed: SemVer;
-		try {
-			parsed = Effect.runSync(SemVer.parse(current));
-		} catch {
-			continue;
-		}
+		const parsed = parseVersion(current);
+		if (parsed === null) continue;
 		versions.set(pkg, parsed.bump[bump]().toString());
 	}
 }
@@ -128,9 +125,9 @@ function applyPendingBumps(rootDir: string, versions: Map<string, string>): void
  *
  * @internal
  */
-export function readWorkspaceVersions(rootDir: string): Map<string, string> {
+export function readWorkspaceVersions(rootDir: string, manifests = readManifests(rootDir)): Map<string, string> {
 	const out = new Map<string, string>();
-	for (const [name, manifest] of readManifests(rootDir)) {
+	for (const [name, manifest] of manifests) {
 		out.set(name, manifest.version);
 	}
 	applyPendingBumps(rootDir, out);
@@ -166,7 +163,7 @@ export function makeWorkspaceResolver(rootDir: string): ResolverShape {
 	let versions: Map<string, string> | undefined;
 	const load = (): { manifests: Map<string, Manifest>; versions: Map<string, string> } => {
 		manifests ??= readManifests(rootDir);
-		versions ??= readWorkspaceVersions(rootDir);
+		versions ??= readWorkspaceVersions(rootDir, manifests);
 		return { manifests, versions };
 	};
 	return {
@@ -192,11 +189,6 @@ export function makeWorkspaceResolver(rootDir: string): ResolverShape {
  * @internal
  */
 export function findWorkspaceRoot(startDir: string): string {
-	let dir = resolve(startDir);
-	for (;;) {
-		if (existsSync(join(dir, "pnpm-workspace.yaml"))) return dir;
-		const parent = dirname(dir);
-		if (parent === dir) return resolve(startDir);
-		dir = parent;
-	}
+	const file = findWorkspaceFile(resolve(startDir));
+	return file === null ? resolve(startDir) : dirname(file);
 }

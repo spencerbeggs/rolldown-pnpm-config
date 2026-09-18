@@ -1,10 +1,10 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
-import { Data, Effect, Option } from "effect";
+import { existsSync, writeFileSync } from "node:fs";
+import { dirname, relative } from "node:path";
+import { Data, Effect, Option, Predicate } from "effect";
 import { Argument, Command, Flag } from "effect/unstable/cli";
+import type { PluginConfig } from "../../define-plugin.js";
 import { DESCRIPTORS } from "../../descriptors/index.js";
-import { isRewriteDirective, readLocalPatchesDir, withResolvedBuildPatches } from "../../patches/build.js";
-import { discoverPatches } from "../../patches/discover.js";
+import { discoverOwnedPatches, withResolvedBuildPatches } from "../../patches/build.js";
 import type { PatchReconcileReport } from "../../patches/reconcile.js";
 import { reconcilePatches } from "../../patches/reconcile.js";
 import { freeze } from "../../plugin/freeze.js";
@@ -13,13 +13,13 @@ import { buildDiff } from "../diff/build.js";
 import { renderExportDiff } from "../diff/render.js";
 import type { DiffNode } from "../diff/types.js";
 import { effectiveManaged } from "../effective.js";
-import { evaluatePluginConfig } from "../evaluate.js";
+import { loadConfigAndWorkspace } from "../load-config.js";
 import { findConfigFiles, pickConfigCandidate } from "../select-file.js";
 import { toAnsi } from "../ui/ansi.js";
 import { detectCapabilities } from "../ui/env.js";
 import { legendLines } from "../ui/legend.js";
 import type { StyledLine } from "../ui/styled.js";
-import { canonicalize, findWorkspaceFile, parseWorkspace, renderWorkspace } from "../workspace-file.js";
+import { canonicalize, renderWorkspace } from "../workspace-file.js";
 import { overlayWorkspace } from "../workspace-overlay.js";
 
 /**
@@ -59,22 +59,16 @@ export function runExport(opts: {
 	ExportError
 > {
 	return Effect.gen(function* () {
-		const configSource = yield* Effect.try({
-			try: () => readFileSync(opts.configFile, "utf8"),
-			catch: () => new ExportError({ message: `Cannot read ${opts.configFile}` }),
-		});
-		const { config, errors } = evaluatePluginConfig(configSource, opts.configFile);
-		if (config === null) {
-			return yield* Effect.fail(new ExportError({ message: `No PnpmConfigPlugin call found in ${opts.configFile}` }));
-		}
-		if (errors.length > 0) {
-			return yield* Effect.fail(new ExportError({ message: `Non-literal config values: ${errors.join("; ")}` }));
-		}
-		const resolvedConfig = withResolvedBuildPatches(
-			config as unknown as Parameters<typeof withResolvedBuildPatches>[0],
-			dirname(opts.configFile),
+		const { config, localCfg, path, parsed } = yield* loadConfigAndWorkspace(
+			opts,
+			(message) => new ExportError({ message }),
 		);
-		const { base, manifest } = yield* freeze(resolvedConfig as unknown as Parameters<typeof freeze>[0]).pipe(
+		const pluginConfig = config as unknown as PluginConfig;
+		// Discovery runs at most once: the build-side resolution and the export-side
+		// local-path merge below both read the same owned-patch list.
+		const owned = discoverOwnedPatches(pluginConfig, dirname(opts.configFile));
+		const resolvedConfig = withResolvedBuildPatches(pluginConfig, dirname(opts.configFile), owned);
+		const { base, manifest } = yield* freeze(resolvedConfig).pipe(
 			Effect.mapError((e) => new ExportError({ message: e.message })),
 		);
 		const managed: Record<string, unknown> = {};
@@ -82,17 +76,7 @@ export function runExport(opts: {
 			if (WORKSPACE_FIELDS.has(k)) managed[k] = v;
 		}
 
-		const path = opts.workspacePath ?? findWorkspaceFile(process.cwd()) ?? join(process.cwd(), "pnpm-workspace.yaml");
-		const parsed = existsSync(path)
-			? yield* Effect.try({
-					try: () => parseWorkspace(readFileSync(path, "utf8")),
-					catch: (e) => new ExportError({ message: `Cannot read or parse ${path}: ${String(e)}` }),
-				})
-			: {};
-
 		const rootName = resolveRootName({ dir: dirname(path) });
-		const localCfg =
-			config.local && typeof config.local === "object" ? (config.local as Record<string, unknown>) : undefined;
 		const effective = effectiveManaged(managed, localCfg, parsed, manifest, rootName);
 		// patchedDependencies is special-cased on export. This plugin's patches —
 		// the hand-authored explicit map as-is, or the discovered owned patches
@@ -103,29 +87,18 @@ export function runExport(opts: {
 		// build side (withResolvedBuildPatches) so the escape hatch behaves the
 		// same on build and export; the distributed `.pnpm-config` paths in `base`
 		// are for consumers, never this repo.
-		const rawPatched = (config as { patchedDependencies?: unknown }).patchedDependencies;
-		const explicitPatchMap = rawPatched !== undefined && !isRewriteDirective(rawPatched);
+		const explicitPatchMap = owned === undefined;
 		const contributed: Record<string, string> = {};
 		if (explicitPatchMap) {
-			const explicit = effective.patchedDependencies;
-			if (explicit !== null && typeof explicit === "object" && !Array.isArray(explicit)) {
-				Object.assign(contributed, explicit as Record<string, string>);
+			if (Predicate.isObject(effective.patchedDependencies)) {
+				Object.assign(contributed, effective.patchedDependencies as Record<string, string>);
 			}
 		} else {
-			const localPatchesDir = readLocalPatchesDir(config as unknown as Parameters<typeof readLocalPatchesDir>[0]);
-			const owned = discoverPatches({
-				baseDir: dirname(opts.configFile),
-				name: typeof config.name === "string" ? config.name : "",
-				...(localPatchesDir !== undefined ? { localPatchesDir } : {}),
-			});
 			const workspaceRoot = dirname(path);
 			for (const p of owned) contributed[p.key] = relative(workspaceRoot, p.absPath).split(/[\\/]/).join("/");
 		}
 		if (Object.keys(contributed).length > 0) {
-			const existing =
-				parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)
-					? ((parsed as Record<string, unknown>).patchedDependencies as Record<string, string> | undefined)
-					: undefined;
+			const existing = parsed.patchedDependencies as Record<string, string> | undefined;
 			effective.patchedDependencies = { ...(existing ?? {}), ...contributed };
 		}
 		const report: PatchReconcileReport = reconcilePatches({
@@ -135,9 +108,7 @@ export function runExport(opts: {
 		});
 		const merged = overlayWorkspace(effective, parsed);
 		const rendered = renderWorkspace(merged);
-		const localKeys = new Set(
-			config.local && typeof config.local === "object" ? Object.keys(config.local as Record<string, unknown>) : [],
-		);
+		const localKeys = new Set(Object.keys(localCfg ?? {}));
 		const tree: DiffNode = buildDiff(
 			canonicalize(parsed) as Record<string, unknown>,
 			canonicalize(merged) as Record<string, unknown>,

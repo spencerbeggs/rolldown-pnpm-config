@@ -1,36 +1,19 @@
 import { toAnsi } from "./ui/ansi.js";
 import type { ChangeStyle, Segment, StyledLine } from "./ui/styled.js";
 import type { RejectedEdit } from "./validate.js";
-import { displayCandidates, peerFor } from "./walk-reducer.js";
+import { displayCandidates, peerFor, tableLayout } from "./walk-reducer.js";
 import type { Decision } from "./walk-types.js";
 
-/** One interop member pulled below the user's pick to satisfy the group. @internal */
-export interface InteropAdjustment {
-	readonly catalog: string;
-	readonly pkg: string;
-	readonly from: string;
-	readonly to: string;
-	readonly peer: string;
-}
-/** The interop section of an interactive summary: adjustments + unresolved conflicts. @internal */
+/** The interop section of an interactive summary: the unresolved conflicts. @internal */
 export interface InteropSummary {
-	readonly adjustments: readonly InteropAdjustment[];
 	readonly conflicts: readonly { readonly pkg: string; readonly ceiling: string; readonly blockedBy: string }[];
 }
-
-/** Trailing annotation appended to a major candidate's cell, e.g. " ⚠ major". */
-const MAJOR_SUFFIX = " ⚠ major";
-/** Filled / hollow radio glyphs. MUST match `ui/Walk.ts` — the summary mirrors the table. */
-const SELECTED = "●";
-const UNSELECTED = "○";
-/** "● " / "○ " glyph-plus-space prefix width, common to every cell. */
-const BUBBLE_WIDTH = 2;
 
 /**
  * Build the pending-decisions summary as styled lines: one table row per
  * decision — mirroring the interactive selection table, catalog headers,
- * chosen bubble filled — then a dim tally, interop adjustments, conflicts,
- * and any rejected edits. Pure; color is applied by `renderSummary`/`toAnsi`.
+ * chosen bubble filled — then a dim tally, interop conflicts, and any
+ * rejected edits. Pure; color is applied by `renderSummary`/`toAnsi`.
  *
  * @internal
  */
@@ -46,22 +29,8 @@ export function summaryLines(
 	let materialize = 0;
 	let upToDate = 0;
 
-	const pkgWidth = decisions.length ? Math.max(...decisions.map((d) => d.item.entry.pkg.length)) : 0;
-	// Widest single candidate cell (range text, plus the major suffix when present)
-	// across all rows, so every cell reserves the same width whether or not that
-	// particular candidate happens to be major.
-	const cellWidth = decisions.length
-		? Math.max(
-				...decisions.flatMap((d) =>
-					displayCandidates(d.item).map((c) => c.range.length + (c.isMajor ? MAJOR_SUFFIX.length : 0)),
-				),
-			)
-		: 0;
-	// Every row emits the same number of cells (real or blank placeholders) so the
-	// peer separator lands in the same column regardless of how many candidates a
-	// given row has.
-	const maxCells = decisions.length ? Math.max(...decisions.map((d) => displayCandidates(d.item).length)) : 0;
-	const blankCell = `${" ".repeat(BUBBLE_WIDTH + cellWidth)}  `;
+	// The same geometry as the interactive table, so the summary mirrors it.
+	const { pkgWidth, maxCells, blankCell, cellText } = tableLayout(decisions.map((d) => d.item));
 
 	let lastCatalog: string | null = null;
 	for (const { item, chosen } of decisions) {
@@ -78,7 +47,6 @@ export function summaryLines(
 		const segments: Segment[] = [{ text: entry.pkg.padEnd(pkgWidth + 2), style: "plain" }];
 		for (const c of cells) {
 			const selected = c.kind === chosen.kind;
-			const bubble = selected ? SELECTED : UNSELECTED;
 			const style: ChangeStyle = !selected
 				? "unchanged"
 				: c.kind === "keep"
@@ -86,15 +54,8 @@ export function summaryLines(
 					: c.isMajor
 						? "changed"
 						: "added";
-			// Pad the range+major content together so the major suffix never shifts a
-			// later column: every cell reserves cellWidth regardless of whether this
-			// particular candidate is major.
-			const content = `${c.range}${c.isMajor ? MAJOR_SUFFIX : ""}`.padEnd(cellWidth);
-			segments.push({ text: `${bubble} ${content}  `, style });
+			segments.push({ text: cellText(c, selected), style });
 		}
-		// Pad rows with fewer candidates than the widest row out to maxCells so every
-		// row emits the same total cell count and the peer separator lands in the
-		// same column.
 		for (let ci = cells.length; ci < maxCells; ci++) {
 			segments.push({ text: blankCell, style: "plain" });
 		}
@@ -132,10 +93,6 @@ export function summaryLines(
 		],
 	});
 	if (interop) {
-		for (const a of interop.adjustments) {
-			lines.push({ indent: 0, gutter: "~", segments: [{ text: `↓ ${a.pkg}  ${a.from} → ${a.to}`, style: "changed" }] });
-			lines.push({ indent: 1, gutter: "~", segments: [{ text: `↳ peer  → ${a.peer}`, style: "changed" }] });
-		}
 		for (const c of interop.conflicts) {
 			lines.push({
 				indent: 0,

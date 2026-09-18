@@ -1,6 +1,7 @@
 import type { Strategy } from "../types.js";
 
-function unionSort(managed: readonly string[], local: readonly string[] | undefined): string[] {
+/** Union `managed` with `local` (when present), deduped and sorted for a stable render. @internal */
+export function unionSort(managed: readonly string[], local: readonly string[] | undefined): string[] {
 	const set = new Set(managed);
 	for (const item of local ?? []) set.add(item);
 	return [...set].sort((a, b) => a.localeCompare(b));

@@ -1,5 +1,7 @@
 import { Data } from "effect";
 import { parseSync } from "oxc-parser";
+import type { Node } from "./ast.js";
+import { findPluginArg, keyName, prop } from "./ast.js";
 import type { CatalogEntry } from "./types.js";
 
 /**
@@ -12,60 +14,10 @@ export class DiscoverError extends Data.TaggedError("DiscoverError")<{ readonly 
 /** Matches a simple-operator range we can safely rewrite (`^x`, `~x`, or bare `x`). */
 const SIMPLE_RANGE_RE = /^(\^|~|)(\d[\w.+-]*)$/;
 
-// Minimal shapes for the oxc ESTree nodes we traverse. oxc nodes carry numeric
-// `start`/`end` byte offsets into the source string (spans include quotes for
-// string literals).
-interface Node {
-	readonly type: string;
-	readonly start: number;
-	readonly end: number;
-	readonly [k: string]: unknown;
-}
-
 function operatorOf(range: string): "^" | "~" | "" {
 	if (range.startsWith("^")) return "^";
 	if (range.startsWith("~")) return "~";
 	return "";
-}
-
-/**
- * Find a property value by key name in an ObjectExpression node.
- * Handles both Identifier keys (unquoted) and Literal keys (quoted).
- */
-function prop(obj: Node, key: string): Node | undefined {
-	const properties = (obj.properties as Node[]) ?? [];
-	for (const p of properties) {
-		if (p.type !== "Property") continue;
-		const k = p.key as Node;
-		const name = k.type === "Identifier" ? (k.name as string) : k.type === "Literal" ? String(k.value) : undefined;
-		if (name === key) return p.value as Node;
-	}
-	return undefined;
-}
-
-/** Find the first `PnpmConfigPlugin(...)` CallExpression's first argument object. */
-function findPluginArg(program: Node): Node | undefined {
-	let found: Node | undefined;
-	const visit = (node: unknown): void => {
-		if (found || node === null || typeof node !== "object") return;
-		const n = node as Node;
-		if (n.type === "CallExpression") {
-			const callee = n.callee as Node | undefined;
-			if (callee?.type === "Identifier" && (callee.name as string) === "PnpmConfigPlugin") {
-				const args = n.arguments as Node[];
-				if (args?.[0]?.type === "ObjectExpression") {
-					found = args[0];
-					return;
-				}
-			}
-		}
-		for (const value of Object.values(n)) {
-			if (Array.isArray(value)) value.forEach(visit);
-			else if (value && typeof value === "object") visit(value);
-		}
-	};
-	visit(program);
-	return found;
 }
 
 /**
@@ -97,8 +49,8 @@ export function discoverCatalogEntries(
 
 	for (const catProp of (catalogs.properties as Node[]) ?? []) {
 		if (catProp.type !== "Property") continue;
-		const catKey = catProp.key as Node;
-		const catalog = catKey.type === "Identifier" ? (catKey.name as string) : String(catKey.value);
+		const catalog = keyName(catProp.key as Node);
+		if (catalog === undefined) continue;
 		const decl = catProp.value as Node;
 		if (decl.type !== "ObjectExpression") continue;
 		const packages = prop(decl, "packages");
@@ -106,8 +58,8 @@ export function discoverCatalogEntries(
 
 		for (const pkgProp of (packages.properties as Node[]) ?? []) {
 			if (pkgProp.type !== "Property") continue;
-			const pkgKey = pkgProp.key as Node;
-			const pkg = pkgKey.type === "Identifier" ? (pkgKey.name as string) : String(pkgKey.value);
+			const pkg = keyName(pkgProp.key as Node);
+			if (pkg === undefined) continue;
 			const value = pkgProp.value as Node;
 
 			// Resolve the range literal node and any peer/strategy/source.

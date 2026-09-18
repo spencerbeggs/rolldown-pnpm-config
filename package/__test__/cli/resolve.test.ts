@@ -1,6 +1,13 @@
 import { Effect, Layer } from "effect";
 import { describe, expect, it } from "vitest";
-import { RegistryResolver, ResolveError, parsePeerDeps, parseTimes, parseVersions } from "../../src/cli/resolve.js";
+import {
+	RegistryResolver,
+	ResolveError,
+	parsePeerDeps,
+	parseTimes,
+	parseVersions,
+	stripPnpmNotices,
+} from "../../src/cli/resolve.js";
 
 const StubOk = Layer.succeed(RegistryResolver, {
 	versions: (pkg) => Effect.succeed(pkg === "typescript" ? ["5.9.0", "5.9.3"] : []),
@@ -23,6 +30,24 @@ describe("RegistryResolver (contract)", () => {
 	it("ResolveError carries the package name", () => {
 		const err = new ResolveError({ pkg: "x", message: "boom" });
 		expect(err.pkg).toBe("x");
+	});
+});
+
+describe("stripPnpmNotices", () => {
+	const banner = "[WARN] This project is configured to use 12.5.0+sha512.abc of pnpm. Your current pnpm is v12.4.2\n";
+
+	it("drops a packageManager-mismatch banner printed ahead of the JSON payload", async () => {
+		const out = await Effect.runPromise(parseVersions("typescript", stripPnpmNotices(`${banner}["5.9.0","5.9.3"]\n`)));
+		expect(out).toEqual(["5.9.0", "5.9.3"]);
+	});
+
+	it("drops the bare-WARN spelling and leaves clean output untouched", () => {
+		expect(stripPnpmNotices(' WARN  deprecated thing\n{"a":"1"}\n')).toBe('{"a":"1"}\n');
+		expect(stripPnpmNotices('["1.0.0"]')).toBe('["1.0.0"]');
+	});
+
+	it("leaves a `pnpm config get` value readable when the banner precedes it", () => {
+		expect(stripPnpmNotices(`${banner}undefined\n`).trim()).toBe("undefined");
 	});
 });
 
