@@ -1,12 +1,10 @@
 import { Effect } from "effect";
 import { describe, expect, it } from "vitest";
-import type { InteropConflict, InteropResult, PeerDepsOf } from "../../src/cli/interop.js";
+import type { InteropConflict, InteropResult } from "../../src/cli/interop.js";
 import {
 	buildInteropEdits,
-	capVersions,
 	deriveFloors,
 	interopEntryChanged,
-	reentryCandidates,
 	resolveGroup,
 	runInterop,
 } from "../../src/cli/interop.js";
@@ -14,18 +12,16 @@ import type { CatalogEntry } from "../../src/cli/types.js";
 
 const run = <A>(e: Effect.Effect<A, never>) => Effect.runPromise(e);
 
-/** Build an InteropResult fixture; peers/conflicts/peerDepsOf default to empty. */
+/** Build an InteropResult fixture; peers/conflicts default to empty. */
 function makeResult(o: {
 	resolved: ReadonlyMap<string, string>;
 	peers?: ReadonlyMap<string, string>;
 	conflicts?: readonly InteropConflict[];
-	peerDepsOf?: PeerDepsOf;
 }): InteropResult {
 	return {
 		resolved: o.resolved,
 		peers: o.peers ?? new Map<string, string>(),
 		conflicts: o.conflicts ?? [],
-		peerDepsOf: o.peerDepsOf ?? (() => ({})),
 	};
 }
 
@@ -136,8 +132,6 @@ describe("runInterop", () => {
 		expect(out.resolved.get("@effect/cli")).toBe("0.70.0"); // downgraded
 		expect(out.peers.get("effect")).toBe("^3.16.0"); // cli@0.70 declares effect ^3.16.0
 		expect(out.conflicts).toEqual([]);
-		// peerDepsOf is exposed so re-entry can look up anchors.
-		expect(out.peerDepsOf("@effect/cli", "0.71.0")).toEqual({ effect: "^3.18.0" });
 	});
 
 	it("reuses a shared cache across rounds, fetching each (pkg, version) only once", async () => {
@@ -174,42 +168,6 @@ describe("runInterop", () => {
 		const afterFirst = fetched.length;
 		await run(runInterop(members, resolver));
 		expect(fetched.length).toBe(afterFirst * 2);
-	});
-});
-
-describe("reentryCandidates", () => {
-	it("flags a downgraded dependent (capped) and its in-group anchor (uncapped)", () => {
-		const members = [
-			{ pkg: "effect", ceiling: "3.17.0", candidates: ["3.17.0"] },
-			{ pkg: "@effect/cli", ceiling: "0.71.0", candidates: ["0.70.0", "0.71.0"] },
-		];
-		// cli was downgraded 0.71.0 → 0.70.0; cli@0.71.0 peers effect ^3.18.0 (in-group).
-		const result = makeResult({
-			resolved: new Map([
-				["effect", "3.17.0"],
-				["@effect/cli", "0.70.0"],
-			]),
-			peerDepsOf: (pkg, v) => (pkg === "@effect/cli" && v === "0.71.0" ? { effect: "^3.18.0" } : {}),
-		});
-		const out = reentryCandidates(members, result);
-		// The dependent is capped at its resolved version.
-		expect(out).toContainEqual({ pkg: "@effect/cli", cap: "0.70.0" });
-		// Its anchor is offered uncapped so the user can RAISE it.
-		expect(out).toContainEqual({ pkg: "effect", cap: null });
-	});
-
-	it("returns nothing for an internally-compatible set", () => {
-		const members = [
-			{ pkg: "effect", ceiling: "3.17.0", candidates: ["3.17.0"] },
-			{ pkg: "@effect/cli", ceiling: "0.70.0", candidates: ["0.70.0"] },
-		];
-		const result = makeResult({
-			resolved: new Map([
-				["effect", "3.17.0"],
-				["@effect/cli", "0.70.0"],
-			]),
-		});
-		expect(reentryCandidates(members, result)).toEqual([]);
 	});
 });
 
@@ -314,17 +272,5 @@ describe("buildInteropEdits", () => {
 			peers: new Map([["@effect/cli", "^0.71.0"]]),
 		});
 		expect(buildInteropEdits([e], result)).toEqual([]);
-	});
-});
-
-describe("capVersions", () => {
-	it("keeps only versions less than or equal to the cap", async () => {
-		const out = await run(capVersions(["0.69.0", "0.70.0", "0.71.0", "0.72.0"], "0.70.0"));
-		expect(out).toEqual(["0.69.0", "0.70.0"]);
-	});
-
-	it("returns the list unchanged when the cap is unparseable", async () => {
-		const out = await run(capVersions(["0.70.0", "0.71.0"], "not-a-version"));
-		expect(out).toEqual(["0.70.0", "0.71.0"]);
 	});
 });

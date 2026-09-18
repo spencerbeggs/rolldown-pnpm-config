@@ -1,34 +1,6 @@
 import { parseSync } from "oxc-parser";
-
-interface Node {
-	readonly type: string;
-	readonly [k: string]: unknown;
-}
-
-/** Find the first `PnpmConfigPlugin(...)` call's first argument (an object literal). */
-function findPluginArg(program: unknown): Node | undefined {
-	let found: Node | undefined;
-	const visit = (node: unknown): void => {
-		if (found || node === null || typeof node !== "object") return;
-		const n = node as Node;
-		if (n.type === "CallExpression") {
-			const callee = n.callee as Node | undefined;
-			if (callee?.type === "Identifier" && callee.name === "PnpmConfigPlugin") {
-				const args = n.arguments as Node[];
-				if (args?.[0]?.type === "ObjectExpression") {
-					found = args[0];
-					return;
-				}
-			}
-		}
-		for (const value of Object.values(n)) {
-			if (Array.isArray(value)) value.forEach(visit);
-			else if (value && typeof value === "object") visit(value);
-		}
-	};
-	visit(program);
-	return found;
-}
+import type { Node } from "./ast.js";
+import { findPluginArg, keyName } from "./ast.js";
 
 /** Evaluate a literal AST node into a plain JS value; unsupported nodes push to `errors`. */
 function evalNode(node: Node, path: string, errors: string[]): unknown {
@@ -54,9 +26,7 @@ function evalNode(node: Node, path: string, errors: string[]): unknown {
 					errors.push(`${path}: spread/getter is not supported`);
 					continue;
 				}
-				const key = prop.key as Node;
-				const name =
-					key.type === "Identifier" ? (key.name as string) : key.type === "Literal" ? String(key.value) : undefined;
+				const name = keyName(prop.key as Node);
 				if (name === undefined) {
 					errors.push(`${path}: computed key is not supported`);
 					continue;

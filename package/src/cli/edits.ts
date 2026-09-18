@@ -1,6 +1,43 @@
-import type { PlannedEdit } from "./types.js";
+import type { CatalogEntry, PlannedEdit } from "./types.js";
 import { versionKeyOf } from "./version-key.js";
 import type { Decision } from "./walk-types.js";
+
+/** The span-edit constructors for one catalog entry. @internal */
+export interface EntryEdits {
+	/** Rewrite the range literal. */
+	readonly range: (value: string) => PlannedEdit;
+	/** Set the peer: rewrite the existing literal, or insert `, peer: "..."` after the range. */
+	readonly setPeer: (value: string) => PlannedEdit;
+}
+
+/**
+ * The edit constructors for one entry, each tagged with the entry's package
+ * and route-aware version key so `validateEdits` can check it against the
+ * registry before it is written. The single place that knows the insertion
+ * syntax and the key routing — both the interactive and the `--yes` paths
+ * build their edits through it.
+ *
+ * @internal
+ */
+export function entryEdits(entry: CatalogEntry): EntryEdits {
+	const pkg = entry.pkg;
+	const versionKey = versionKeyOf(entry);
+	const insertAt = entry.rangeSpan[1];
+	return {
+		range: (value) => ({ span: entry.rangeSpan, text: JSON.stringify(value), pkg, versionKey, kind: "range", value }),
+		setPeer: (value) =>
+			entry.peer
+				? { span: entry.peer.span, text: JSON.stringify(value), pkg, versionKey, kind: "peer", value }
+				: {
+						span: [insertAt, insertAt],
+						text: `, peer: ${JSON.stringify(value)}`,
+						pkg,
+						versionKey,
+						kind: "peer",
+						value,
+					},
+	};
+}
 
 /**
  * Convert resolved decisions into span edits. A chosen upgrade rewrites the
@@ -17,45 +54,17 @@ export function buildEdits(decisions: readonly Decision[]): PlannedEdit[] {
 	const edits: PlannedEdit[] = [];
 	for (const { item, chosen } of decisions) {
 		const { entry } = item;
-		const pkg = entry.pkg;
-		const versionKey = versionKeyOf(entry);
-		const insertAt = entry.rangeSpan[1];
-		const range = (span: readonly [number, number], value: string): PlannedEdit => ({
-			span,
-			text: JSON.stringify(value),
-			pkg,
-			versionKey,
-			kind: "range",
-			value,
-		});
-		const peer = (span: readonly [number, number], value: string): PlannedEdit => ({
-			span,
-			text: JSON.stringify(value),
-			pkg,
-			versionKey,
-			kind: "peer",
-			value,
-		});
-		const peerInsert = (value: string): PlannedEdit => ({
-			span: [insertAt, insertAt],
-			text: `, peer: ${JSON.stringify(value)}`,
-			pkg,
-			versionKey,
-			kind: "peer",
-			value,
-		});
+		const { range, setPeer } = entryEdits(entry);
 
 		if (chosen.kind !== "keep") {
-			edits.push(range(entry.rangeSpan, chosen.range));
-			if (entry.peer && chosen.peerRange) {
-				edits.push(peer(entry.peer.span, chosen.peerRange));
-			} else if (!entry.peer && entry.strategy && chosen.peerRange) {
-				edits.push(peerInsert(chosen.peerRange));
-			}
+			edits.push(range(chosen.range));
+			// A recomputed peer is only carried by strategy entries; without a
+			// strategy there is nothing to materialize.
+			if (chosen.peerRange && (entry.peer || entry.strategy)) edits.push(setPeer(chosen.peerRange));
 		} else if (entry.peer && item.driftPeer) {
-			edits.push(peer(entry.peer.span, item.driftPeer));
+			edits.push(setPeer(item.driftPeer));
 		} else if (!entry.peer && item.materializePeer) {
-			edits.push(peerInsert(item.materializePeer));
+			edits.push(setPeer(item.materializePeer));
 		}
 	}
 	return edits;

@@ -6,7 +6,8 @@ kind: api
 resource: ../../package/src/cli/ui/styled.ts
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
+  at: 2026-09-18T22:54:21Z
+  body_sha256: 47a71c10755049a402e65e8ea6c892bb6a5bf228a020d80799c81c8af83ed720
 sources:
   - id: styled-ts
     resource: ../../package/src/cli/ui/styled.ts
@@ -44,8 +45,8 @@ lines: each carries an `indent` depth, a single-character `gutter`
 
 `toAnsi` is documented as "Pure: color is decided by the caller, never
 read from the environment" (`ansi.ts:7`).[^ansi-ts] Capability detection
-— color support, interactivity, hyperlink support — is centralized in
-`detectCapabilities()` (`package/src/cli/ui/env.ts:20-26`), which is the
-only function reading `std-env`/`std-osc8`, and its result is threaded
+— color support, interactivity — is centralized in
+`detectCapabilities()` (`package/src/cli/ui/env.ts:17-22`), which is the
+only function reading `std-env`, and its result is threaded
 into callers as explicit flags (`{ color }`, `{ full }`, and so
 on).[^env-ts]

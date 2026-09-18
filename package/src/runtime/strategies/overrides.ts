@@ -1,6 +1,13 @@
 import type { Divergence, Strategy } from "../types.js";
+import { unionSort } from "./arrays.js";
 
-function mergeMapDetect(
+/**
+ * Child wins per key over a managed string map; any differing key is reported
+ * as an override divergence under `<prefix>.<key>`.
+ *
+ * @internal
+ */
+export function mergeMapDetect(
 	prefix: string,
 	managed: Record<string, string>,
 	child: Record<string, string>,
@@ -57,13 +64,11 @@ export const peerDependencyRules: Strategy = (base, local) => {
 		managed.allowedVersions ?? {},
 		child.allowedVersions ?? {},
 	);
-	const union = (s: string[] = [], c: string[] = []): string[] =>
-		[...new Set([...s, ...c])].sort((a, b) => a.localeCompare(b));
 	return {
 		merged: {
 			allowedVersions: av.merged,
-			ignoreMissing: union(managed.ignoreMissing, child.ignoreMissing),
-			allowAny: union(managed.allowAny, child.allowAny),
+			ignoreMissing: unionSort(managed.ignoreMissing ?? [], child.ignoreMissing),
+			allowAny: unionSort(managed.allowAny ?? [], child.allowAny),
 		},
 		divergences: av.divergences,
 	};

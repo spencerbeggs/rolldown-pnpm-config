@@ -6,7 +6,8 @@ resource: ../../package/src/cli
 kind: package
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
+  at: 2026-09-18T22:54:21Z
+  body_sha256: 37b07b9e21fc9765c287c6bb59a9ae32a8a02103edad92bc14afe45336f7dc03
 sources:
   - id: bin
     resource: package/src/cli/bin.ts
@@ -67,9 +68,9 @@ pipeline.
 `segments`, an optional `tag: "local" | "unmanaged"`,
 `package/src/cli/ui/styled.ts:15,18,24`);[^styled] `ui/ansi.ts` maps
 `StyledLine[]` to ANSI text (`toAnsi`, `package/src/cli/ui/ansi.ts:11`);[^ansi]
-`ui/env.ts` is the only module reading `std-env`/`std-osc8`
-(`package/src/cli/ui/env.ts:1-2,20`) for capability detection (`color`,
-`interactive`, `hyperlinks`) — render functions themselves never read the
+`ui/env.ts` is the only module reading `std-env`
+(`package/src/cli/ui/env.ts:1,17`) for capability detection (`color`,
+`interactive`) — render functions themselves never read the
 environment.[^env] `ui/legend.ts` renders the matching color legend.
 `diff/` (`types.ts`, `build.ts`, `render.ts`) is the structured diff tree
 (`DiffNode`, `DiffMeta`) over canonicalized before/after data

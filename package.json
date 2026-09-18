@@ -1,15 +1,15 @@
 {
-	"name": "@spencerbeggs/pnpm-config-builder",
+	"name": "@spencerbeggs/rolldown-pnpm-config",
 	"version": "0.0.0",
 	"private": true,
 	"description": "A template repository for developing and deploying Node.js modules from a pnpm monorepo structure.",
-	"homepage": "https://github.com/spencerbeggs/pnpm-config-builder#readme",
+	"homepage": "https://github.com/spencerbeggs/rolldown-pnpm-config#readme",
 	"bugs": {
-		"url": "https://github.com/spencerbeggs/pnpm-config-builder/issues"
+		"url": "https://github.com/spencerbeggs/rolldown-pnpm-config/issues"
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/spencerbeggs/pnpm-config-builder.git"
+		"url": "git+https://github.com/spencerbeggs/rolldown-pnpm-config.git"
 	},
 	"license": "MIT",
 	"author": {
@@ -68,14 +68,5 @@
 				"onFail": "ignore"
 			}
 		]
-	},
-	"publishConfig": {
-		"access": "public",
-		"directory": "dist/dev/pkg",
-		"linkDirectory": true,
-		"targets": {
-			"npm": true,
-			"github": true
-		}
 	}
 }

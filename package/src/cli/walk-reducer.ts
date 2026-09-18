@@ -16,6 +16,54 @@ export type TableKey = "up" | "down" | "left" | "right" | "submit" | "cancel";
 
 const ORDER: Record<Candidate["kind"], number> = { keep: 0, "in-range": 1, minor: 2, latest: 3 };
 
+/** Trailing annotation appended to a major candidate's cell, e.g. " ⚠ major". @internal */
+export const MAJOR_SUFFIX = " ⚠ major";
+/** Filled / hollow radio glyphs, matching `pnpm up -i`. @internal */
+export const SELECTED = "●";
+/** @internal */
+export const UNSELECTED = "○";
+/** "● " / "○ " glyph-plus-space prefix width, common to every cell. */
+const BUBBLE_WIDTH = 2;
+
+/** The column geometry shared by the interactive table and its summary mirror. @internal */
+export interface TableLayout {
+	/** Widest package name; the name column is padded to this plus two. */
+	readonly pkgWidth: number;
+	/** Widest candidate cell (range text plus the major suffix when present). */
+	readonly cellWidth: number;
+	/** Cells per row — every row emits this many, blank-padded. */
+	readonly maxCells: number;
+	/** A blank placeholder cell of the same width as a real one. */
+	readonly blankCell: string;
+	/** A candidate's cell text: bubble, padded range (+ major suffix), two-space gutter. */
+	readonly cellText: (c: Candidate, selected: boolean) => string;
+}
+
+/**
+ * Compute the table geometry once for a set of rows. The range and the major
+ * suffix are padded TOGETHER so a major annotation never shifts a later
+ * column, and every row emits `maxCells` cells so the peer separator lands
+ * in the same column regardless of how many candidates a row has.
+ *
+ * @internal
+ */
+export function tableLayout(items: readonly WalkItem[]): TableLayout {
+	const cells = items.map(displayCandidates);
+	const pkgWidth = items.length ? Math.max(...items.map((i) => i.entry.pkg.length)) : 0;
+	const cellWidth = items.length
+		? Math.max(...cells.flatMap((cs) => cs.map((c) => c.range.length + (c.isMajor ? MAJOR_SUFFIX.length : 0))))
+		: 0;
+	const maxCells = items.length ? Math.max(...cells.map((cs) => cs.length)) : 0;
+	return {
+		pkgWidth,
+		cellWidth,
+		maxCells,
+		blankCell: `${" ".repeat(BUBBLE_WIDTH + cellWidth)}  `,
+		cellText: (c, selected) =>
+			`${selected ? SELECTED : UNSELECTED} ${`${c.range}${c.isMajor ? MAJOR_SUFFIX : ""}`.padEnd(cellWidth)}  `,
+	};
+}
+
 /**
  * Truncate `s` to at most `max` display columns, appending `…` when clipped.
  * Keeps a long peer-conflict annotation from wrapping and breaking the table's

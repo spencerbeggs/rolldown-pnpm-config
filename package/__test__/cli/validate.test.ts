@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { PlannedEdit } from "../../src/cli/types.js";
 import { rangeIsSatisfiable, validateEdits } from "../../src/cli/validate.js";
 
-const sat = (range: string, versions: readonly string[]) => Effect.runPromise(rangeIsSatisfiable(range, versions));
+const sat = (range: string, versions: readonly string[]) => Promise.resolve(rangeIsSatisfiable(range, versions));
 
 describe("rangeIsSatisfiable", () => {
 	it("accepts a floor that no published version equals but some version satisfies", async () => {

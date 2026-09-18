@@ -43,8 +43,7 @@
 		"ink-tab": "^5.2.0",
 		"oxc-parser": "^0.150.0",
 		"react": "catalog:silk",
-		"std-env": "^4.2.0",
-		"std-osc8": "^0.2.0"
+		"std-env": "^4.2.0"
 	},
 	"devDependencies": {
 		"@savvy-web/bundler": "^2.4.3",

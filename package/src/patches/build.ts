@@ -1,15 +1,11 @@
+import { Predicate } from "effect";
 import type { PluginConfig } from "../define-plugin.js";
+import type { DiscoveredPatch } from "./discover.js";
 import { discoverPatches } from "./discover.js";
 
 /** True only for the `{ strategy: "rewrite" }` directive. @internal */
 export function isRewriteDirective(v: unknown): boolean {
-	return (
-		v !== null &&
-		typeof v === "object" &&
-		!Array.isArray(v) &&
-		Object.keys(v).length === 1 &&
-		(v as { strategy?: unknown }).strategy === "rewrite"
-	);
+	return Predicate.isObject(v) && Object.keys(v).length === 1 && v.strategy === "rewrite";
 }
 
 /** Read `local.localPatchesDir` when it is a string. @internal */
@@ -19,23 +15,41 @@ export function readLocalPatchesDir(config: PluginConfig): string | undefined {
 }
 
 /**
- * Resolve build-time `patchedDependencies`. When the field is absent or the
- * `{ strategy: "rewrite" }` directive, run discovery and inject the distributed
- * map (`name`-scoped `.pnpm-config` paths) so `freeze` sees a plain map. An
- * explicit map / wrapped value passes through untouched.
+ * Discover this plugin's own patches when `patchedDependencies` is absent or
+ * the `{ strategy: "rewrite" }` directive; undefined when an explicit map /
+ * wrapped value is declared (the escape hatch skips discovery entirely).
  *
  * @internal
  */
-export function withResolvedBuildPatches(config: PluginConfig, baseDir: string): PluginConfig {
+export function discoverOwnedPatches(config: PluginConfig, baseDir: string): readonly DiscoveredPatch[] | undefined {
 	const raw = config.patchedDependencies;
-	if (raw !== undefined && !isRewriteDirective(raw)) return config;
-
+	if (raw !== undefined && !isRewriteDirective(raw)) return undefined;
 	const localPatchesDir = readLocalPatchesDir(config);
-	const distributed = discoverPatches({
+	return discoverPatches({
 		baseDir,
 		name: config.name,
 		...(localPatchesDir !== undefined ? { localPatchesDir } : {}),
-	}).filter((p) => p.distributed);
+	});
+}
+
+/**
+ * Resolve build-time `patchedDependencies`. When the field is absent or the
+ * `{ strategy: "rewrite" }` directive, run discovery and inject the distributed
+ * map (`name`-scoped `.pnpm-config` paths) so `freeze` sees a plain map. An
+ * explicit map / wrapped value passes through untouched. A caller that has
+ * already run discovery passes its result as `owned`.
+ *
+ * @internal
+ */
+export function withResolvedBuildPatches(
+	config: PluginConfig,
+	baseDir: string,
+	owned: readonly DiscoveredPatch[] | undefined = discoverOwnedPatches(config, baseDir),
+): PluginConfig {
+	const raw = config.patchedDependencies;
+	if (owned === undefined) return config;
+
+	const distributed = owned.filter((p) => p.distributed);
 
 	if (distributed.length === 0) {
 		if (raw === undefined) return config;

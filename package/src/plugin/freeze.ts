@@ -26,17 +26,24 @@ interface FieldDecl {
 /** Keys recognized by the wrapped `{ value, enforcement?, excludeByRepo? }` form. */
 const WRAPPED_KEYS = new Set(["value", "enforcement", "excludeByRepo"]);
 
-/** True only when `input` is the wrapped form: a `value` key and no foreign keys.
- *  This disambiguates from a record-valued field that happens to contain a
- *  `value` key (e.g. `overrides: { value: ">=1", lodash: ">=4" }`), which has
- *  keys outside the recognized set and is therefore treated as a bare value. */
-function isWrappedField(input: object): boolean {
+/**
+ * True only when `input` is the wrapped `{ value, enforcement?, excludeByRepo? }`
+ * form: a `value` key and no foreign keys. This disambiguates from a
+ * record-valued field that happens to contain a `value` key (e.g.
+ * `overrides: { value: ">=1", lodash: ">=4" }`), which has keys outside the
+ * recognized set and is therefore treated as a bare value. The single
+ * definition of "wrapped" — the CLI's static readers use it too.
+ *
+ * @internal
+ */
+export function isWrappedField(input: unknown): input is { value: unknown } {
+	if (input === null || typeof input !== "object") return false;
 	const keys = Object.keys(input);
 	return keys.includes("value") && keys.every((k) => WRAPPED_KEYS.has(k));
 }
 
 function normalizeField(input: unknown): FieldDecl {
-	if (input !== null && typeof input === "object" && isWrappedField(input)) {
+	if (isWrappedField(input)) {
 		const o = input as { value: unknown; enforcement?: Enforcement; excludeByRepo?: unknown };
 		return {
 			value: o.value,

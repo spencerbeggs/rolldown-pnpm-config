@@ -1,12 +1,10 @@
-import { Range, SemVer } from "@effected/semver";
+import type { SemVer } from "@effected/semver";
 import { Effect } from "effect";
+import { bareVersion, parseRange, parseVersion } from "../semver-util.js";
 import type { CatalogEntry, Edit } from "./types.js";
 
 /** Maximum number of concurrent peerDependencies fetches inside runInterop. @internal */
 export const INTEROP_PEER_CONCURRENCY = 8;
-
-/** Synchronous lookup of already-fetched peerDependencies for a (pkg, version). @internal */
-export type PeerDepsOf = (pkg: string, version: string) => Record<string, string>;
 
 /**
  * Effectful, memoized peer-deps lookup used inside resolveGroup / deriveFloors /
@@ -18,9 +16,30 @@ export type PeerDepsOf = (pkg: string, version: string) => Record<string, string
  */
 export type FetchPeer = (pkg: string, version: string) => Effect.Effect<Record<string, string>, never>;
 
-/** Strip a range operator to its bare version digits (e.g. `^3.17.0` → `3.17.0`). */
-function floorOf(range: string): string {
-	return range.replace(/^[\^~>=\s]+/, "").split(/\s/)[0] ?? range;
+/**
+ * Build an Effectful memoized peer-deps fetcher over `resolver`: a cache hit
+ * returns immediately; a miss calls the resolver (degrading to `{}` on
+ * failure), stores the result in `cache`, and returns it. A `(pkg, version)`
+ * peerDeps lookup is immutable, so a shared `cache` may outlive one call.
+ *
+ * @internal
+ */
+export function makePeerFetcher(
+	resolver: InteropResolver,
+	cache: Map<string, Record<string, string>> = new Map(),
+): FetchPeer {
+	return (pkg, v) => {
+		const k = `${pkg}@${v}`;
+		const cached = cache.get(k);
+		if (cached !== undefined) return Effect.succeed(cached);
+		return resolver.peerDependencies(pkg, v).pipe(
+			Effect.orElseSucceed(() => ({}) as Record<string, string>),
+			Effect.map((deps) => {
+				cache.set(k, deps);
+				return deps;
+			}),
+		);
+	};
 }
 
 /**
@@ -41,26 +60,14 @@ export function deriveFloors(
 			for (const [dep, range] of Object.entries(peers)) {
 				if (!resolved.has(dep)) continue; // in-group filter
 				const list = floors.get(dep) ?? [];
-				list.push(floorOf(range));
+				list.push(bareVersion(range));
 				floors.set(dep, list);
 			}
 		}
 		const out = new Map<string, string>();
 		for (const [pkg, version] of resolved) {
-			const declared = floors.get(pkg);
-			if (declared?.length) {
-				const parsed = yield* Effect.forEach(declared, (f) =>
-					SemVer.parse(f).pipe(
-						Effect.map((sv) => ({ f, sv })),
-						Effect.catch(() => Effect.succeed(null)),
-					),
-				);
-				const valid = parsed.filter((x): x is { f: string; sv: SemVer } => x !== null);
-				valid.sort((a, b) => a.sv.compare(b.sv));
-				out.set(pkg, `^${valid[0]?.f ?? version}`);
-			} else {
-				out.set(pkg, `^${version}`);
-			}
+			const lowest = lowestVersion(floors.get(pkg) ?? []);
+			out.set(pkg, `^${lowest ?? version}`);
 		}
 		return out;
 	});
@@ -81,14 +88,21 @@ export interface GroupResolution {
 	readonly conflicts: readonly InteropConflict[];
 }
 
+/** The lowest parseable version string in `list`, or null when none parses. */
+function lowestVersion(list: readonly string[]): string | null {
+	let best: { f: string; sv: SemVer } | null = null;
+	for (const f of list) {
+		const sv = parseVersion(f);
+		if (sv !== null && (best === null || sv.compare(best.sv) < 0)) best = { f, sv };
+	}
+	return best?.f ?? null;
+}
+
 /** Does `version` satisfy `range`? Unparseable input is treated as not-satisfied. */
-function satisfies(version: string, range: string): Effect.Effect<boolean, never> {
-	return Effect.gen(function* () {
-		const r = yield* Range.parse(range).pipe(Effect.catch(() => Effect.succeed(null)));
-		if (!r) return false;
-		const v = yield* SemVer.parse(version).pipe(Effect.catch(() => Effect.succeed(null)));
-		return v ? r.test(v) : false;
-	});
+function satisfies(version: string, range: string): boolean {
+	const r = parseRange(range);
+	const v = parseVersion(version);
+	return r !== null && v !== null && r.test(v);
 }
 
 /**
@@ -109,7 +123,7 @@ function violations(
 			if (!memberSet.has(dep)) continue;
 			const rv = resolved.get(dep);
 			if (rv === undefined) continue;
-			if (!(yield* satisfies(rv, range))) out.push(`${dep}@${range}`);
+			if (!satisfies(rv, range)) out.push(`${dep}@${range}`);
 		}
 		return out;
 	});
@@ -130,13 +144,20 @@ export function resolveGroup(
 		const memberSet = new Set(members.map((m) => m.pkg));
 		const resolved = new Map<string, string>(members.map((m) => [m.pkg, m.ceiling]));
 		const ceilingOf = new Map(members.map((m) => [m.pkg, m.ceiling]));
-
-		const leq = (a: string, b: string): Effect.Effect<boolean, never> =>
-			Effect.gen(function* () {
-				const av = yield* SemVer.parse(a).pipe(Effect.catch(() => Effect.succeed(null)));
-				const bv = yield* SemVer.parse(b).pipe(Effect.catch(() => Effect.succeed(null)));
-				return av && bv ? av.compare(bv) <= 0 : false;
-			});
+		// Each member's parseable candidates ≤ its ceiling, highest first — parsed
+		// once here rather than on every iteration of the downgrade search below.
+		const eligibleOf = new Map<string, string[]>();
+		for (const m of members) {
+			const ceiling = parseVersion(m.ceiling);
+			const eligible = ceiling
+				? m.candidates
+						.map((v) => ({ v, sv: parseVersion(v) }))
+						.filter((x): x is { v: string; sv: SemVer } => x.sv !== null && x.sv.compare(ceiling) <= 0)
+						.sort((a, b) => b.sv.compare(a.sv))
+						.map((x) => x.v)
+				: [];
+			eligibleOf.set(m.pkg, eligible);
+		}
 
 		const maxIter = members.reduce((n, m) => n + m.candidates.length, 0) + members.length + 1;
 		for (let i = 0; i < maxIter; i++) {
@@ -145,12 +166,8 @@ export function resolveGroup(
 				const cur = resolved.get(m.pkg) as string;
 				if ((yield* violations(m.pkg, cur, resolved, memberSet, fetchPeer)).length === 0) continue;
 				// search candidates ≤ ceiling, highest first, for a satisfying version
-				const ceiling = ceilingOf.get(m.pkg) as string;
-				const eligible: string[] = [];
-				for (const c of m.candidates) if (yield* leq(c, ceiling)) eligible.push(c);
-				const sorted = yield* sortDesc(eligible);
 				let pick: string | null = null;
-				for (const c of sorted) {
+				for (const c of eligibleOf.get(m.pkg) ?? []) {
 					if ((yield* violations(m.pkg, c, resolved, memberSet, fetchPeer)).length === 0) {
 						pick = c;
 						break;
@@ -179,20 +196,6 @@ export function resolveGroup(
 	});
 }
 
-/** Sort version strings descending; unparseable ones sink to the end. */
-function sortDesc(versions: readonly string[]): Effect.Effect<string[], never> {
-	return Effect.gen(function* () {
-		const parsed = yield* Effect.forEach(versions, (v) =>
-			SemVer.parse(v).pipe(
-				Effect.map((sv) => ({ v, sv })),
-				Effect.catch(() => Effect.succeed({ v, sv: null })),
-			),
-		);
-		parsed.sort((a, b) => (a.sv && b.sv ? b.sv.compare(a.sv) : a.sv ? -1 : 1));
-		return parsed.map((p) => p.v);
-	});
-}
-
 export interface InteropResolver {
 	readonly peerDependencies: (pkg: string, version: string) => Effect.Effect<Record<string, string>, unknown>;
 }
@@ -200,8 +203,6 @@ export interface InteropResult {
 	readonly resolved: ReadonlyMap<string, string>;
 	readonly peers: ReadonlyMap<string, string>;
 	readonly conflicts: readonly InteropConflict[];
-	/** Synchronous lookup into the fetch cache used during this resolution. @internal */
-	readonly peerDepsOf: PeerDepsOf;
 }
 
 /**
@@ -218,9 +219,8 @@ export interface InteropResult {
  * O(N × |candidates|) to O(N + |downgraded members| × depth).
  *
  * A `(pkg, version)` peerDeps lookup is immutable, so the optional `cache` may
- * be shared across the interactive re-entry rounds: each round only fetches the
- * keys a prior round did not, sparing the sequential `pnpm view` calls for
- * versions already seen. Omitting it yields a fresh per-call cache.
+ * be shared across calls: each call only fetches the keys a prior one did not.
+ * Omitting it yields a fresh per-call cache.
  *
  * @internal
  */
@@ -230,26 +230,9 @@ export function runInterop(
 	cache: Map<string, Record<string, string>> = new Map(),
 ): Effect.Effect<InteropResult, never> {
 	return Effect.gen(function* () {
-		const key = (pkg: string, v: string) => `${pkg}@${v}`;
-
-		// Effectful memoized fetcher: cache hit → return immediately; cache miss →
-		// call resolver (degrading to {} on failure), store result, return.
 		// Callers (resolveGroup, violations, deriveFloors) yield* this so lower
 		// versions are fetched on-demand, not pre-fetched in bulk.
-		const fetchPeer: FetchPeer = (pkg, v) => {
-			const k = key(pkg, v);
-			const cached = cache.get(k);
-			if (cached !== undefined) return Effect.succeed(cached);
-			return resolver
-				.peerDependencies(pkg, v)
-				.pipe(Effect.catch(() => Effect.succeed({} as Record<string, string>)))
-				.pipe(
-					Effect.map((deps) => {
-						cache.set(k, deps);
-						return deps;
-					}),
-				);
-		};
+		const fetchPeer = makePeerFetcher(resolver, cache);
 
 		// Phase 1 (concurrent): prefetch only the ceiling version of each member.
 		// This warms the cache for the most-common case (ceiling is compatible with
@@ -258,7 +241,7 @@ export function runInterop(
 		const seen = new Set<string>();
 		const toFetch: Array<readonly [string, string]> = [];
 		for (const m of members) {
-			const k = key(m.pkg, m.ceiling);
+			const k = `${m.pkg}@${m.ceiling}`;
 			if (seen.has(k) || cache.has(k)) continue;
 			seen.add(k);
 			toFetch.push([m.pkg, m.ceiling] as const);
@@ -273,46 +256,8 @@ export function runInterop(
 		// versions are already in the cache (ceilings from Phase 1, downgraded
 		// versions from Phase 2's on-demand fetches).
 		const peers = yield* deriveFloors(resolved, fetchPeer);
-
-		// Expose a synchronous cache reader for reentryCandidates and the command
-		// layer, which only ever read ceiling versions (always in cache after Phase 1).
-		const peerDepsOf: PeerDepsOf = (pkg, v) => cache.get(key(pkg, v)) ?? {};
-		return { resolved, peers, conflicts, peerDepsOf };
+		return { resolved, peers, conflicts };
 	});
-}
-
-/**
- * The members to re-prompt in the interactive re-entry: each downgraded or
- * conflicted dependent (capped at its resolved version) PLUS the in-group peer
- * targets those dependents depend on (uncapped, so the user can RAISE the anchor
- * instead of accepting the downgrade). `cap` is the version to cap candidates at,
- * or null for an uncapped anchor.
- *
- * @internal
- */
-export function reentryCandidates(
-	members: readonly GroupMember[],
-	result: InteropResult,
-): { readonly pkg: string; readonly cap: string | null }[] {
-	const memberSet = new Set(members.map((m) => m.pkg));
-	const byPkg = new Map(members.map((m) => [m.pkg, m]));
-	const conflicted = new Set(result.conflicts.map((c) => c.pkg));
-	const out = new Map<string, string | null>();
-	// pass 1: downgraded/conflicted dependents, capped at their resolved version
-	for (const m of members) {
-		const r = result.resolved.get(m.pkg);
-		if (r === undefined) continue;
-		if (r !== m.ceiling || conflicted.has(m.pkg)) out.set(m.pkg, r);
-	}
-	// pass 2: each dependent's in-group peer targets, uncapped (raise affordance)
-	for (const pkg of [...out.keys()]) {
-		const m = byPkg.get(pkg);
-		if (!m) continue;
-		for (const dep of Object.keys(result.peerDepsOf(pkg, m.ceiling))) {
-			if (memberSet.has(dep) && !out.has(dep)) out.set(dep, null);
-		}
-	}
-	return [...out].map(([pkg, cap]) => ({ pkg, cap }));
 }
 
 /** True when an interop member's resolved version/peer differs from what's in source. @internal */
@@ -348,24 +293,4 @@ export function buildInteropEdits(entries: readonly CatalogEntry[], result: Inte
 		}
 	}
 	return edits;
-}
-
-/**
- * Keep only the versions less than or equal to `max` (SemVer comparison). Used
- * to cap the candidate list of a re-prompted interop member. An unparseable
- * `max` leaves the list unchanged.
- *
- * @internal
- */
-export function capVersions(list: readonly string[], max: string): Effect.Effect<string[], never> {
-	return Effect.gen(function* () {
-		const mv = yield* SemVer.parse(max).pipe(Effect.catch(() => Effect.succeed(null)));
-		if (!mv) return [...list];
-		const out: string[] = [];
-		for (const v of list) {
-			const sv = yield* SemVer.parse(v).pipe(Effect.catch(() => Effect.succeed(null)));
-			if (sv && sv.compare(mv) <= 0) out.push(v);
-		}
-		return out;
-	});
 }

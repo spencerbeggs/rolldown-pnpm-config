@@ -1,5 +1,6 @@
-import { Range, SemVer } from "@effected/semver";
+import type { Range, SemVer } from "@effected/semver";
 import { Effect } from "effect";
+import { bareVersion, parseRange, parseVersion } from "../semver-util.js";
 import type { FetchPeer } from "./interop.js";
 import { INTEROP_PEER_CONCURRENCY } from "./interop.js";
 
@@ -36,11 +37,6 @@ export interface GroupPeers {
 	readonly conflict: ReadonlyMap<string, string>;
 }
 
-/** Strip a range operator to its bare version digits (e.g. `^3.17.0` → `3.17.0`). */
-function floorOf(range: string): string {
-	return range.replace(/^[\^~>=\s]+/, "").split(/\s/)[0] ?? range;
-}
-
 /**
  * Recompute each member's peer floor and conflict for the current selection —
  * synchronously, from a pre-built {@link GroupModel}. Mirrors `deriveFloors`
@@ -58,7 +54,7 @@ export function computeGroupPeers(model: GroupModel, selected: ReadonlyMap<strin
 		if (v === undefined) continue;
 		for (const { dep, range } of model.peerReqs.get(`${m}@${v}`) ?? []) {
 			const list = declaredFloors.get(dep) ?? [];
-			list.push(floorOf(range));
+			list.push(bareVersion(range));
 			declaredFloors.set(dep, list);
 		}
 	}
@@ -136,19 +132,13 @@ export function buildGroupModel(
 				if (!members.has(dep)) continue;
 				reqs.push({ dep, range });
 				rngStrings.add(range);
-				verStrings.add(floorOf(range));
+				verStrings.add(bareVersion(range));
 			}
 			peerReqs.set(`${pkg}@${v}`, reqs);
 		}
 
-		const ver = new Map<string, SemVer | null>();
-		for (const s of verStrings) {
-			ver.set(s, yield* SemVer.parse(s).pipe(Effect.catch(() => Effect.succeed(null))));
-		}
-		const rng = new Map<string, Range | null>();
-		for (const s of rngStrings) {
-			rng.set(s, yield* Range.parse(s).pipe(Effect.catch(() => Effect.succeed(null))));
-		}
+		const ver = new Map([...verStrings].map((s) => [s, parseVersion(s)] as const));
+		const rng = new Map([...rngStrings].map((s) => [s, parseRange(s)] as const));
 
 		return { members, peerReqs, ver, rng };
 	});

@@ -5,7 +5,8 @@ description: One StyledLine → toAnsi → ANSI path is shared by export --dry-r
 status: draft
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
+  at: 2026-09-18T22:54:21Z
+  body_sha256: 081b86132084cd8464c8d316932628e74ba84d8cc3f420bf8f6f59270d6c73f9
 sources:
   - id: styled-ts
     resource: package/src/cli/ui/styled.ts
@@ -42,11 +43,13 @@ in `package/src/cli/ui/ansi.ts:11` is a pure function that maps
 `StyledLine[]` to a colored or plain terminal string and never reads the
 environment.
 
-Capability detection (color, interactivity, hyperlinks) is centralized in
-one wrapper, `package/src/cli/ui/env.ts` — the only module that imports
-`std-env` and `std-osc8`. `detectCapabilities()` (`env.ts:20`) returns
-`{ color, interactive, hyperlinks }`: `interactive` is `hasTTY && !isCI &&
-!isAgent` (`env.ts:23`) and `color` is `isColorSupported` from `std-env`.
+Capability detection (color, interactivity) is centralized in one
+wrapper, `package/src/cli/ui/env.ts` — the only module that imports
+`std-env`. `detectCapabilities()` (`env.ts:17`) returns
+`{ color, interactive }`: `interactive` is `hasTTY && !isCI && !isAgent`
+(`env.ts:20`) and `color` is `isColorSupported` from `std-env`. (An OSC-8
+`hyperlinks` flag was carried for a while but nothing rendered links, so
+the flag and its `std-osc8` dependency were dropped.)
 These flags are threaded into render functions as parameters rather than
 read by them, so `toAnsi` and every render function stay pure and
 unit-testable without env mocking.

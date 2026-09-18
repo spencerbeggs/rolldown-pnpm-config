@@ -1,4 +1,5 @@
 import type { CatalogDeclaration, CatalogPackageSpec } from "../catalogs.js";
+import { bareVersion } from "../semver-util.js";
 
 /**
  * A directive that derives `peerDependencyRules.allowedVersions` rules from a
@@ -31,9 +32,6 @@ const EXACT_VERSION = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 
 /** The install range of a catalog spec (bare string or `{ range }` object). */
 const rangeOf = (spec: CatalogPackageSpec): string => (typeof spec === "string" ? spec : spec.range);
-
-/** Strip a leading range operator to the bare version digits (e.g. `^3.17.0` → `3.17.0`). */
-const bareVersion = (range: string): string => range.replace(/^[\^~>=<\s]+/, "").split(/\s/)[0] ?? range;
 
 /** Apply the `prefix` transform to a peer value: verbatim, re-prefixed, or stripped to exact. */
 function applyPrefix(peerValue: string, prefix: string | null | undefined): string {

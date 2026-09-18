@@ -1,4 +1,5 @@
 import type { Enforcement, Manifest, ManifestEntry } from "../runtime/types.js";
+import { scalarText } from "./diff/render.js";
 import type { Segment, StyledLine } from "./ui/styled.js";
 import { canonicalize } from "./workspace-file.js";
 
@@ -38,10 +39,6 @@ function annotation(entry: ManifestEntry | undefined): Segment[] {
 		...enforcementSegs(entry.enforcement),
 		{ text: ")", style: "unchanged" },
 	];
-}
-
-function scalarText(v: unknown): string {
-	return typeof v === "string" ? v : JSON.stringify(v);
 }
 
 /** Flatten one key/value into YAML-shaped plain lines; `ann` annotates the head. */
