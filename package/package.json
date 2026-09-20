@@ -46,7 +46,7 @@
 		"std-env": "^4.2.0"
 	},
 	"devDependencies": {
-		"@savvy-web/bundler": "^2.4.5",
+		"@savvy-web/bundler": "^2.4.6",
 		"@types/node": "catalog:silk",
 		"@types/react": "catalog:silk",
 		"ink-testing-library": "^4.0.0",
