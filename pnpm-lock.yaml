@@ -256,8 +256,8 @@ importers:
   examples/savvy:
     devDependencies:
       '@savvy-web/bundler':
-        specifier: ^2.4.5
-        version: 2.4.5(@types/node@26.6.2)(@types/react@19.3.0)(react@19.3.0)(redis@6.2.1)(tsx@4.23.13)(typescript@7.0.2)
+        specifier: ^2.4.6
+        version: 2.4.6(@types/node@26.6.2)(@types/react@19.3.0)(react@19.3.0)(redis@6.2.1)(tsx@4.23.13)(typescript@7.0.2)
       '@types/node':
         specifier: catalog:silk
         version: 26.6.2
@@ -321,8 +321,8 @@ importers:
         version: 4.2.0
     devDependencies:
       '@savvy-web/bundler':
-        specifier: ^2.4.5
-        version: 2.4.5(@types/node@26.6.2)(@types/react@19.3.0)(react@19.3.0)(redis@6.2.1)(tsx@4.23.13)(typescript@7.0.2)
+        specifier: ^2.4.6
+        version: 2.4.6(@types/node@26.6.2)(@types/react@19.3.0)(react@19.3.0)(redis@6.2.1)(tsx@4.23.13)(typescript@7.0.2)
       '@types/node':
         specifier: catalog:silk
         version: 26.6.2
@@ -1361,8 +1361,8 @@ packages:
     resolution: {integrity: sha512-lT2JKZk2dukBMp4GFOh4RaDfVzpZehGgQOGpzpSliUn317NgEmOOCXyd7/d0eU46HHsbRxizP83GAm39s0lAlg==}
     engines: {node: '>=20.9.0'}
 
-  '@savvy-web/bundler@2.4.5':
-    resolution: {integrity: sha512-KWj2pD8wwHlq6rBjBlxbKH/a+6zA9+qMjpJMkHQzN3wtqio8lkKtIL2VPuS5ZwRV03/pg8WqhVWnRU1v3vAd2Q==}
+  '@savvy-web/bundler@2.4.6':
+    resolution: {integrity: sha512-MNM3a16ryCbQLAZAk7w/fubiiY3Z54IDv0MXKG7iyycFcLmd4hjWT0J0pVykzqSIvvqaesRjpD0nR+utrZYdvA==}
     peerDependencies:
       '@resvg/resvg-js': ^2.6.2
       '@types/node': ^26.6.0
@@ -1439,8 +1439,8 @@ packages:
       '@biomejs/biome':
         optional: true
 
-  '@savvy-web/tsdown-plugins@2.8.5':
-    resolution: {integrity: sha512-KDrrnFV7WVoLtFdnKV2Vzts0tBRBBlimjbpNEeWQPm9XddQ4Y90GLN1ExfcaBo7c0lwTfbkLP+s09+S4kVj5sA==}
+  '@savvy-web/tsdown-plugins@2.8.6':
+    resolution: {integrity: sha512-qy0QqWlqlDmixwPGBfn1977nojEEu6dvstCjDl2rtPbgbxKUKXAHpt9ipoCXQIClPFKN6+CeH70jDj1LVl+inw==}
 
   '@simple-libs/child-process-utils@2.0.0':
     resolution: {integrity: sha512-dvNoRKLijXnD0XoJAz94pbNuB5GQgDr55UhpSPhffDkTT0Cmcqh9jSCOtwfT2d4H6MI9E7c4SgtMuJXZ6F3c6A==}
@@ -4282,9 +4282,9 @@ snapshots:
     transitivePeerDependencies:
       - '@types/node'
 
-  '@savvy-web/bundler@2.4.5(@types/node@26.6.2)(@types/react@19.3.0)(react@19.3.0)(redis@6.2.1)(tsx@4.23.13)(typescript@7.0.2)':
+  '@savvy-web/bundler@2.4.6(@types/node@26.6.2)(@types/react@19.3.0)(react@19.3.0)(redis@6.2.1)(tsx@4.23.13)(typescript@7.0.2)':
     dependencies:
-      '@savvy-web/tsdown-plugins': 2.8.5(@tsdown/exe@0.23.0)(@types/node@26.6.2)(redis@6.2.1)(tsx@4.23.13)
+      '@savvy-web/tsdown-plugins': 2.8.6(@tsdown/exe@0.23.0)(@types/node@26.6.2)(redis@6.2.1)(tsx@4.23.13)
       '@tsdown/exe': 0.23.0(tsdown@0.23.0)
       '@types/node': 26.6.2
       effect: 4.0.0-rc.116
@@ -4430,7 +4430,7 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@savvy-web/tsdown-plugins@2.8.5(@tsdown/exe@0.23.0)(@types/node@26.6.2)(redis@6.2.1)(tsx@4.23.13)':
+  '@savvy-web/tsdown-plugins@2.8.6(@tsdown/exe@0.23.0)(@types/node@26.6.2)(redis@6.2.1)(tsx@4.23.13)':
     dependencies:
       '@changesets/get-release-plan': 5.0.2
       '@effect/platform-node': 4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1)
