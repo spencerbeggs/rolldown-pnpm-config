@@ -5,7 +5,8 @@ description: The v3-era satellite peer-closure workaround in package/package.jso
 status: draft
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
+  at: 2026-09-28T21:43:44Z
+  body_sha256: f9fa0bd7e038b2ca6f3b87fb26022a9fdaee339cd184e89cb456e9b8a8462265
 sources:
   - id: package-json
     resource: package/package.json
@@ -34,7 +35,8 @@ None of those v3 satellite names remain anywhere in the current
 
 Under Effect v4 that workaround is obsolete, and the satellite closure was
 removed. v4 folds the satellite packages into `effect` itself — the CLI now
-lives at `effect/unstable/cli`, process spawning at `effect/unstable/process`
+lives at `effect/cli`, process spawning at `effect/process` (both under
+`effect/unstable/*` before rc.118)
 — and `@effect/platform-node` v4 peers only on `effect`. There is no closure
 left to leak, so `autoInstallPeers` has nothing to resolve into a consumer's
 lockfile. The build-time/CLI dependency surface declared today is just

@@ -1,6 +1,6 @@
 import { dirname } from "node:path";
 import { Data, Effect, Option } from "effect";
-import { Argument, Command } from "effect/unstable/cli";
+import { Argument, Command } from "effect/cli";
 import { freeze } from "../../plugin/freeze.js";
 import { resolveRootName } from "../../runtime/ctx.js";
 import { loadConfigAndWorkspace } from "../load-config.js";

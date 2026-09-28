@@ -4,7 +4,7 @@ import { NodeServices } from "@effect/platform-node";
 import type { PartialReleaseAgeGate } from "@effected/npm";
 import { ReleaseAgeGate } from "@effected/npm";
 import { Data, Effect, Option, Result } from "effect";
-import { Argument, Command, Flag } from "effect/unstable/cli";
+import { Argument, Command, Flag } from "effect/cli";
 import type { VersionSource } from "../../catalogs.js";
 import { bareVersion } from "../../semver-util.js";
 import { discoverCatalogEntries } from "../discover.js";

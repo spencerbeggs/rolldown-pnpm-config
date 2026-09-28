@@ -2,7 +2,7 @@ import { Context, Data, Effect, Layer, Predicate } from "effect";
 // The unstable/process index re-exports its modules as namespaces, so the
 // ChildProcessSpawner service class lives at ChildProcessSpawner.ChildProcessSpawner
 // (deep subpath imports are not in the package's exports map).
-import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
 type Spawner = ChildProcessSpawner.ChildProcessSpawner;
 const Spawner = ChildProcessSpawner.ChildProcessSpawner;

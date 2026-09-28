@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { NodeRuntime, NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
-import { Command } from "effect/unstable/cli";
+import { Command } from "effect/cli";
 import { exportCommand } from "./commands/export.js";
 import { previewCommand } from "./commands/preview.js";
 import { upgradeCommand } from "./commands/upgrade.js";

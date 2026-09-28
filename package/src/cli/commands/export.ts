@@ -1,7 +1,7 @@
 import { existsSync, writeFileSync } from "node:fs";
 import { dirname, relative } from "node:path";
 import { Data, Effect, Option, Predicate } from "effect";
-import { Argument, Command, Flag } from "effect/unstable/cli";
+import { Argument, Command, Flag } from "effect/cli";
 import type { PluginConfig } from "../../define-plugin.js";
 import { DESCRIPTORS } from "../../descriptors/index.js";
 import { discoverOwnedPatches, withResolvedBuildPatches } from "../../patches/build.js";
