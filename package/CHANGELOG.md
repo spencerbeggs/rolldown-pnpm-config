@@ -1,5 +1,22 @@
 # rolldown-pnpm-config
 
+## 1.0.9
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/workspaces | dependency | updated | ^0.30.1 | ^0.30.2 |
+| oxc-parser | dependency | updated | ^0.151.0 | ^0.152.0 |
+
+[#210][#210]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#210]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/210
+
 ## 1.0.8
 
 ### Dependencies
