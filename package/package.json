@@ -43,10 +43,10 @@
 		"ink-tab": "^5.2.0",
 		"oxc-parser": "^0.152.0",
 		"react": "catalog:silk",
-		"std-env": "^4.2.0"
+		"std-env": "^4.3.0"
 	},
 	"devDependencies": {
-		"@savvy-web/bundler": "^2.4.18",
+		"@savvy-web/bundler": "^2.4.20",
 		"@types/node": "catalog:silk",
 		"@types/react": "catalog:silk",
 		"ink-testing-library": "^4.0.0",
