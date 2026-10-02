@@ -1,5 +1,27 @@
 # rolldown-pnpm-config
 
+## 1.0.11
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effect/platform-node | dependency | updated | 4.0.0-rc.118 | ^4.0.0 |
+| @effected/npm | dependency | updated | ^0.19.0 | ^0.20.0 |
+| @effected/semver | dependency | updated | ^0.10.1 | ^0.11.0 |
+| @effected/workspaces | dependency | updated | ^0.30.3 | ^0.31.0 |
+| @effected/yaml | dependency | updated | ^0.18.0 | ^0.19.0 |
+| effect | dependency | updated | 4.0.0-rc.118 | ^4.0.0 |
+| std-env | dependency | updated | ^4.2.0 | ^4.3.0 |
+
+[#217][#217]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#217]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/217
+
 ## 1.0.10
 
 ### Dependencies
