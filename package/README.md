@@ -89,6 +89,8 @@ For repos that develop the plugin itself and cannot consume it as a config depen
 
 The `rolldown-pnpm-config preview` command opens an interactive tabbed view — Changes, Full and Simulated — without writing anything. In a non-interactive terminal it falls back to printing the Changes diff, so it is safe to run in CI.
 
+Every command adapts its output to who is reading it: colour and interactive screens for a person, plain escape-free text for a coding agent (`--agent`) or a CI job (`--ci`), detected automatically when no flag is given. Exit codes are scriptable — `0` success, `1` drift or failure, `64` a usage error, `130` a quit from an interactive screen. See [upgrading catalogs](https://github.com/spencerbeggs/rolldown-pnpm-config/blob/main/docs/05-upgrading-catalogs.md#output-audience-and-exit-codes).
+
 The optional `local` field on `PluginConfig` adjusts managed settings for this repo's export only — the built pnpmfile and its runtime behavior are unaffected. A bare value overwrites the managed value; the directive form merges it:
 
 ```ts

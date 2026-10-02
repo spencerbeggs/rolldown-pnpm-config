@@ -6,7 +6,8 @@ kind: cli
 resource: ../../package/src/cli/commands/export.ts
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
+  at: 2026-10-02T15:35:24Z
+  body_sha256: d2d36fce80189ff2a1aca2bbf76c8d16812961a9f51c35b8fd03dc9ea9257be0
 sources:
   - id: export-ts
     resource: ../../package/src/cli/commands/export.ts
@@ -21,36 +22,36 @@ sources:
 Runs the effective pipeline — freeze, filter to workspace fields,
 `excludeByRepo`, local directives, overlay, write — and materializes the
 result into the consuming repo's `pnpm-workspace.yaml`
-(`runExport`, `package/src/cli/commands/export.ts:52-155`). Prints
-`Exported to <path>` on success (`export.ts:190`).[^export-ts] It also
-prints stale-entry and key-mismatch warnings to stderr from the patch
-reconcile report (`export.ts:191-194`).[^export-ts]
+(`runExport`, `package/src/cli/commands/export.ts`). Prints a success
+line, `✓ Exported to <path>`, on stdout.[^export-ts] It also prints
+stale-entry and key-mismatch warnings to stderr from the patch reconcile
+report.[^export-ts]
 
 ## `export [path] --dry-run [--full]`
 
-Runs the same pipeline but skips the write (`export.ts:148`). Prints a
-colored canonical diff to stdout — a color legend precedes it when the
-terminal supports color — prefixed with `<path> (dry run — not written)`
-(`export.ts:185-189`). `--full` emits the entire canonical tree rather
-than changed lines plus surrounding context (`export.ts:146`, `fullFlag`
-at `export.ts:159`).[^export-ts]
+Runs the same pipeline but skips the write. Prints the canonical diff to
+stdout, headed `<path> (dry run — not written)`; for a person at a colour
+level the diff is coloured and a legend precedes it, and for an agent or a
+pipe it is plain text whose gutters (`+`/`-`/`~`) and tags (`(local)`,
+`(unmanaged)`) carry the meaning (see [CLI output](cli-output.md)).
+`--full` emits the entire canonical tree rather than changed lines plus
+surrounding context.[^export-ts]
 
 ## `preview [path]`
 
-An interactive `ink-tab` explorer over three views — Changes, Full, and
-Simulated (`buildPreviewViews`, `package/src/cli/preview-views.ts`,
-consumed at `preview.ts:53-59`). When the terminal is non-interactive
-(`!caps.interactive`), `preview` falls back to printing the Changes view
-via `toAnsi` and exits rather than entering the interactive Tabs UI
-(`preview.ts:82-90`).[^preview-ts]
+An interactive tabbed explorer over three views — Changes, Full, and
+Simulated (`buildPreviewViews`, `package/src/cli/preview-views.ts`) — each
+scrolling to fit the terminal. Tab and Shift-Tab switch views; `q`,
+Enter, Esc and Ctrl-C all close it with exit `0`, since it is read-only.
+When the run cannot prompt (`CliInteractive` is false), `preview` prints
+the Changes view instead and exits.[^preview-ts]
 
 ## File argument
 
-The file arg is optional on both commands (`pathArg`, `export.ts:157`,
-`preview.ts:63`); when the workspace path is not passed explicitly,
-`findWorkspaceFile` locates the nearest `pnpm-workspace.yaml` from the
-process's current working directory (`export.ts:85`,
-`preview.ts:44`).[^export-ts][^preview-ts]
+The file arg is optional on both commands (`pathArg` in `export.ts` and
+`preview.ts`); when the workspace path is not passed explicitly,
+`resolveWorkspacePath` locates the nearest `pnpm-workspace.yaml` upward
+from the directory the CLI was invoked in.[^export-ts][^preview-ts]
 
 [^export-ts]: export-ts
 [^preview-ts]: preview-ts

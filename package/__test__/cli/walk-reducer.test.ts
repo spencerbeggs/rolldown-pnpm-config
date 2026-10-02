@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Candidate, CatalogEntry } from "../../src/cli/types.js";
 import {
-	cellColor,
+	cellTone,
 	displayCandidates,
 	initTable,
 	tableDecisions,
@@ -64,7 +64,7 @@ describe("initTable", () => {
 	it("selects keep on every row and starts the cursor at the first row", () => {
 		const items = [item("a", [inRange, keep]), item("b", [inRange, latest, keep])];
 		const state = initTable(items);
-		expect(state).toEqual({ cursor: 0, picks: [0, 0], done: false, cancelled: false });
+		expect(state).toEqual({ cursor: 0, picks: [0, 0], done: false });
 	});
 
 	it("starts the cursor on the first actionable row when earlier rows are up to date", () => {
@@ -114,16 +114,9 @@ describe("tableStep", () => {
 		expect(s.picks).toEqual([0, 1]);
 	});
 
-	it("submit ends the walk without cancelling", () => {
+	it("submit ends the walk", () => {
 		const s = tableStep(initTable(items), items, "submit");
 		expect(s.done).toBe(true);
-		expect(s.cancelled).toBe(false);
-	});
-
-	it("cancel ends the walk and marks it cancelled", () => {
-		const s = tableStep(initTable(items), items, "cancel");
-		expect(s.done).toBe(true);
-		expect(s.cancelled).toBe(true);
 	});
 
 	it("ignores further keys once done", () => {
@@ -150,29 +143,24 @@ describe("tableDecisions", () => {
 		const decisions = tableDecisions(initTable(items), items);
 		expect(decisions.map((d) => d.chosen.kind)).toEqual(["keep", "keep"]);
 	});
-
-	it("returns no decisions when cancelled", () => {
-		const s = tableStep(initTable(items), items, "cancel");
-		expect(tableDecisions(s, items)).toEqual([]);
-	});
 });
 
-describe("cellColor", () => {
-	// A selected KEEP must NOT be colored. It is the current value, not a change,
+describe("cellTone", () => {
+	// A selected KEEP must NOT be toned. It is the current value, not a change,
 	// and dimming it made the leftmost column — the one the eye lands on first —
 	// read as disabled. Regression guard: this returned "gray" before.
-	it("leaves a selected keep uncolored", () => {
-		expect(cellColor(keep, true)).toBeNull();
+	it("leaves a selected keep untoned", () => {
+		expect(cellTone(keep, true)).toBeNull();
 	});
 
-	it("colors a selected in-range upgrade green and a selected major yellow", () => {
-		expect(cellColor(inRange, true)).toBe("green");
-		expect(cellColor(latest, true)).toBe("yellow");
+	it("tones a selected in-range upgrade as added and a selected major as changed", () => {
+		expect(cellTone(inRange, true)).toBe("added");
+		expect(cellTone(latest, true)).toBe("changed");
 	});
 
-	it("leaves every unselected candidate uncolored", () => {
-		expect(cellColor(keep, false)).toBeNull();
-		expect(cellColor(inRange, false)).toBeNull();
-		expect(cellColor(latest, false)).toBeNull();
+	it("leaves every unselected candidate untoned", () => {
+		expect(cellTone(keep, false)).toBeNull();
+		expect(cellTone(inRange, false)).toBeNull();
+		expect(cellTone(latest, false)).toBeNull();
 	});
 });

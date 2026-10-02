@@ -2,13 +2,10 @@ import { describe, expect, it } from "vitest";
 import { buildDiff } from "../../src/cli/diff/build.js";
 import { renderExportDiff } from "../../src/cli/diff/render.js";
 import type { DiffMeta } from "../../src/cli/diff/types.js";
+import { TONES } from "../../src/cli/render/tone.js";
+import { plainLines as plain, rowsOf, tokensOf } from "./utils/doc.js";
 
 const meta: DiffMeta = { localKeys: new Set(), managedKeys: new Set(["catalogMode", "dedupeDirectDeps", "catalogs"]) };
-const plain = (lines: ReturnType<typeof renderExportDiff>) =>
-	lines.map(
-		(l) =>
-			`${l.gutter} ${"  ".repeat(l.indent)}${l.segments.map((s) => s.text).join("")}${l.tag ? `  (${l.tag})` : ""}`,
-	);
 
 describe("renderExportDiff", () => {
 	it("renders a record entry whose key equals its value as `key: value`, not an array element", () => {
@@ -28,24 +25,30 @@ describe("renderExportDiff", () => {
 		expect(out).toContain("+   - b/*");
 	});
 
-	it("styles an unmanaged unchanged block (header + children) with the unmanaged style", () => {
+	it("tones an unmanaged unchanged block (header + children) with the unmanaged tone", () => {
 		const m: DiffMeta = { localKeys: new Set(), managedKeys: new Set() };
 		const root = buildDiff({ packages: ["a/*", "b/*"] }, { packages: ["a/*", "b/*"] }, m);
-		const lines = renderExportDiff(root, { full: true });
-		const styles = lines.flatMap((l) => l.segments.map((s) => s.style));
-		expect(styles.length).toBeGreaterThan(0);
+		const tokens = rowsOf(renderExportDiff(root, { full: true })).flatMap(tokensOf);
+		expect(tokens.length).toBeGreaterThan(0);
 		// The whole passthrough block reads as one shade: header AND its entries.
-		expect(styles.every((s) => s === "unmanaged")).toBe(true);
+		expect(tokens.every((t) => t === TONES.unmanaged)).toBe(true);
 	});
 
-	it("keeps a removed unmanaged line (Simulated) on the removed style, not unmanaged", () => {
-		// In the simulated view an unmanaged key is `removed` (would disappear); the
-		// red/removed gutter already carries the meaning, so it must not go gray.
+	it("tags an unmanaged block in the text, so it reads without colour", () => {
+		const m: DiffMeta = { localKeys: new Set(), managedKeys: new Set() };
+		const root = buildDiff({ packages: ["a/*"] }, { packages: ["a/*"] }, m);
+		expect(plain(renderExportDiff(root, { full: true }))).toContain("  packages:  (unmanaged)");
+	});
+
+	it("keeps a removed unmanaged line on the removed tone, not unmanaged", () => {
+		// An unmanaged key that is `removed` (would disappear) keeps the red/removed
+		// tone — the gutter already carries the meaning, so it must not go gray.
 		const m: DiffMeta = { localKeys: new Set(), managedKeys: new Set() };
 		const root = buildDiff({ packages: ["a/*"] }, {}, m);
-		const lines = renderExportDiff(root, { full: true });
-		const header = lines.find((l) => l.segments.some((s) => s.text.startsWith("packages")));
-		expect(header?.segments[0]?.style).toBe("removed");
+		const header = rowsOf(renderExportDiff(root, { full: true })).find((r) =>
+			r.some((i) => i._tag === "Text" && i.value.startsWith("packages")),
+		);
+		expect(header === undefined ? [] : tokensOf(header)[0]).toBe(TONES.removed);
 	});
 
 	it("renders a changed scalar inline with a ~ gutter", () => {

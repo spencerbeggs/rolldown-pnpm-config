@@ -26,7 +26,7 @@ task touches the area it covers; do not load the bundle by default.
   `descriptors.md` (the 121-field descriptor table), `cli.md` (`upgrade`,
   `export`, `preview`), `patches.md` (patch discovery and path rewrite). Load
   the matching module before editing `package/src/**` under that area.
-- `okf/decisions/` (18) — a choice made, the alternatives rejected, and why.
+- `okf/decisions/` (19) — a choice made, the alternatives rejected, and why.
   Load before changing something that looks arbitrary — e.g. why builds never
   write (`builds-never-write.md`), why Effect is fenced to build time
   (`effect-at-build-time-only.md`), why the descriptor table is the single
@@ -36,8 +36,9 @@ task touches the area it covers; do not load the bundle by default.
 - `okf/interfaces/` (10) — contracts consumers depend on: the authoring
   surface (`plugin-config.md`), the `{ base, manifest, name }` runtime payload
   (`base-manifest-name.md`), virtual module specifiers (`virtual-modules.md`),
-  the managed-fields coverage list (`managed-pnpm-fields.md`), and the
-  `upgrade`/`export`/`preview` CLI contracts. Load before changing anything a
+  the managed-fields coverage list (`managed-pnpm-fields.md`), the
+  `upgrade`/`export`/`preview` CLI contracts, and the CLI's audience, stream
+  and exit-code contract (`cli-output.md`). Load before changing anything a
   plugin author's config or a consumer's build depends on.
 - `okf/conventions/` (7) — rules to follow, not descriptions of current
   behavior: import/module style, commit format, test layout, adding a managed

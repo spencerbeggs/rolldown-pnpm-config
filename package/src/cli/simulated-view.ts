@@ -1,6 +1,8 @@
+import type { BlockOf, Inline } from "@effected/cli";
+import { Doc } from "@effected/cli";
 import type { Enforcement, Manifest, ManifestEntry } from "../runtime/types.js";
 import { scalarText } from "./diff/render.js";
-import type { Segment, StyledLine } from "./ui/styled.js";
+import { row, tone } from "./render/tone.js";
 import { canonicalize } from "./workspace-file.js";
 
 /**
@@ -23,41 +25,32 @@ const STRATEGY_VERB: Record<string, "merge" | "overwrite"> = {
 };
 
 /** The enforcement suffix, e.g. " · warn" / " · error"; empty when silent. */
-function enforcementSegs(e: Enforcement): Segment[] {
-	if (e === "warn") return [{ text: " · warn", style: "changed" }];
-	if (e === "error") return [{ text: " · error", style: "warn" }];
+function enforcementSegs(e: Enforcement): Inline[] {
+	if (e === "warn") return [tone(" · warn", "changed")];
+	if (e === "error") return [tone(" · error", "warn")];
 	return [];
 }
 
 /** The trailing "(merge)" / "(overwrite · error)" annotation for one field. */
-function annotation(entry: ManifestEntry | undefined): Segment[] {
+function annotation(entry: ManifestEntry | undefined): Inline[] {
 	if (!entry) return [];
 	const verb = STRATEGY_VERB[entry.strategy] ?? "merge";
-	return [
-		{ text: "  (", style: "unchanged" },
-		{ text: verb, style: verb },
-		...enforcementSegs(entry.enforcement),
-		{ text: ")", style: "unchanged" },
-	];
+	return [tone("  (", "unchanged"), tone(verb, verb), ...enforcementSegs(entry.enforcement), tone(")", "unchanged")];
 }
 
 /** Flatten one key/value into YAML-shaped plain lines; `ann` annotates the head. */
-function flatten(key: string, value: unknown, depth: number, ann: Segment[]): StyledLine[] {
+function flatten(key: string, value: unknown, depth: number, ann: Inline[]): Array<ReadonlyArray<Inline>> {
 	if (Array.isArray(value)) {
-		const header: StyledLine = { indent: depth, gutter: " ", segments: [{ text: `${key}:`, style: "plain" }, ...ann] };
-		const items = value.map<StyledLine>((el) => ({
-			indent: depth + 1,
-			gutter: " ",
-			segments: [{ text: `- ${scalarText(el)}`, style: "plain" }],
-		}));
+		const header = row(" ", depth, [tone(`${key}:`, "plain"), ...ann]);
+		const items = value.map((el) => row(" ", depth + 1, [tone(`- ${scalarText(el)}`, "plain")]));
 		return [header, ...items];
 	}
 	if (value !== null && typeof value === "object") {
-		const header: StyledLine = { indent: depth, gutter: " ", segments: [{ text: `${key}:`, style: "plain" }, ...ann] };
+		const header = row(" ", depth, [tone(`${key}:`, "plain"), ...ann]);
 		const kids = Object.entries(value as Record<string, unknown>).flatMap(([k, v]) => flatten(k, v, depth + 1, []));
 		return [header, ...kids];
 	}
-	return [{ indent: depth, gutter: " ", segments: [{ text: `${key}: ${scalarText(value)}`, style: "plain" }, ...ann] }];
+	return [row(" ", depth, [tone(`${key}: ${scalarText(value)}`, "plain"), ...ann])];
 }
 
 /**
@@ -68,7 +61,7 @@ function flatten(key: string, value: unknown, depth: number, ann: Segment[]): St
  *
  * @internal
  */
-export function renderSimulated(vanilla: Record<string, unknown>, manifest: Manifest): StyledLine[] {
+export function renderSimulated(vanilla: Record<string, unknown>, manifest: Manifest): BlockOf<"Lines"> {
 	const canon = canonicalize(vanilla) as Record<string, unknown>;
-	return Object.entries(canon).flatMap(([k, v]) => flatten(k, v, 0, annotation(manifest[k])));
+	return Doc.lines(Object.entries(canon).flatMap(([k, v]) => flatten(k, v, 0, annotation(manifest[k]))));
 }

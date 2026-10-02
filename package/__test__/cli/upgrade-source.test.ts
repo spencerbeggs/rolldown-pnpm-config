@@ -4,11 +4,12 @@ import { Effect } from "effect";
 import { describe, expect, it } from "vitest";
 import { projectDecisions, resolveGatedVersions } from "../../src/cli/commands/upgrade.js";
 import { discoverCatalogEntries } from "../../src/cli/discover.js";
-import { renderSummary } from "../../src/cli/summary.js";
+import { summaryDoc } from "../../src/cli/summary.js";
 import type { CatalogEntry } from "../../src/cli/types.js";
 import { versionKeyOf } from "../../src/cli/version-key.js";
 import { buildWalkItems } from "../../src/cli/walk-plan.js";
 import { makeWorkspaceResolver } from "../../src/cli/workspace-resolve.js";
+import { plainText } from "./utils/doc.js";
 
 const FIXTURE = fileURLToPath(new URL("./fixtures/workspace-next/", import.meta.url));
 
@@ -156,7 +157,7 @@ describe("projectDecisions parity with runUpgrade for workspace entries", () => 
 		expect(decisions[0]?.chosen.kind).not.toBe("keep");
 		expect(decisions[0]?.chosen.range).toBe("^0.3.0");
 		// The rendered preview shows the bump, not an unchanged row.
-		expect(renderSummary(decisions, undefined, { color: false })).toContain("^0.3.0");
+		expect(plainText(summaryDoc(decisions))).toContain("^0.3.0");
 	});
 
 	it("still never crosses the range for a registry entry", async () => {

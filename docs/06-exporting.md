@@ -15,7 +15,7 @@ The export command normalizes the file: it parses the existing YAML, merges the 
 
 ## Previewing changes before writing
 
-Pass `--dry-run` to print a colored canonical diff to stdout without writing the file:
+Pass `--dry-run` to print the canonical diff to stdout without writing the file:
 
 ```bash
 npx rolldown-pnpm-config export --dry-run
@@ -24,7 +24,7 @@ npx rolldown-pnpm-config export --dry-run
 # + added  ~ changed  - removed   (local) local override  (unmanaged) not managed
 ```
 
-When color is on, a swatch legend (added, removed, modified, unchanged, unmanaged) is printed above the diff. By default the diff collapses unchanged context lines. Pass `--full` alongside `--dry-run` to emit the entire canonical tree:
+For a person in a colour terminal the diff is coloured and a swatch legend (added, removed, modified, unchanged, unmanaged) is printed above it. Piped, in CI or for an agent (`--agent`) it is plain text, and the gutters and the `(local)`/`(unmanaged)` tags carry the same meaning. By default the diff collapses unchanged context lines. Pass `--full` alongside `--dry-run` to emit the entire canonical tree:
 
 ```bash
 npx rolldown-pnpm-config export --dry-run --full
@@ -37,8 +37,8 @@ npx rolldown-pnpm-config export --dry-run --full
 
 ```bash
 npx rolldown-pnpm-config preview [path]
-# interactive ink-tab explorer (Changes / Full / Simulated) in a TTY
-# non-TTY: prints the Changes diff and exits
+# interactive tabbed explorer (Changes / Full / Simulated) in a terminal
+# piped, CI or --agent: prints the Changes diff and exits
 ```
 
 The explorer has three tabs:
@@ -47,7 +47,7 @@ The explorer has three tabs:
 - **Full** — the same diff with every line shown.
 - **Simulated** — the calculated config a fresh consuming repo would get, with no local overrides applied. It renders as a plain `pnpm-workspace.yaml` listing rather than a diff. Each top-level field is annotated with how the plugin combines it (`merge` or `overwrite`) and how it is enforced (`· warn` or `· error`; unenforced fields carry no suffix).
 
-A color legend sits below the tab bar and tracks the active tab: Changes and Full show the diff legend (added, removed, modified, unchanged, unmanaged), Simulated shows its own (merge, overwrite, warn, error). The legend is drawn only when color is on. In a non-interactive terminal (CI, piped output) the `preview` command falls back to printing the Changes diff and exiting — it never hangs.
+A colour legend sits below the tab bar and tracks the active tab: Changes and Full show the diff legend (added, removed, modified, unchanged, unmanaged), Simulated shows its own (merge, overwrite, warn, error). `Tab`/`Shift-Tab` switch tabs, `↑`/`↓`, `PgUp`/`PgDn` and `Home`/`End` scroll a view longer than the terminal, and `q`, `⏎` or `Esc` closes the explorer. When the run cannot prompt (CI, piped output, an agent) the `preview` command falls back to printing the Changes diff and exiting — it never hangs.
 
 ## What export preserves
 

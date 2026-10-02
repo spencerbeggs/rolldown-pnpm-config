@@ -1,5 +1,7 @@
 import { existsSync, writeFileSync } from "node:fs";
 import { dirname, relative } from "node:path";
+import type { BlockOf, Document } from "@effected/cli";
+import { CliDoc, CliMessage } from "@effected/cli";
 import { Data, Effect, Option, Predicate } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
 import type { PluginConfig } from "../../define-plugin.js";
@@ -9,16 +11,16 @@ import type { PatchReconcileReport } from "../../patches/reconcile.js";
 import { reconcilePatches } from "../../patches/reconcile.js";
 import { freeze } from "../../plugin/freeze.js";
 import { resolveRootName } from "../../runtime/ctx.js";
+import { WorkingDirectory, resolveWorkspacePath } from "../cwd.js";
 import { buildDiff } from "../diff/build.js";
 import { renderExportDiff } from "../diff/render.js";
 import type { DiffNode } from "../diff/types.js";
 import { effectiveManaged } from "../effective.js";
 import { loadConfigAndWorkspace } from "../load-config.js";
+import { legend } from "../render/legend.js";
+import { printView } from "../render/print.js";
+import { failureDoc } from "../render/report.js";
 import { findConfigFiles, pickConfigCandidate } from "../select-file.js";
-import { toAnsi } from "../ui/ansi.js";
-import { detectCapabilities } from "../ui/env.js";
-import { legendLines } from "../ui/legend.js";
-import type { StyledLine } from "../ui/styled.js";
 import { canonicalize, renderWorkspace } from "../workspace-file.js";
 import { overlayWorkspace } from "../workspace-overlay.js";
 
@@ -27,7 +29,12 @@ import { overlayWorkspace } from "../workspace-overlay.js";
  *
  * @internal
  */
-export class ExportError extends Data.TaggedError("ExportError")<{ readonly message: string }> {}
+export class ExportError extends Data.TaggedError("ExportError")<{ readonly message: string }> {
+	/** The failure report `CliRuntime.main` prints: the message, without the class name. */
+	[CliDoc](): Document {
+		return failureDoc(this.message);
+	}
+}
 
 /**
  * The set of pnpm config keys that belong in pnpm-workspace.yaml
@@ -51,11 +58,11 @@ export const WORKSPACE_FIELDS: ReadonlySet<string> = new Set(
  */
 export function runExport(opts: {
 	configFile: string;
-	workspacePath?: string;
+	workspacePath: string;
 	preview: boolean;
 	full?: boolean;
 }): Effect.Effect<
-	{ path: string; rendered: string; written: boolean; diff: StyledLine[]; report: PatchReconcileReport },
+	{ path: string; rendered: string; written: boolean; diff: BlockOf<"Lines">; report: PatchReconcileReport },
 	ExportError
 > {
 	return Effect.gen(function* () {
@@ -125,9 +132,18 @@ export function runExport(opts: {
 	});
 }
 
-const pathArg = Argument.File("path").pipe(Argument.optional);
-const dryRunFlag = Flag.Boolean("dry-run").pipe(Flag.withDefault(false));
-const fullFlag = Flag.Boolean("full").pipe(Flag.withDefault(false));
+const pathArg = Argument.File("path").pipe(
+	Argument.withDescription("The pnpm-workspace.yaml to write (the nearest one upward when omitted)"),
+	Argument.optional,
+);
+const dryRunFlag = Flag.Boolean("dry-run").pipe(
+	Flag.withDescription("Print the diff instead of writing the file"),
+	Flag.withDefault(false),
+);
+const fullFlag = Flag.Boolean("full").pipe(
+	Flag.withDescription("Show every line of the diff, not just the changes and their context"),
+	Flag.withDefault(false),
+);
 
 /**
  * The "export" command. Materializes the plugin config into pnpm-workspace.yaml.
@@ -142,27 +158,21 @@ export const exportCommand = Command.make(
 	{ path: pathArg, dryRun: dryRunFlag, full: fullFlag },
 	({ path, dryRun, full }) =>
 		Effect.gen(function* () {
-			const matches = yield* findConfigFiles(process.cwd());
+			const matches = yield* findConfigFiles(yield* WorkingDirectory);
 			const picked = pickConfigCandidate(matches);
 			if (!picked.ok) return yield* Effect.fail(new ExportError({ message: picked.message }));
-			const workspacePath = Option.getOrUndefined(path);
 			const result = yield* runExport({
 				configFile: picked.file,
-				...(workspacePath !== undefined ? { workspacePath } : {}),
+				workspacePath: yield* resolveWorkspacePath(Option.getOrUndefined(path)),
 				preview: dryRun,
 				full,
 			});
-			yield* Effect.sync(() => {
-				if (dryRun) {
-					const caps = detectCapabilities();
-					process.stdout.write(`${result.path} (dry run — not written)\n\n`);
-					const legend = caps.color ? `${toAnsi(legendLines(), { color: caps.color })}\n\n` : "";
-					process.stdout.write(`${legend}${toAnsi(result.diff, { color: caps.color })}\n`);
-				} else process.stdout.write(`Exported to ${result.path}\n`);
-				for (const k of result.report.staleEntries)
-					process.stderr.write(`warning: patch entry "${k}" has no file on disk\n`);
-				for (const k of result.report.keyMismatches)
-					process.stderr.write(`warning: patch entry "${k}" does not match its filename\n`);
-			});
+			if (dryRun)
+				yield* printView(result.diff, { legend: legend(), heading: `${result.path} (dry run — not written)` });
+			else yield* CliMessage.success(`Exported to ${result.path}`);
+			for (const k of result.report.staleEntries) yield* CliMessage.warning(`patch entry "${k}" has no file on disk`);
+			for (const k of result.report.keyMismatches) {
+				yield* CliMessage.warning(`patch entry "${k}" does not match its filename`);
+			}
 		}),
 ).pipe(Command.withDescription("Materialize the plugin config into pnpm-workspace.yaml (--dry-run to preview)"));

@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { Cause, Effect, Exit } from "effect";
 import { describe, expect, it } from "vitest";
 import { runUpgrade, runUpgradePreview } from "../../src/cli/commands/upgrade.js";
+import { plainText } from "./utils/doc.js";
 import { makeStubResolver } from "./utils/stub-resolver.js";
 import { writeTmpConfig } from "./utils/tmp-config.js";
 
@@ -255,7 +256,7 @@ export const plugin = PnpmConfigPlugin({
 		const file = writeTmpConfig(SOURCE);
 		const out = await Effect.runPromiseExit(runUpgradePreview({ file, resolver, full: true }));
 		expect(Exit.isSuccess(out)).toBe(true);
-		const text = Exit.isSuccess(out) ? out.value : "";
+		const text = Exit.isSuccess(out) ? plainText(out.value.doc) : "";
 		expect(text).toContain("@changesets/cli");
 		// The peer column still shows the prerelease it is pinned to, and the tally
 		// counts ZERO resyncs — before this branch the entry proposed peer ^3.0.0.
@@ -285,7 +286,7 @@ export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: { silk: { 
 		const file = writeTmpConfig(SOURCE);
 		const resolver = makeStubResolver({ versions: { typescript: ["5.9.0", "5.9.3"] } });
 		const before = readFileSync(file, "utf8");
-		const out = await Effect.runPromise(runUpgradePreview({ file, resolver, full: false }));
+		const out = plainText((await Effect.runPromise(runUpgradePreview({ file, resolver, full: false }))).doc);
 		expect(out).toContain("typescript");
 		expect(out).toContain("● ^5.9.3"); // in-range bump chosen, its bubble filled
 		expect(readFileSync(file, "utf8")).toBe(before);
@@ -328,8 +329,8 @@ export const plugin = PnpmConfigPlugin({
 	it("--preview reports the unresolvable package instead of omitting it", async () => {
 		const file = writeTmpConfig(TYPO_SOURCE);
 		const out = await Effect.runPromise(runUpgradePreview({ file, resolver: typoResolver, full: false }));
-		expect(out).toContain("efect");
-		expect(out).toContain("Could not resolve");
+		// The command prints these as a warning on stderr beside the projection.
+		expect(out.unresolved).toEqual(["efect"]);
 	});
 
 	it("--yes --dry-run computes the real edits but writes NOTHING", async () => {

@@ -11,10 +11,10 @@ import { nothingToUpgradeMessage } from "../../src/cli/commands/upgrade.js";
 
 describe("nothingToUpgradeMessage", () => {
 	it("reports the up-to-date package count when items were discovered", () => {
-		expect(nothingToUpgradeMessage(3)).toBe("Nothing to upgrade — 3 package(s) already up to date.\n");
+		expect(nothingToUpgradeMessage(3)).toBe("Nothing to upgrade — 3 package(s) already up to date.");
 	});
 
 	it("reports no packages found when nothing was discovered at all", () => {
-		expect(nothingToUpgradeMessage(0)).toBe("Nothing to upgrade — no catalog packages found.\n");
+		expect(nothingToUpgradeMessage(0)).toBe("Nothing to upgrade — no catalog packages found.");
 	});
 });

@@ -4,8 +4,8 @@ import { join } from "node:path";
 import { Effect, Exit } from "effect";
 import { describe, expect, it } from "vitest";
 import { runExport } from "../../src/cli/commands/export.js";
-import { toAnsi } from "../../src/cli/ui/ansi.js";
 import { parseWorkspace } from "../../src/cli/workspace-file.js";
+import { plainText } from "./utils/doc.js";
 
 it("resolves excludeByRepo from the workspace dir's package.json name, not cwd", async () => {
 	const dir = mkdtempSync(join(tmpdir(), "rpc-exrepo-"));
@@ -97,8 +97,8 @@ describe("runExport", () => {
 		const { configFile, workspacePath } = setup("packages:\n  - pkg/*\n");
 		const res = await Effect.runPromise(runExport({ configFile, workspacePath, preview: true, full: true }));
 		expect(res.written).toBe(false);
-		expect(Array.isArray(res.diff)).toBe(true);
-		const text = toAnsi(res.diff, { color: false });
+		expect(res.diff._tag).toBe("Lines");
+		const text = plainText(res.diff);
 		// publicHoistPattern comes from local override -> tagged local
 		expect(text).toContain("(local)");
 		// packages is unmanaged -> tagged unmanaged

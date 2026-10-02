@@ -8,11 +8,13 @@ export interface TableState {
 	/** Selected index into `displayCandidates(items[i])`, per row. 0 is always keep. */
 	readonly picks: readonly number[];
 	readonly done: boolean;
-	readonly cancelled: boolean;
 }
 
-/** A key the table responds to. */
-export type TableKey = "up" | "down" | "left" | "right" | "submit" | "cancel";
+/**
+ * A key the table responds to. There is no cancel: Esc and Ctrl-C belong to
+ * the screen host (`CliUi`), which ends the screen as `Cancelled`.
+ */
+export type TableKey = "up" | "down" | "left" | "right" | "submit";
 
 const ORDER: Record<Candidate["kind"], number> = { keep: 0, "in-range": 1, minor: 2, latest: 3 };
 
@@ -99,22 +101,21 @@ export function displayCandidates(item: WalkItem): readonly Candidate[] {
  */
 export function initTable(items: readonly WalkItem[]): TableState {
 	const first = items.findIndex((i) => !i.upToDate);
-	return { cursor: first === -1 ? 0 : first, picks: items.map(() => 0), done: false, cancelled: false };
+	return { cursor: first === -1 ? 0 : first, picks: items.map(() => 0), done: false };
 }
 
 const clamp = (n: number, max: number) => (n < 0 ? 0 : n > max ? max : n);
 
 /**
  * Advance the table by a key. up/down move between rows; left/right move the
- * radio selection within the row under the cursor; submit applies; cancel exits
- * without applying. Both axes clamp at their ends rather than wrapping.
+ * radio selection within the row under the cursor; submit applies. Both axes
+ * clamp at their ends rather than wrapping.
  *
  * @internal
  */
 export function tableStep(state: TableState, items: readonly WalkItem[], key: TableKey): TableState {
 	if (state.done) return state;
 	if (key === "submit") return { ...state, done: true };
-	if (key === "cancel") return { ...state, done: true, cancelled: true };
 	if (items.length === 0) return state;
 	if (key === "up") return { ...state, cursor: clamp(state.cursor - 1, items.length - 1) };
 	if (key === "down") return { ...state, cursor: clamp(state.cursor + 1, items.length - 1) };
@@ -127,13 +128,11 @@ export function tableStep(state: TableState, items: readonly WalkItem[], key: Ta
 }
 
 /**
- * Project the table's selections into decisions. A cancelled table yields none,
- * so nothing is written.
+ * Project the table's selections into decisions, one per row.
  *
  * @internal
  */
 export function tableDecisions(state: TableState, items: readonly WalkItem[]): Decision[] {
-	if (state.cancelled) return [];
 	return items.map((item, i) => ({ item, chosen: displayCandidates(item)[state.picks[i] ?? 0] }));
 }
 
@@ -154,20 +153,17 @@ export function peerFor(item: WalkItem, chosen: Candidate): string {
 }
 
 /**
- * The Ink color for one candidate cell, or null for the terminal's default.
+ * The tone of one candidate cell, or null for the default (untoned) text.
  *
- * Only a SELECTED UPGRADE is colored — green in-range, yellow for a major. A
- * selected KEEP is deliberately left uncolored: it is the current value, not a
- * change, and coloring it dim made the column the eye lands on first read as
- * disabled. Unselected cells are always default.
- *
- * Extracted from the render so it can be unit-tested: `ink-testing-library`
- * strips ANSI from `lastFrame()`, so a color assertion is impossible against
- * the rendered output.
+ * Only a SELECTED UPGRADE is toned — `added` for in-range, `changed` for a
+ * major. A selected KEEP is deliberately left untoned in the interactive
+ * table: it is the current value, not a change, and dimming it made the column
+ * the eye lands on first read as disabled. Unselected cells are always
+ * default. Shared by the table and its summary mirror so the two agree.
  *
  * @internal
  */
-export function cellColor(candidate: Candidate, selected: boolean): "green" | "yellow" | null {
+export function cellTone(candidate: Candidate, selected: boolean): "added" | "changed" | null {
 	if (!selected || candidate.kind === "keep") return null;
-	return candidate.isMajor ? "yellow" : "green";
+	return candidate.isMajor ? "changed" : "added";
 }
