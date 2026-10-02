@@ -11,6 +11,7 @@ The `rolldown-pnpm-config` CLI now runs on the `@effected/cli` kit. Output and e
 * Failure reports are drawn as `✗ <message>`, without the error class name.
 * The `Exported to …` and `Applied N change(s).` success lines now carry a status glyph.
 * The `(unmanaged)` diff tag now always shows.
+* Warnings moved from stdout to stderr: the unresolvable-package warning (under `--preview`, the non-interactive fallback and after the interactive table) and the `--yes` interop-conflict list. Capturing stdout alone, as in `upgrade --preview > out.txt`, no longer includes them.
 
 ### Migration
 
@@ -18,6 +19,7 @@ The `rolldown-pnpm-config` CLI now runs on the `@effected/cli` kit. Output and e
 * Scripts that treated a quit of the interactive table as success should treat `130` as a user quit.
 * `upgrade --check` drift still exits `1`, and the `--json` document contract is unchanged.
 * Anything that matched on error class names or the exact text of success lines should be updated.
+* Scripts that read the unresolvable-package or interop-conflict warnings from stdout should read stderr instead.
 
 ## Features
 

@@ -49,6 +49,17 @@ describe("rolldown-pnpm-config bin", () => {
 		expect(r.stderr).toContain("(resolution error, not drift):");
 	});
 
+	it("keeps the one-document contract for an explicit config path that does not exist", async () => {
+		// A missing path must reach the handler (not fail in the parser with an empty
+		// stdout), so a gate piping into jq always gets a document.
+		const r = await runBin(["upgrade", "missing.config.ts", "--check", "--json", "--ci"]);
+		expect(r.exitCode).toBe(1);
+		const doc = JSON.parse(r.stdout) as { command: string; error: { kind: string; message: string } };
+		expect(doc).toMatchObject({ command: "check", error: { kind: "resolution" } });
+		// The parser resolves the path against the working directory, so the message names it absolutely.
+		expect(doc.error.message).toMatch(/^Cannot read \/.*missing\.config\.ts$/);
+	});
+
 	it("labels a --check failure as not-drift on stderr, with stdout empty", async () => {
 		// A gate runs as CI: the label is one unbroken line a log search can match.
 		const r = await runBin(["upgrade", "--check", "--ci"]);

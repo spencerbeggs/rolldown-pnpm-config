@@ -815,7 +815,10 @@ function resolveForWalk(
 	});
 }
 
-const fileArg = Argument.File("file", { mustExist: true }).pipe(
+// No `mustExist`: the parser would reject a missing path as a usage error before
+// the handler runs, leaving `--json` with an empty stdout. A missing file instead
+// fails in `readCatalogSource` ("Cannot read …"), which the JSON paths report.
+const fileArg = Argument.File("file").pipe(
 	Argument.withDescription("The config file to upgrade (autodetected in the current directory when omitted)"),
 	Argument.optional,
 );
