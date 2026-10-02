@@ -1,11 +1,12 @@
 ---
 type: Decision
 title: "--dry-run replaces --preview on export"
-description: export --preview conflated write-vs-show; the split is a static export --dry-run and a standalone interactive preview command with a non-TTY fallback.
+description: export --preview conflated write-vs-show; the split is a static export --dry-run and a standalone interactive preview command with a non-interactive fallback.
 status: draft
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
+  at: 2026-10-02T15:35:24Z
+  body_sha256: d963ba0c51306eee525142404be2b83c0009506b77844d01c6751ccb0642da2c
 sources:
   - id: export-command
     resource: package/src/cli/commands/export.ts
@@ -40,11 +41,11 @@ changed lines plus context, and the command writes nothing either way
 
 A new standalone `preview [path]` command
 (`package/src/cli/commands/preview.ts`) provides the interactive tabbed
-view (Changes / Full / Simulated) via `ink-tab`, reusing
-`buildDiff`/`renderExportDiff`/`toAnsi` from the shared render layer. When
-the terminal is non-interactive (`!detectCapabilities().interactive`,
-`preview.ts:82-88`), `preview` falls back to printing the Changes view via
-`toAnsi` and exits — it never hangs in CI or piped output.
+view (Changes / Full / Simulated) as an `@effected/cli` screen, reusing
+`buildDiff`/`renderExportDiff` from the shared render layer. When the run
+cannot prompt (`CliInteractive` is false: a pipe, CI, an agent, `TERM=dumb`),
+`preview` prints the Changes view with `Doc.print` and exits — it never
+hangs in CI or piped output.
 
 This same split reads differently on `upgrade`: its `dryRun` option
 (`package/src/cli/commands/upgrade.ts:249`) computes everything for real —
@@ -65,7 +66,7 @@ the end.
   boolean flag without one of them being awkward.
 - **Make `preview` a mode of `export` rather than a separate command.**
   Rejected in favor of a dedicated `preview` command: the interactive
-  `ink-tab` explorer is a materially different interaction model (three
+  tabbed explorer is a materially different interaction model (three
   tabbed views, a render loop) from the static, pipe-safe `--dry-run`
   path, and conflating them back into one command would reintroduce the
   original problem this decision fixes.
@@ -76,7 +77,7 @@ the end.
   stale; the replacement is `export --dry-run` for static output or
   `preview` for the interactive explorer.
 - `export --dry-run` and `preview` both reuse
-  `buildDiff`/`renderExportDiff`/`toAnsi`, so a change to the diff model or
+  `buildDiff`/`renderExportDiff`, so a change to the diff model or
   render layer affects both consistently.
 - `preview`'s non-interactive fallback is load-bearing for CI and agent
   contexts: any future interactive command reusing this pattern needs the

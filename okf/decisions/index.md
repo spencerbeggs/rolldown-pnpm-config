@@ -1,9 +1,10 @@
 # Decision
 
 * ["lock" pins to the version verbatim](lock-pins-version-verbatim.md) - derivePeerRange's "lock" strategy reuses the range's version text verbatim instead of rebuilding it from parsed major.minor.patch, fixing a bug where reconstruction silently dropped prerelease/build identifiers.
-* [--dry-run replaces --preview on export](dry-run-replaces-export-preview.md) - export --preview conflated write-vs-show; the split is a static export --dry-run and a standalone interactive preview command with a non-TTY fallback.
+* [--dry-run replaces --preview on export](dry-run-replaces-export-preview.md) - export --preview conflated write-vs-show; the split is a static export --dry-run and a standalone interactive preview command with a non-interactive fallback.
 * [--yes is strict, interactive is lenient](yes-is-strict-interactive-is-lenient.md) - Every planned edit is validated against the registry before rewrite; interactively a rejection is dropped at whole-package granularity and reported, while --yes fails hard on any warning.
 * [Builds never write](builds-never-write.md) - The build reads a plugin author's config exactly as authored; only the upgrade CLI rewrites it. A memoized freeze-path sync that violated this was deleted after dogfood adoption exposed both an ungated write and a split-brain correctness defect.
+* [CLI presentation through the @effected/cli kit](cli-presentation-on-effected-cli.md) - The CLI's audience detection, colour, document rendering, failure reporting, exit codes, prompts and Ink screens all come from @effected/cli; the producers emit the kit's Doc IR directly and no module reads process outside the entry files.
 * [Data-driven refines, not injected code](data-driven-refines.md) - Repo-dependent merge behavior is modeled as a data-driven refine on a descriptor, not as arbitrary injected code, keeping the manifest plain serializable data.
 * [Default override preservation](default-override-preservation.md) - Every export run preserves file:/link:/workspace:/portal: override entries by default, making the safe behavior opt-out rather than opt-in.
 * [Descriptor table as the single source of truth](descriptor-table-as-source-of-truth.md) - One declarative entry per managed pnpm field; deriveSchemas and deriveRegistry produce what code consumes, kept honest by a satisfies-based drift guard.

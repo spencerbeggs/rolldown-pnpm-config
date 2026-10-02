@@ -1,7 +1,8 @@
-import { toAnsi } from "./ui/ansi.js";
-import type { ChangeStyle, Segment, StyledLine } from "./ui/styled.js";
+import type { Block, Document, Inline } from "@effected/cli";
+import { Doc } from "@effected/cli";
+import { row, tone } from "./render/tone.js";
 import type { RejectedEdit } from "./validate.js";
-import { displayCandidates, peerFor, tableLayout } from "./walk-reducer.js";
+import { cellTone, displayCandidates, peerFor, tableLayout } from "./walk-reducer.js";
 import type { Decision } from "./walk-types.js";
 
 /** The interop section of an interactive summary: the unresolved conflicts. @internal */
@@ -10,19 +11,19 @@ export interface InteropSummary {
 }
 
 /**
- * Build the pending-decisions summary as styled lines: one table row per
+ * Build the pending-decisions summary as a document: one table row per
  * decision — mirroring the interactive selection table, catalog headers,
  * chosen bubble filled — then a dim tally, interop conflicts, and any
- * rejected edits. Pure; color is applied by `renderSummary`/`toAnsi`.
+ * rejected edits. Pure; the renderer the audience picks decides colour.
  *
  * @internal
  */
-export function summaryLines(
+export function summaryDoc(
 	decisions: readonly Decision[],
 	interop?: InteropSummary,
 	rejected?: readonly RejectedEdit[],
-): StyledLine[] {
-	const lines: StyledLine[] = [];
+): Document {
+	const lines: Array<ReadonlyArray<Inline>> = [];
 	let toUpdate = 0;
 	let major = 0;
 	let resync = 0;
@@ -37,36 +38,21 @@ export function summaryLines(
 		const { entry } = item;
 		if (entry.catalog !== lastCatalog) {
 			lastCatalog = entry.catalog;
-			lines.push({
-				indent: 0,
-				gutter: " ",
-				segments: [{ text: `── catalog: ${entry.catalog} ──`, style: "unchanged" }],
-			});
+			lines.push(row(" ", 0, [tone(`── catalog: ${entry.catalog} ──`, "unchanged")]));
 		}
 		const cells = displayCandidates(item);
-		const segments: Segment[] = [{ text: entry.pkg.padEnd(pkgWidth + 2), style: "plain" }];
+		const content: Inline[] = [tone(entry.pkg.padEnd(pkgWidth + 2), "plain")];
 		for (const c of cells) {
 			const selected = c.kind === chosen.kind;
-			const style: ChangeStyle = !selected
-				? "unchanged"
-				: c.kind === "keep"
-					? "unchanged"
-					: c.isMajor
-						? "changed"
-						: "added";
-			segments.push({ text: cellText(c, selected), style });
+			content.push(tone(cellText(c, selected), cellTone(c, selected) ?? "unchanged"));
 		}
 		for (let ci = cells.length; ci < maxCells; ci++) {
-			segments.push({ text: blankCell, style: "plain" });
+			content.push(tone(blankCell, "plain"));
 		}
-		segments.push({ text: `│ ${peerFor(item, chosen)}`, style: "unchanged" });
-		lines.push({ indent: 0, gutter: chosen.kind === "keep" ? " " : "~", segments });
+		content.push(tone(`│ ${peerFor(item, chosen)}`, "unchanged"));
+		lines.push(row(chosen.kind === "keep" ? " " : "~", 0, content));
 		if (item.peerWarning) {
-			lines.push({
-				indent: 1,
-				gutter: "⚠",
-				segments: [{ text: item.peerWarning.message, style: "warn" }],
-			});
+			lines.push(row("⚠", 1, [tone(item.peerWarning.message, "warn")]));
 		}
 		if (chosen.kind !== "keep") {
 			toUpdate++;
@@ -82,54 +68,28 @@ export function summaryLines(
 			upToDate++;
 		}
 	}
-	lines.push({
-		indent: 0,
-		gutter: " ",
-		segments: [
-			{
-				text: `${toUpdate} to update · ${major} major · ${resync} resync · ${materialize} new peer · ${upToDate} up to date`,
-				style: "unchanged",
-			},
-		],
-	});
+	lines.push(
+		row(" ", 0, [
+			tone(
+				`${toUpdate} to update · ${major} major · ${resync} resync · ${materialize} new peer · ${upToDate} up to date`,
+				"unchanged",
+			),
+		]),
+	);
 	if (interop) {
 		for (const c of interop.conflicts) {
-			lines.push({
-				indent: 0,
-				gutter: "⚠",
-				segments: [{ text: `${c.pkg} (kept ${c.ceiling}) blocked by ${c.blockedBy}`, style: "warn" }],
-			});
+			lines.push(row("⚠", 0, [tone(`${c.pkg} (kept ${c.ceiling}) blocked by ${c.blockedBy}`, "warn")]));
 		}
 	}
+	const blocks: Block[] = [Doc.lines(lines)];
 	if (rejected && rejected.length > 0) {
-		lines.push({ indent: 0, gutter: " ", segments: [{ text: "", style: "plain" }] });
-		lines.push({
-			indent: 0,
-			gutter: "⚠",
-			segments: [{ text: "Rejected (no published version satisfies these):", style: "warn" }],
-		});
-		for (const r of rejected) {
-			lines.push({
-				indent: 1,
-				gutter: "⚠",
-				segments: [{ text: `${r.pkg} ${r.kind} ${r.value} — ${r.reason}`, style: "warn" }],
-			});
-		}
+		blocks.push(
+			Doc.line(""),
+			Doc.lines([
+				row("⚠", 0, [tone("Rejected (no published version satisfies these):", "warn")]),
+				...rejected.map((r) => row("⚠", 1, [tone(`${r.pkg} ${r.kind} ${r.value} — ${r.reason}`, "warn")])),
+			]),
+		);
 	}
-	return lines;
-}
-
-/**
- * Render the summary to a string. Color defaults off so non-TTY/test callers
- * get clean text; the upgrade command passes the detected color flag.
- *
- * @internal
- */
-export function renderSummary(
-	decisions: readonly Decision[],
-	interop?: InteropSummary,
-	opts?: { color?: boolean },
-	rejected?: readonly RejectedEdit[],
-): string {
-	return toAnsi(summaryLines(decisions, interop, rejected), { color: opts?.color ?? false });
+	return blocks;
 }

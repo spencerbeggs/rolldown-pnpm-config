@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { renderSummary } from "../../src/cli/summary.js";
+import { summaryDoc } from "../../src/cli/summary.js";
 import type { Candidate, CatalogEntry } from "../../src/cli/types.js";
 import type { Decision, WalkItem } from "../../src/cli/walk-types.js";
+import { plainText } from "./utils/doc.js";
 
 const entry = (o: Partial<CatalogEntry>): CatalogEntry => ({
 	catalog: "silk",
@@ -53,7 +54,7 @@ const warnDecision: Decision = {
 };
 const warnDecisions: Decision[] = [warnDecision];
 
-describe("renderSummary", () => {
+describe("summaryDoc", () => {
 	it("lists a decision as a table row with its bubble filled and a tally", () => {
 		const chosen = cand({});
 		const d: Decision = {
@@ -62,7 +63,7 @@ describe("renderSummary", () => {
 			}),
 			chosen,
 		};
-		const out = renderSummary([d]);
+		const out = plainText(summaryDoc([d]));
 		expect(out).toContain("silk");
 		expect(out).toContain("typescript");
 		expect(out).toContain("● ^5.9.3");
@@ -78,7 +79,7 @@ describe("renderSummary", () => {
 			}),
 			chosen: cand({ kind: "keep", range: "^5.9.0", version: "5.9.0", isMajor: false }),
 		};
-		const out = renderSummary([d]);
+		const out = plainText(summaryDoc([d]));
 		expect(out).toContain("│ ^5.9.0");
 		expect(out).toContain("1 new peer");
 	});
@@ -94,26 +95,28 @@ describe("renderSummary", () => {
 			item: item(e, { driftPeer: "^4.2.0", candidates: [keepCand] }),
 			chosen: keepCand,
 		};
-		const out = renderSummary([d]);
+		const out = plainText(summaryDoc([d]));
 		expect(out).toContain("│ ^4.2.0");
 		expect(out).toContain("1 resync");
 	});
 
 	it("renders interop conflicts", () => {
-		const text = renderSummary([], {
-			conflicts: [{ pkg: "@effect/foo", ceiling: "1.2.0", blockedBy: "effect@^4.0.0" }],
-		});
+		const text = plainText(
+			summaryDoc([], {
+				conflicts: [{ pkg: "@effect/foo", ceiling: "1.2.0", blockedBy: "effect@^4.0.0" }],
+			}),
+		);
 		expect(text).toContain("⚠ @effect/foo");
 	});
 
 	it("renders each decision as a table row with the chosen bubble filled", () => {
-		const text = renderSummary(decisions, undefined, { color: false });
+		const text = plainText(summaryDoc(decisions));
 		expect(text).toContain("● ^3.21.9");
 		expect(text).toContain("○ ^3.21.4");
 	});
 
 	it("groups rows by catalog", () => {
-		expect(renderSummary(decisions, undefined, { color: false })).toContain("catalog: default");
+		expect(plainText(summaryDoc(decisions))).toContain("catalog: default");
 	});
 
 	it("reports a rejected edit", () => {
@@ -125,13 +128,13 @@ describe("renderSummary", () => {
 				reason: "no published version of @changesets/cli satisfies ^3.0.0",
 			},
 		];
-		const text = renderSummary(decisions, undefined, { color: false }, rejected);
+		const text = plainText(summaryDoc(decisions, undefined, rejected));
 		expect(text).toContain("^3.0.0");
 		expect(text).toContain("no published version");
 	});
 
 	it("reports a peer warning", () => {
-		const text = renderSummary(warnDecisions, undefined, { color: false });
+		const text = plainText(summaryDoc(warnDecisions));
 		expect(text).toContain("lock-minor");
 	});
 
@@ -158,7 +161,7 @@ describe("renderSummary", () => {
 			chosen: cand({ kind: "latest", range: "^19.2.0", version: "19.2.0", isMajor: true }),
 		};
 		const mixed: Decision[] = [oneCandidateDecision, effectDecision, majorDecision];
-		const text = renderSummary(mixed, undefined, { color: false });
+		const text = plainText(summaryDoc(mixed));
 		const separatorColumns = text
 			.split("\n")
 			.filter((line) => line.includes("│"))

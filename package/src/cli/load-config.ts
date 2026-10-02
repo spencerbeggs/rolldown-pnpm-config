@@ -1,8 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import { Effect, Predicate } from "effect";
 import { evaluatePluginConfig } from "./evaluate.js";
-import { findWorkspaceFile, parseWorkspace } from "./workspace-file.js";
+import { parseWorkspace } from "./workspace-file.js";
 
 /** A statically evaluated plugin config plus the workspace file it targets. @internal */
 export interface LoadedConfig {
@@ -10,7 +9,7 @@ export interface LoadedConfig {
 	readonly config: Record<string, unknown>;
 	/** The export-time `local` block, when declared as an object. */
 	readonly localCfg: Record<string, unknown> | undefined;
-	/** The pnpm-workspace.yaml path: the override, the nearest one upward from cwd, or cwd's. */
+	/** The pnpm-workspace.yaml path the caller resolved (see `resolveWorkspacePath`). */
 	readonly path: string;
 	/** The parsed workspace file, or `{}` when it does not exist yet. */
 	readonly parsed: Record<string, unknown>;
@@ -18,14 +17,14 @@ export interface LoadedConfig {
 
 /**
  * The prologue shared by `export` and `preview`: read and statically evaluate
- * the config file (failing on a missing call or non-literal values), locate
- * the workspace file, and parse it when present. `mkError` wraps each failure
+ * the config file (failing on a missing call or non-literal values), and
+ * parse the workspace file when present. `mkError` wraps each failure
  * message in the command's own error type.
  *
  * @internal
  */
 export function loadConfigAndWorkspace<E>(
-	opts: { configFile: string; workspacePath?: string },
+	opts: { configFile: string; workspacePath: string },
 	mkError: (message: string) => E,
 ): Effect.Effect<LoadedConfig, E> {
 	return Effect.gen(function* () {
@@ -40,7 +39,7 @@ export function loadConfigAndWorkspace<E>(
 		if (errors.length > 0) {
 			return yield* Effect.fail(mkError(`Non-literal config values: ${errors.join("; ")}`));
 		}
-		const path = opts.workspacePath ?? findWorkspaceFile(process.cwd()) ?? join(process.cwd(), "pnpm-workspace.yaml");
+		const path = opts.workspacePath;
 		const parsed = existsSync(path)
 			? yield* Effect.try({
 					try: () => parseWorkspace(readFileSync(path, "utf8")),

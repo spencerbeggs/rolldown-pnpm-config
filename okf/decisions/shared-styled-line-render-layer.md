@@ -2,11 +2,11 @@
 type: Decision
 title: Shared StyledLine render layer, not per-command ad hoc color
 description: One StyledLine → toAnsi → ANSI path is shared by export --dry-run, preview and the upgrade summary, with capability detection centralized and threaded in as flags.
-status: draft
+status: deprecated
 generated:
   by: okfit/claude-code
-  at: 2026-09-18T22:54:21Z
-  body_sha256: 081b86132084cd8464c8d316932628e74ba84d8cc3f420bf8f6f59270d6c73f9
+  at: 2026-10-02T15:35:24Z
+  body_sha256: b0107395e920f7da4422d82637207b36ed6f6944e1541b70943982f36dfaecc0
 sources:
   - id: styled-ts
     resource: package/src/cli/ui/styled.ts
@@ -19,6 +19,10 @@ tags:
 ---
 
 # Shared StyledLine render layer, not per-command ad hoc color
+
+> Superseded by [CLI presentation through the @effected/cli kit](cli-presentation-on-effected-cli.md):
+> the `StyledLine` IR, `toAnsi` and `std-env` detection were replaced by the
+> kit's `Doc` IR, renderers and audience detection.
 
 ## Context
 

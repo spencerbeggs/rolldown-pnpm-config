@@ -11,14 +11,16 @@ import {
 	resolveTargetFile,
 	runUpgrade,
 } from "../../src/cli/commands/upgrade.js";
+import { WorkingDirectory } from "../../src/cli/cwd.js";
 import { discoverCatalogEntries } from "../../src/cli/discover.js";
 import { buildEdits } from "../../src/cli/edits.js";
 import type { GroupMember } from "../../src/cli/interop.js";
 import { buildInteropEdits, runInterop } from "../../src/cli/interop.js";
-import { renderSummary } from "../../src/cli/summary.js";
+import { summaryDoc } from "../../src/cli/summary.js";
 import { validateEdits } from "../../src/cli/validate.js";
 import { buildWalkItems } from "../../src/cli/walk-plan.js";
 import type { Decision } from "../../src/cli/walk-types.js";
+import { plainText } from "./utils/doc.js";
 import { makeStubResolver } from "./utils/stub-resolver.js";
 import { writeTmpConfig } from "./utils/tmp-config.js";
 
@@ -203,7 +205,7 @@ export const plugin = PnpmConfigPlugin({
 				}));
 				const { accepted, rejected } = yield* validateEdits(buildEdits(decisions), versions.raw);
 				yield* applyInteropAndDecisions(file, source, accepted, []);
-				return renderSummary(decisions, undefined, undefined, rejected);
+				return plainText(summaryDoc(decisions, undefined, rejected));
 			}),
 		);
 
@@ -493,13 +495,11 @@ describe("resolveTargetFile autodetect", () => {
 			`import { PnpmConfigPlugin } from "rolldown-pnpm-config";\nexport const p = PnpmConfigPlugin({ name: "@test/cfg", catalogs: { silk: { packages: { typescript: "^5.9.0" } } } });\n`,
 			"utf8",
 		);
-		const prev = process.cwd();
-		try {
-			process.chdir(dir);
-			const file = await Effect.runPromise(resolveTargetFile(Option.none()));
-			expect(file.endsWith("savvy.build.ts")).toBe(true);
-		} finally {
-			process.chdir(prev);
-		}
+		// The working directory is injected (main.ts reads process.cwd() once), so
+		// the test never has to chdir the whole process.
+		const file = await Effect.runPromise(
+			resolveTargetFile(Option.none()).pipe(Effect.provideService(WorkingDirectory, dir)),
+		);
+		expect(file.endsWith("savvy.build.ts")).toBe(true);
 	});
 });

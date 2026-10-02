@@ -5,8 +5,8 @@ description: Effect v4 source is vendored read-only under .repos/, pinned to the
 status: draft
 generated:
   by: okfit/claude-code
-  at: 2026-09-28T21:43:44Z
-  body_sha256: 11c830b5771930a7e10243b321f88c4d577de8094bc0a3146413f01d1791fc3e
+  at: 2026-10-02T15:35:24Z
+  body_sha256: e3933981ec263f6ede5b1e6a802feac1964ab912f754f4de614de7fe28efddeb
 sources:
   - id: repos-config
     resource: .repos/config.json
@@ -22,8 +22,8 @@ tags:
 
 ## Context
 
-Effect v4 is pre-release and moving on the release-candidate line, and its
-published docs can lag the code — a v4 signature or module shape recalled
+Effect v4 spent a long stretch on the release-candidate line and is now
+stable (`4.0.0`), but its published docs can still lag the code — a v4 signature or module shape recalled
 from memory or an older cached doc may already be wrong. The build-time/CLI
 dependency surface resolves `effect` from `catalog:effect`.
 
@@ -32,18 +32,20 @@ dependency surface resolves `effect` from `catalog:effect`.
 The Effect v4 source is vendored read-only as a git submodule at
 `.repos/effect` (`.gitmodules`),[^gitmodules] pinned via `.repos/config.json`
 to the exact `effect` version tag the `ref` field names.[^repos-config] The
-vendored source is treated as the authority for v4 API shapes during the
-pre-release period and is consulted in preference to memory of an older
+vendored source is treated as the authority for v4 API shapes and is consulted in preference to memory of an older
 Effect line or to documentation that may not have caught up yet.
 
 The pin is not a fixed version number to be repeated indefinitely: the rule
 is that it tracks whatever version `catalog:effect` currently resolves to,
 and is re-pinned when that changes. At the time of writing both agree:
-`.repos/config.json` pins `ref: "effect@4.0.0-rc.118"`[^repos-config] and
-`pnpm-lock.yaml` resolves `effect` to `4.0.0-rc.118`.[^lockfile] The two can
+`.repos/config.json` pins `ref: "effect@4.0.0"`[^repos-config] and
+`pnpm-lock.yaml` resolves `effect` to `4.0.0`.[^lockfile] Since the stable
+release the catalog names `effect` as `^4.0.0`, so the version to track is the
+lockfile's resolution, not the catalog literal. The two can
 drift apart in the ordinary course of dependency bumps (the pin sat at
 `rc.109` for one cycle while the lockfile had moved to `rc.112`, and again at
-`rc.115` after the lockfile had reached `rc.118`); such a gap
+`rc.115` after the lockfile had reached `rc.118`, and at `rc.118` after the
+lockfile had moved to `4.0.0`); such a gap
 is a signal that the pin is due for a refresh, not evidence that vendoring
 the source was the wrong call.
 

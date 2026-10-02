@@ -6,7 +6,8 @@ kind: cli
 resource: ../../package/src/cli/commands/upgrade.ts
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
+  at: 2026-10-02T15:35:24Z
+  body_sha256: 80c3f4982e6718eb5b25543e2b6ce9db82c1cfa5faf9e66e4adae0815ce48109
 sources:
   - id: upgrade-ts
     resource: ../../package/src/cli/commands/upgrade.ts
@@ -55,17 +56,20 @@ Declared at `package/src/cli/commands/upgrade.ts:780-786`:
   `--yes`, or `--dry-run` — never with `--preview` or the bare
   interactive default.[^upgrade-ts]
 
-## Interactive default and non-TTY/CI fallback
+## Interactive default and non-interactive fallback
 
 The default (no `--yes`/`--check`/`--preview`/`--json`) path enters an
 interactive table showing every discovered row, up-to-date rows included
 as non-selectable context, with the cursor starting on the first
-actionable row (`upgrade.ts:929-940`).[^upgrade-ts]
+actionable row.[^upgrade-ts] Enter applies the picks (or, under
+`--dry-run`, reports them); Esc or Ctrl-C quits, writes nothing, and exits
+`130`. While versions resolve, an interactive run draws a live progress
+line.
 
-When the terminal is not interactive (`caps.interactive` from
-`cli/ui/env.ts` is false), the command skips the walk and prints the
-non-interactive projection instead of entering raw mode and hanging
-(`upgrade.ts:920-928`).[^upgrade-ts]
+When the run cannot prompt — `CliInteractive` is false for a pipe, an agent
+or CI audience, or `TERM=dumb` (see [CLI output](cli-output.md)) — the
+command skips the table and prints the non-interactive projection instead of
+entering raw mode and hanging.[^upgrade-ts]
 
 ## The `minimumReleaseAge` gate
 
@@ -81,27 +85,35 @@ manifests and pending changesets, not the registry
 ## `--check` exit-code contract
 
 `--check` resolves exactly as `--yes` would (same `runUpgrade` call),
-forces dry-run regardless of other flags, and never writes
-(`upgrade.ts:826-851`). The exit code is the contract:
+forces dry-run regardless of other flags, and never writes. The exit code
+is the contract:
 
-- `0` — every entry is in sync (`checkOutcome`, `upgrade.ts:611-622`).
-- `1` — a `--yes` run would rewrite something, **or** the run failed to
-  resolve (an `UpgradeError` — a typo'd package name, a registry auth
-  failure, or a peer-strategy warning; `checkFailureOutcome`,
-  `upgrade.ts:624-642`). Both share the single non-zero exit code, so the
-  output must distinguish the two families.
+- `0` — every entry is in sync (`checkOutcome`).
+- `1` — a `--yes` run would rewrite something (a finding: the command
+  succeeds and records the code with `CliExit.set`), **or** the run failed
+  to resolve (`CheckFailedError` — a typo'd package name, a registry auth
+  failure, or a peer-strategy warning). Both share the single non-zero exit
+  code, so the output must distinguish the two families.
 
 Two distinguished output families:
 
 - Drift and in-sync go to **stdout**: `Catalog drift detected in N
-  package(s): ...` or `Catalogs are in sync.` (`upgrade.ts:611-622`).
-- A resolution failure goes to **stderr**, prefixed `Catalog check
-  failed before drift could be evaluated (resolution error, not
-  drift):` (`upgrade.ts:640`).
+  package(s): ...` or `Catalogs are in sync.`
+- A resolution failure is the failure report on **stderr**, headed
+  `Catalog check failed before drift could be evaluated (resolution
+  error, not drift):`.
 
 Each drift row is annotated with its version source:
 `<catalog>.<pkg>  (workspace)` or `<catalog>.<pkg>  (registry)` — **two
-spaces** before the paren (`upgrade.ts:617`).[^upgrade-ts]
+spaces** before the paren.[^upgrade-ts]
+
+## `--json`
+
+`--json` combines only with `--check`, `--yes` or `--dry-run`; anything else
+is a usage error (exit `64`). stdout then carries exactly one single-line
+JSON document in every case, failure included (`{ "command", "inSync" |
+"applied", ..., "error": { "kind", "message" } }`), and the human failure
+report goes to stderr.[^upgrade-ts]
 
 ## No `up` alias, no `-i`/`--interactive` flag
 

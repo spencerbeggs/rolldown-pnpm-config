@@ -34,22 +34,23 @@
 	},
 	"dependencies": {
 		"@effect/platform-node": "catalog:effect",
+		"@effected/cli": "catalog:effected",
+		"@effected/env": "catalog:effected",
+		"@effected/glob": "catalog:effected",
 		"@effected/npm": "catalog:effected",
 		"@effected/semver": "catalog:effected",
+		"@effected/walker": "catalog:effected",
 		"@effected/workspaces": "catalog:effected",
 		"@effected/yaml": "catalog:effected",
 		"effect": "catalog:effect",
 		"ink": "^7.1.1",
-		"ink-tab": "^5.2.0",
 		"oxc-parser": "^0.152.0",
-		"react": "catalog:silk",
-		"std-env": "^4.3.0"
+		"react": "catalog:silk"
 	},
 	"devDependencies": {
 		"@savvy-web/bundler": "^2.4.20",
 		"@types/node": "catalog:silk",
 		"@types/react": "catalog:silk",
-		"ink-testing-library": "^4.0.0",
 		"rolldown": "catalog:build",
 		"typescript": "catalog:silk"
 	},

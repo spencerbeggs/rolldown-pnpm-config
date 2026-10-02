@@ -18,9 +18,9 @@ Only simple ranges are touched — a bare version or a `^`/`~` range (`5.9.0`, `
 
 ## Interactive table (default)
 
-Run with no flags and the command shows every discovered catalog package at once as a table, one row per package, modeled on `pnpm up -i`. Each row is a radio group over that package's candidates with `●`/`○` bubbles — keep is preselected on every row, so the table starts as a no-op. Candidates appear in order: keep, then the latest in-range version, then `minor`, then latest. `↑`/`↓` move the cursor between rows, `←`/`→` move the selection within the row under the cursor, `⏎` applies from wherever the cursor sits and `Esc` cancels without writing anything.
+Run with no flags and the command shows every discovered catalog package at once as a table, one row per package, modeled on `pnpm up -i`. Each row is a radio group over that package's candidates with `●`/`○` bubbles — keep is preselected on every row, so the table starts as a no-op. Candidates appear in order: keep, then the latest in-range version, then `minor`, then latest. `↑`/`↓` (or `k`/`j`) move the cursor between rows, `←`/`→` (or `h`/`l`) move the selection within the row under the cursor, and `⏎` applies from wherever the cursor sits. `Esc` or `Ctrl-C` quits without writing anything and exits `130`, so a script can tell a quit from an apply. The table scrolls to fit the terminal, and while versions resolve a live progress line shows how far along the run is.
 
-Every discovered row is shown, including packages already at their newest version — those appear as non-selectable context so a fully up-to-date catalog is never hidden. The cursor starts on the first actionable row, skipping past any leading up-to-date ones. In a non-interactive terminal (CI, piped output) the command automatically falls back to the same projection `--preview` prints, since there is no TTY to drive the table.
+Every discovered row is shown, including packages already at their newest version — those appear as non-selectable context so a fully up-to-date catalog is never hidden. The cursor starts on the first actionable row, skipping past any leading up-to-date ones. When the run cannot prompt — piped output, a CI or agent audience, or `TERM=dumb` (see [Output, audience and exit codes](#output-audience-and-exit-codes)) — the command automatically falls back to the same projection `--preview` prints, since there is nobody to drive the table.
 
 The `minor` candidate is the latest version within the package's current major line that sits beyond its caret range but below the next major — the meaningful intermediate for a `0.x` package whose caret locks the minor. It offers, say, `0.50.0` rather than forcing a jump straight from `0.49.x` to the `1.0` major. The tier is omitted when it would coincide with the in-range pick or the overall latest.
 
@@ -41,8 +41,8 @@ npx rolldown-pnpm-config upgrade
 | `--catalog <name>` | Restricts the table to a single named catalog. |
 | `--preview` | Non-interactive projection: resolves every package, takes the default picks and prints the colorized summary — no table, no write. |
 | `--full` | Applies to the non-interactive projection (`--preview` and the CI fallback): includes up-to-date entries the projection would otherwise omit. The interactive table already shows every entry, so the flag is a no-op there. |
-| `--check` | Pure drift gate: resolves exactly as `--yes` would, writes nothing (even combined with `--yes`), and exits `0` when every entry is in sync or `1` when anything would have been rewritten. The exit code is the contract — release validation phases call this. |
-| `--json` | Machine-readable output for the non-interactive modes (`--check`, `--yes`, `--dry-run`). stdout carries exactly one single-line JSON document; all human-facing text moves to stderr or is suppressed. Exit codes are unchanged. Rejected with the interactive path and with `--preview`. |
+| `--check` | Pure drift gate: resolves exactly as `--yes` would, writes nothing (even combined with `--yes`), and exits `0` when every entry is in sync or `1` when anything would have been rewritten. A resolution failure also exits `1`, with a report on stderr labelled as a resolution error rather than drift. The exit code is the contract — release validation phases call this. |
+| `--json` | Machine-readable output for the non-interactive modes (`--check`, `--yes`, `--dry-run`). stdout carries exactly one single-line JSON document; all human-facing text moves to stderr or is suppressed. Exit codes are unchanged. Rejected as a usage error (exit `64`) with the interactive path and with `--preview`. |
 
 `--yes` is the unattended path — useful in scripts or a scheduled job:
 
@@ -74,9 +74,22 @@ out=$(npx rolldown-pnpm-config upgrade --check --json) || echo "catalogs drifted
 echo "$out" | jq -r '.drift[] | "\(.catalog).\(.pkg): \(.from) -> \(.to // "?") (\(.source))"'
 ```
 
-`upgrade --check --json` emits `{"command":"check","inSync":true|false,"drift":[...]}` where each drift row is `{"catalog":"effected","pkg":"@effected/app","from":"^0.7.0","to":"^0.8.0","source":"workspace"}` (`to` is omitted for a peer-only resync). A failure keeps the non-zero exit but still emits a document — `{"command":"check","inSync":false,"error":{"kind":"resolution","message":"..."}}` — so a bash gate never sees exit `1` with an empty stdout; the human-readable failure label goes to stderr. `error.kind` is `"peer-strategy"` when the run refused to apply with an incompatible peer strategy, and `"resolution"` for every other failure. `upgrade --yes --json` and `upgrade --dry-run --json` emit `{"command":"upgrade","applied":true|false,"updated":n,"changed":[...],"skipped":[...],"conflicts":[...]}` with `changed` rows in the same shape as `drift`; `applied` is `true` only when the run wrote at least one change — it is `false` under `--dry-run` and on an already-in-sync run, so keying on it never mistakes a no-op for a real apply. Without one of those modes, `--json` fails fast — JSON mode never enters the interactive table.
+`upgrade --check --json` emits `{"command":"check","inSync":true|false,"drift":[...]}` where each drift row is `{"catalog":"effected","pkg":"@effected/app","from":"^0.7.0","to":"^0.8.0","source":"workspace"}` (`to` is omitted for a peer-only resync). A failure keeps the non-zero exit but still emits a document — `{"command":"check","inSync":false,"error":{"kind":"resolution","message":"..."}}` — so a bash gate never sees exit `1` with an empty stdout; the human-readable failure label goes to stderr. `error.kind` is `"peer-strategy"` when the run refused to apply with an incompatible peer strategy, and `"resolution"` for every other failure. `upgrade --yes --json` and `upgrade --dry-run --json` emit `{"command":"upgrade","applied":true|false,"updated":n,"changed":[...],"skipped":[...],"conflicts":[...]}` with `changed` rows in the same shape as `drift`; `applied` is `true` only when the run wrote at least one change — it is `false` under `--dry-run` and on an already-in-sync run, so keying on it never mistakes a no-op for a real apply. Without one of those modes, `--json` fails fast as a usage error (exit `64`) — JSON mode never enters the interactive table.
 
 A prerelease-pinned package (for example `^3.0.0-next.8`) is offered same-track prerelease candidates (`next.9` and beyond) alongside the usual stable ones, instead of being frozen until a stable release ships. A package name the registry cannot resolve at all — a typo, a removed package, an auth failure — is surfaced as its own warning rather than silently treated as up to date: the table banners it, `--preview` appends it to the projection and `--yes` fails the run outright.
+
+## Output, audience and exit codes
+
+Every `rolldown-pnpm-config` command decides who its output is for. Pass `--human`, `--agent` or `--ci` (or `--audience <human|agent|ci>`), or set `ROLLDOWN_PNPM_CONFIG_AUDIENCE`; otherwise the CLI detects a coding agent or a CI job and falls back to a person. A person gets colour (when the terminal supports it) and the interactive table; an agent gets plain text with no escape sequences and never a prompt; a CI run gets plain text, rendered as a GitHub Actions log under Actions. Colour follows Node: `FORCE_COLOR` wins over `NO_COLOR`, and `NO_COLOR`, `NODE_DISABLE_COLORS` and `TERM=dumb` turn it off.
+
+The product — summaries, `--check`'s report, `--json` documents — goes to stdout. Warnings (such as a package the registry could not resolve) and failure reports go to stderr. `--log-level debug` (or `ROLLDOWN_PNPM_CONFIG_LOG_LEVEL`) adds diagnostics on stderr.
+
+| Exit code | Meaning |
+| --------- | ------- |
+| `0` | Success, including `--check` with every catalog in sync. |
+| `1` | `--check` found drift, or the run failed (no config file, a registry or resolution failure, an unsatisfiable range). |
+| `64` | Usage error: an unknown flag, more than one audience flag, or `--json` without `--check`/`--yes`/`--dry-run`. |
+| `130` | You quit the interactive table with `Esc` or `Ctrl-C`; nothing was written. |
 
 ## Materialized peer ranges
 

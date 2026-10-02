@@ -194,12 +194,24 @@ catalogs:
       specifier: ^4.0.0
       version: 4.0.0
   effected:
+    '@effected/cli':
+      specifier: ^0.11.0
+      version: 0.11.0
+    '@effected/env':
+      specifier: ^0.1.0
+      version: 0.1.0
+    '@effected/glob':
+      specifier: ^0.10.0
+      version: 0.10.0
     '@effected/npm':
       specifier: ^0.20.0
       version: 0.20.0
     '@effected/semver':
       specifier: ^0.11.0
       version: 0.11.0
+    '@effected/walker':
+      specifier: ^0.15.0
+      version: 0.15.0
     '@effected/workspaces':
       specifier: ^0.31.0
       version: 0.31.0
@@ -293,12 +305,24 @@ importers:
       '@effect/platform-node':
         specifier: catalog:effect
         version: 4.0.0(effect@4.0.0)(redis@6.3.0)
+      '@effected/cli':
+        specifier: catalog:effected
+        version: 0.11.0(@effected/config-file@0.14.0(@effected/glob@0.10.0(effect@4.0.0))(@effected/jsonc@0.15.0(effect@4.0.0))(@effected/toml@0.11.0(effect@4.0.0))(@effected/walker@0.15.0(@effected/glob@0.10.0(effect@4.0.0))(effect@4.0.0))(@effected/yaml@0.19.0(effect@4.0.0))(effect@4.0.0))(@effected/env@0.1.0(effect@4.0.0))(@effected/glob@0.10.0(effect@4.0.0))(@effected/walker@0.15.0(@effected/glob@0.10.0(effect@4.0.0))(effect@4.0.0))(@types/react@19.3.0)(effect@4.0.0)(ink@7.1.1(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
+      '@effected/env':
+        specifier: catalog:effected
+        version: 0.1.0(effect@4.0.0)
+      '@effected/glob':
+        specifier: catalog:effected
+        version: 0.10.0(effect@4.0.0)
       '@effected/npm':
         specifier: catalog:effected
         version: 0.20.0(@effected/semver@0.11.0(effect@4.0.0))(effect@4.0.0)
       '@effected/semver':
         specifier: catalog:effected
         version: 0.11.0(effect@4.0.0)
+      '@effected/walker':
+        specifier: catalog:effected
+        version: 0.15.0(@effected/glob@0.10.0(effect@4.0.0))(effect@4.0.0)
       '@effected/workspaces':
         specifier: catalog:effected
         version: 0.31.0(effect@4.0.0)
@@ -311,18 +335,12 @@ importers:
       ink:
         specifier: ^7.1.1
         version: 7.1.1(@types/react@19.3.0)(react@19.3.0)
-      ink-tab:
-        specifier: ^5.2.0
-        version: 5.2.0(@types/react@19.3.0)(ink@7.1.1(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
       oxc-parser:
         specifier: ^0.152.0
         version: 0.152.0
       react:
         specifier: catalog:silk
         version: 19.3.0
-      std-env:
-        specifier: ^4.3.0
-        version: 4.3.0
     devDependencies:
       '@savvy-web/bundler':
         specifier: ^2.4.20
@@ -333,9 +351,6 @@ importers:
       '@types/react':
         specifier: catalog:silk
         version: 19.3.0
-      ink-testing-library:
-        specifier: ^4.0.0
-        version: 4.0.0(@types/react@19.3.0)
       rolldown:
         specifier: catalog:build
         version: 1.2.12
@@ -2418,26 +2433,6 @@ packages:
   ini@6.0.0:
     resolution: {integrity: sha512-IBTdIkzZNOpqm7q3dRqJvMaldXjDHWkEDfrwGEQTs5eaQMWV+djAhR+wahyNNMAa+qpbDUhBMVt4ZKNwpPm7xQ==}
     engines: {node: ^20.17.0 || >=22.9.0}
-
-  ink-tab@5.2.0:
-    resolution: {integrity: sha512-ltLUqwHmeZBGNFTTEAU9pmhPdqLm3abLh+JNEp69Hb98jhzk1gaoZZIZjGBjwFC7U8tgT10rE+QkLTaqET1A1Q==}
-    engines: {node: '>=14.16'}
-    peerDependencies:
-      '@types/react': ^18.0.0 || ^19.0.0
-      ink: ^4.0.0 || ^5.0.0 || ^6.0.0
-      react: ^18.0.0 || ^19.0.0
-    peerDependenciesMeta:
-      '@types/react':
-        optional: true
-
-  ink-testing-library@4.0.0:
-    resolution: {integrity: sha512-yF92kj3pmBvk7oKbSq5vEALO//o7Z9Ck/OaLNlkzXNeYdwfpxMQkSowGTFUCS5MSu9bWfSZMewGpp7bFc66D7Q==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      '@types/react': '>=18.0.0'
-    peerDependenciesMeta:
-      '@types/react':
-        optional: true
 
   ink@7.1.1:
     resolution: {integrity: sha512-Y43xxa1ZSPvpmfLHcN5o+OdP8Rf8ykkNJEuKYOUNZKT8wXVNLFTtEm1nSDMQkfBH+YANF4Xuu0hhZ4ejqAtN2w==}
@@ -5430,17 +5425,6 @@ snapshots:
   indent-string@5.0.0: {}
 
   ini@6.0.0: {}
-
-  ink-tab@5.2.0(@types/react@19.3.0)(ink@7.1.1(@types/react@19.3.0)(react@19.3.0))(react@19.3.0):
-    dependencies:
-      ink: 7.1.1(@types/react@19.3.0)(react@19.3.0)
-      react: 19.3.0
-    optionalDependencies:
-      '@types/react': 19.3.0
-
-  ink-testing-library@4.0.0(@types/react@19.3.0):
-    optionalDependencies:
-      '@types/react': 19.3.0
 
   ink@7.1.1(@types/react@19.3.0)(react@19.3.0):
     dependencies:

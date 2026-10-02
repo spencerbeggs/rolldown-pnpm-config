@@ -1,16 +1,20 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { Effect, Result } from "effect";
+import { CliDoc } from "@effected/cli";
+import { Effect, Result, Runtime } from "effect";
 import { describe, expect, it } from "vitest";
 import type { UpgradeRunResult } from "../../src/cli/commands/upgrade.js";
 import {
+	CheckFailedError,
 	UpgradeError,
+	UpgradeUsageError,
 	checkJsonOutcome,
 	runUpgrade,
 	upgradeJsonOutcome,
 	validateJsonMode,
 } from "../../src/cli/commands/upgrade.js";
 import { makeWorkspaceResolver } from "../../src/cli/workspace-resolve.js";
+import { plainText } from "./utils/doc.js";
 import { makeStubResolver } from "./utils/stub-resolver.js";
 import { writeTmpConfig } from "./utils/tmp-config.js";
 
@@ -43,27 +47,27 @@ const runCheck = (source: string, resolver = registry): Promise<Result.Result<Up
 		runUpgrade({ file: writeTmpConfig(source), resolver, workspaceResolver, dryRun: true }).pipe(Effect.result),
 	);
 
-/** Parse the captured stdout as ONE JSON document and pin that it is the ONLY output. */
-const parseOnlyJson = (stdout: string): unknown => {
-	const parsed: unknown = JSON.parse(stdout);
-	// Single-line JSON.stringify plus a trailing newline, and nothing else.
-	expect(stdout).toBe(`${JSON.stringify(parsed)}\n`);
+/** Parse the document as ONE single-line JSON value and pin that it is nothing else (Console.log adds the newline). */
+const parseOnlyJson = (json: string): unknown => {
+	const parsed: unknown = JSON.parse(json);
+	expect(json).toBe(JSON.stringify(parsed));
+	expect(json).not.toContain("\n");
 	return parsed;
 };
 
 describe("checkJsonOutcome", () => {
-	it("emits an in-sync document with exit 0 and an empty stderr", async () => {
+	it("emits an in-sync document with exit 0 and no failure", async () => {
 		const result = await runCheck(MIXED("^0.3.0"), makeStubResolver({ versions: { typescript: ["5.9.0"] } }));
 		const out = checkJsonOutcome(result);
-		expect(parseOnlyJson(out.stdout)).toEqual({ command: "check", inSync: true, drift: [] });
+		expect(parseOnlyJson(out.json)).toEqual({ command: "check", inSync: true, drift: [] });
 		expect(out.exitCode).toBe(0);
-		expect(out.stderr).toBe("");
+		expect(out.failure).toBeUndefined();
 	});
 
 	it("emits mixed workspace and registry drift rows with from/to/source", async () => {
 		const result = await runCheck(MIXED("^0.2.0"));
 		const out = checkJsonOutcome(result);
-		expect(parseOnlyJson(out.stdout)).toEqual({
+		expect(parseOnlyJson(out.json)).toEqual({
 			command: "check",
 			inSync: false,
 			drift: [
@@ -72,7 +76,7 @@ describe("checkJsonOutcome", () => {
 			],
 		});
 		expect(out.exitCode).toBe(1);
-		expect(out.stderr).toBe("");
+		expect(out.failure).toBeUndefined();
 	});
 
 	it("emits an error document on stdout for a resolution failure, with the human message on stderr", async () => {
@@ -81,7 +85,7 @@ export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: { silk: { 
 `;
 		const result = await runCheck(source, makeStubResolver({ versions: {} }));
 		const out = checkJsonOutcome(result);
-		const doc = parseOnlyJson(out.stdout) as {
+		const doc = parseOnlyJson(out.json) as {
 			command: string;
 			inSync: boolean;
 			error: { kind: string; message: string };
@@ -93,8 +97,9 @@ export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: { silk: { 
 		expect(doc.error.message).toContain("@fix/typo");
 		// A bash gate must never get exit 1 and an empty stdout in JSON mode.
 		expect(out.exitCode).toBe(1);
-		// The human-facing failure family label stays available on stderr.
-		expect(out.stderr).toContain("resolution error, not drift");
+		// The command fails with this, so the labelled human report lands on stderr.
+		expect(out.failure).toBeInstanceOf(CheckFailedError);
+		expect(out.failure === undefined ? "" : plainText(out.failure[CliDoc]())).toContain("resolution error, not drift");
 	});
 });
 
@@ -102,7 +107,7 @@ describe("upgradeJsonOutcome", () => {
 	it("emits applied:false with the changed rows under --dry-run", async () => {
 		const result = await runCheck(MIXED("^0.2.0"));
 		const out = upgradeJsonOutcome(result, true);
-		expect(parseOnlyJson(out.stdout)).toEqual({
+		expect(parseOnlyJson(out.json)).toEqual({
 			command: "upgrade",
 			applied: false,
 			updated: 2,
@@ -113,8 +118,7 @@ describe("upgradeJsonOutcome", () => {
 			skipped: [],
 			conflicts: [],
 		});
-		expect(out.exitCode).toBe(0);
-		expect(out.stderr).toBe("");
+		expect(out.failure).toBeUndefined();
 	});
 
 	it("emits applied:true after a real write under --yes", async () => {
@@ -123,7 +127,7 @@ describe("upgradeJsonOutcome", () => {
 			runUpgrade({ file, resolver: registry, workspaceResolver }).pipe(Effect.result),
 		);
 		const out = upgradeJsonOutcome(result, false);
-		const doc = parseOnlyJson(out.stdout) as { applied: boolean; changed: unknown[] };
+		const doc = parseOnlyJson(out.json) as { applied: boolean; changed: unknown[] };
 		expect(doc.applied).toBe(true);
 		expect(doc.changed).toHaveLength(2);
 		expect(readFileSync(file, "utf8")).toContain('"@fix/bumped": { range: "^0.3.0", source: "workspace" }');
@@ -145,13 +149,13 @@ export const plugin = PnpmConfigPlugin({
 			runUpgrade({ file, resolver: registry, workspaceResolver }).pipe(Effect.result),
 		);
 		const out = upgradeJsonOutcome(result, false);
-		const doc = parseOnlyJson(out.stdout) as { applied: boolean; updated: number; changed: unknown[] };
+		const doc = parseOnlyJson(out.json) as { applied: boolean; updated: number; changed: unknown[] };
 		// Nothing was written, so a bash consumer keying on .applied must not
 		// read this no-op run as a real apply.
 		expect(doc.applied).toBe(false);
 		expect(doc.updated).toBe(0);
 		expect(doc.changed).toEqual([]);
-		expect(out.exitCode).toBe(0);
+		expect(out.failure).toBeUndefined();
 		expect(readFileSync(file, "utf8")).toBe(before);
 	});
 
@@ -162,9 +166,9 @@ export const plugin = PnpmConfigPlugin({
 				kind: "peer-strategy",
 			}),
 		);
-		const upgradeDoc = parseOnlyJson(upgradeJsonOutcome(failure, false).stdout) as { error: { kind: string } };
+		const upgradeDoc = parseOnlyJson(upgradeJsonOutcome(failure, false).json) as { error: { kind: string } };
 		expect(upgradeDoc.error.kind).toBe("peer-strategy");
-		const checkDoc = parseOnlyJson(checkJsonOutcome(failure).stdout) as { error: { kind: string } };
+		const checkDoc = parseOnlyJson(checkJsonOutcome(failure).json) as { error: { kind: string } };
 		expect(checkDoc.error.kind).toBe("peer-strategy");
 	});
 
@@ -174,25 +178,27 @@ export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: { silk: { 
 `;
 		const result = await runCheck(source, makeStubResolver({ versions: {} }));
 		const out = upgradeJsonOutcome(result, false);
-		const doc = parseOnlyJson(out.stdout) as { command: string; applied: boolean; error: { kind: string } };
+		const doc = parseOnlyJson(out.json) as { command: string; applied: boolean; error: { kind: string } };
 		expect(doc.command).toBe("upgrade");
 		expect(doc.applied).toBe(false);
 		expect(doc.error.kind).toBe("resolution");
-		expect(out.exitCode).toBe(1);
-		expect(out.stderr).not.toBe("");
+		// The command fails with the error, so the exit is non-zero and the message is on stderr.
+		expect(out.failure).toBeInstanceOf(UpgradeError);
 	});
 });
 
 describe("validateJsonMode", () => {
 	it("rejects --json on the interactive path with a clear message", () => {
 		const err = validateJsonMode({ json: true, check: false, yes: false, dryRun: false, preview: false });
-		expect(err).toBeInstanceOf(UpgradeError);
+		expect(err).toBeInstanceOf(UpgradeUsageError);
+		// A usage error, so it exits 64 rather than a resolution failure's 1.
+		expect(err?.[Runtime.errorExitCode]).toBe(64);
 		expect(err?.message).toBe("--json requires a non-interactive mode: combine it with --check, --yes, or --dry-run");
 	});
 
 	it("rejects --json with --preview", () => {
 		const err = validateJsonMode({ json: true, check: false, yes: false, dryRun: false, preview: true });
-		expect(err).toBeInstanceOf(UpgradeError);
+		expect(err).toBeInstanceOf(UpgradeUsageError);
 		expect(err?.message).toContain("--preview");
 	});
 
