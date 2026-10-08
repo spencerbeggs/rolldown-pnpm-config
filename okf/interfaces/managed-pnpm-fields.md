@@ -7,6 +7,7 @@ kind: config
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: b5c0777a646ae125d5f1f659dec33f877693849e99d4048521031edabbb94e21
 sources:
   - id: descriptors
     resource: package/src/descriptors

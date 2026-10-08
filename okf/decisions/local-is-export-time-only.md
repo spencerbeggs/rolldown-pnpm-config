@@ -6,6 +6,7 @@ status: draft
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: 248015fb109dcfc4b20abbcc6ce15e67dafadc010407eca1519e558f9bcb3b41
 sources:
   - id: define-plugin-ts
     resource: package/src/define-plugin.ts

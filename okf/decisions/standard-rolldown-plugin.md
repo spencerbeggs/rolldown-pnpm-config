@@ -6,6 +6,7 @@ status: draft
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: b803bb04793891f93a760ecb0524e282b73b2fdd5cfc1481434fda0df25855d2
 sources:
   - id: plugin-index
     resource: package/src/plugin/index.ts

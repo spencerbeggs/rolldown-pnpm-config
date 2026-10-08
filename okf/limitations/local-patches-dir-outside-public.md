@@ -5,6 +5,7 @@ description: When local.localPatchesDir points outside public/, the distributed 
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: 100ca54375614fb9d09ab6831087ff7f18bdbccdf3d02c2ec2bd5e029b820431
 sources:
   - id: discover-ts
     resource: ../../package/src/patches/discover.ts

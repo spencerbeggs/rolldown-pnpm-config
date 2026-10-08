@@ -7,6 +7,7 @@ kind: api
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: d3bf08a8ba07d339a8968ddcf53ad7ca80ea6bae30fdcaf048b43eb0ed686350
 sources:
   - id: define-plugin
     resource: package/src/define-plugin.ts

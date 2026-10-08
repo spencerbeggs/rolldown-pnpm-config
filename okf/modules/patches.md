@@ -7,6 +7,7 @@ kind: package
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: 7869ffa1a62a64dd1f704e0bd358bfd0626c18de39cdb8ef710342f8de6b462e
 sources:
   - id: discover
     resource: package/src/patches/discover.ts

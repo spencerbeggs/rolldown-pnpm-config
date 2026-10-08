@@ -5,6 +5,7 @@ description: The field→{ strategy, enforcement, options? } map freeze produces
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: 5a93c920d29302900364d5eca39ba3914a6dd1f3f21b1993d392849e7e3cfbd0
 sources:
   - id: runtime-index
     resource: ../../package/src/runtime/index.ts

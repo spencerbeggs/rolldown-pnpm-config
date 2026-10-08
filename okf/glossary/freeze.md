@@ -5,6 +5,7 @@ description: The single build-time step where Effect runs, validating a plugin a
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: 8380fe7a66aa49cc6cdbf5591e6d8fe1d30b807f34f383e1650d095e9ecbb8c5
 sources:
   - id: freeze-impl
     resource: ../../package/src/plugin/freeze.ts
