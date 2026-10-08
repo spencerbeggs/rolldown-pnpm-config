@@ -5,6 +5,7 @@ description: plan's stable-only candidate filter drops a workspace-sourced entry
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: 1c5d1965ad2903ad901d631149ee76d7d1946eaecd986579ba37b132ea08ff61
 sources:
   - id: plan-ts
     resource: ../../package/src/cli/plan.ts

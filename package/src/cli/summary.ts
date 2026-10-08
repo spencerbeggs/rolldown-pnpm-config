@@ -81,14 +81,18 @@ export function summaryDoc(
 			lines.push(row("⚠", 0, [tone(`${c.pkg} (kept ${c.ceiling}) blocked by ${c.blockedBy}`, "warn")]));
 		}
 	}
-	const blocks: Block[] = [Doc.lines(lines)];
+	// Table rows: each kept whole on one line at any width, as the table is.
+	const blocks: Block[] = [Doc.lines(lines, { wrap: false })];
 	if (rejected && rejected.length > 0) {
 		blocks.push(
 			Doc.line(""),
-			Doc.lines([
-				row("⚠", 0, [tone("Rejected (no published version satisfies these):", "warn")]),
-				...rejected.map((r) => row("⚠", 1, [tone(`${r.pkg} ${r.kind} ${r.value} — ${r.reason}`, "warn")])),
-			]),
+			Doc.lines(
+				[
+					row("⚠", 0, [tone("Rejected (no published version satisfies these):", "warn")]),
+					...rejected.map((r) => row("⚠", 1, [tone(`${r.pkg} ${r.kind} ${r.value} — ${r.reason}`, "warn")])),
+				],
+				{ wrap: false },
+			),
 		);
 	}
 	return blocks;

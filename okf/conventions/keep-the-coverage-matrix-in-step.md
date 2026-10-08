@@ -6,6 +6,7 @@ stale_after: 2026-12-08T00:00:00Z
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: 5d07825c37e152c950137b09bb57d55a51702a50f52880e8528b2341b12227a6
 sources:
   - id: descriptors-index
     resource: package/src/descriptors/index.ts

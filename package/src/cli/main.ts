@@ -2,6 +2,7 @@ import { NodeRuntime, NodeServices } from "@effect/platform-node";
 import { CliAudience, CliRuntime } from "@effected/cli";
 import { Effect } from "effect";
 import { WorkingDirectory } from "./cwd.js";
+import { RegistryResolverLive } from "./resolve.js";
 import { rootCommand } from "./root.js";
 import { CLI_VERSION } from "./version.js";
 
@@ -9,6 +10,10 @@ import { CLI_VERSION } from "./version.js";
  * Assemble and run the CLI. One of the three files allowed to read `process`:
  * the working directory, argv for the build-time log format, and stderr's
  * terminal state are read here and passed down as plain values.
+ *
+ * The registry resolver (`pnpm view`, spawned through the platform) is
+ * provided here, at the edge, so a test drives the same command tree against
+ * a stub resolver.
  *
  * `CliRuntime.main` builds the audience, terminal and theme from `env`,
  * decides whether the run may prompt, reports every failure on stderr for the
@@ -19,6 +24,7 @@ import { CLI_VERSION } from "./version.js";
 export function main(): void {
 	const program = CliAudience.run(rootCommand, { version: CLI_VERSION }).pipe(
 		Effect.provideService(WorkingDirectory, process.cwd()),
+		Effect.provide(RegistryResolverLive),
 	);
 	NodeRuntime.runMain(
 		CliRuntime.main(program, {

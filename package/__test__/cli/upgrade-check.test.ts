@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "@effect/vitest";
 import { CliDoc } from "@effected/cli";
 import { Effect, Runtime } from "effect";
-import { describe, expect, it } from "vitest";
 import { CheckFailedError, checkOutcome, runUpgrade } from "../../src/cli/commands/upgrade.js";
 import { makeWorkspaceResolver } from "../../src/cli/workspace-resolve.js";
 import { plainText } from "./utils/doc.js";
@@ -27,56 +27,66 @@ export const plugin = PnpmConfigPlugin({
 const registry = makeStubResolver({ versions: {} });
 
 describe("workspace-sourced entries on the non-interactive path", () => {
-	it("applies the workspace next version even when it falls outside the caret range", async () => {
-		// ^0.2.0 does NOT contain 0.3.0 (0.x caret) — a registry entry would be
-		// held to in-range-only, but a workspace entry tracks the workspace.
-		const file = writeTmpConfig(config("^0.2.0", "^0.2.0"));
-		const out = await Effect.runPromise(
-			runUpgrade({ file, resolver: registry, workspaceResolver: makeWorkspaceResolver(FIXTURE) }),
-		);
-		const result = readFileSync(file, "utf8");
-		expect(result).toContain('range: "^0.3.0"');
-		expect(result).toContain('peer: "^0.3.0"');
-		expect(out.changed).toEqual([
-			{
-				name: "effected.@fix/bumped",
-				catalog: "effected",
-				pkg: "@fix/bumped",
-				from: "^0.2.0",
-				to: "^0.3.0",
-				source: "workspace",
-			},
-		]);
-	});
+	it.effect("applies the workspace next version even when it falls outside the caret range", () =>
+		Effect.gen(function* () {
+			// ^0.2.0 does NOT contain 0.3.0 (0.x caret) — a registry entry would be
+			// held to in-range-only, but a workspace entry tracks the workspace.
+			const file = writeTmpConfig(config("^0.2.0", "^0.2.0"));
+			const out = yield* runUpgrade({ file, resolver: registry, workspaceResolver: makeWorkspaceResolver(FIXTURE) });
+			const result = readFileSync(file, "utf8");
+			expect(result).toContain('range: "^0.3.0"');
+			expect(result).toContain('peer: "^0.3.0"');
+			expect(out.changed).toEqual([
+				{
+					name: "effected.@fix/bumped",
+					catalog: "effected",
+					pkg: "@fix/bumped",
+					from: "^0.2.0",
+					to: "^0.3.0",
+					source: "workspace",
+				},
+			]);
+		}),
+	);
 
-	it("reports drift without writing under dryRun", async () => {
-		const file = writeTmpConfig(config("^0.2.0", "^0.2.0"));
-		const before = readFileSync(file, "utf8");
-		const out = await Effect.runPromise(
-			runUpgrade({ file, resolver: registry, workspaceResolver: makeWorkspaceResolver(FIXTURE), dryRun: true }),
-		);
-		expect(readFileSync(file, "utf8")).toBe(before);
-		expect(out.changed).toEqual([
-			{
-				name: "effected.@fix/bumped",
-				catalog: "effected",
-				pkg: "@fix/bumped",
-				from: "^0.2.0",
-				to: "^0.3.0",
-				source: "workspace",
-			},
-		]);
-	});
+	it.effect("reports drift without writing under dryRun", () =>
+		Effect.gen(function* () {
+			const file = writeTmpConfig(config("^0.2.0", "^0.2.0"));
+			const before = readFileSync(file, "utf8");
+			const out = yield* runUpgrade({
+				file,
+				resolver: registry,
+				workspaceResolver: makeWorkspaceResolver(FIXTURE),
+				dryRun: true,
+			});
+			expect(readFileSync(file, "utf8")).toBe(before);
+			expect(out.changed).toEqual([
+				{
+					name: "effected.@fix/bumped",
+					catalog: "effected",
+					pkg: "@fix/bumped",
+					from: "^0.2.0",
+					to: "^0.3.0",
+					source: "workspace",
+				},
+			]);
+		}),
+	);
 
-	it("reports no change when the entry already matches the workspace next version", async () => {
-		const file = writeTmpConfig(config("^0.3.0", "^0.3.0"));
-		const before = readFileSync(file, "utf8");
-		const out = await Effect.runPromise(
-			runUpgrade({ file, resolver: registry, workspaceResolver: makeWorkspaceResolver(FIXTURE), dryRun: true }),
-		);
-		expect(readFileSync(file, "utf8")).toBe(before);
-		expect(out.changed).toEqual([]);
-	});
+	it.effect("reports no change when the entry already matches the workspace next version", () =>
+		Effect.gen(function* () {
+			const file = writeTmpConfig(config("^0.3.0", "^0.3.0"));
+			const before = readFileSync(file, "utf8");
+			const out = yield* runUpgrade({
+				file,
+				resolver: registry,
+				workspaceResolver: makeWorkspaceResolver(FIXTURE),
+				dryRun: true,
+			});
+			expect(readFileSync(file, "utf8")).toBe(before);
+			expect(out.changed).toEqual([]);
+		}),
+	);
 });
 
 describe("checkOutcome", () => {

@@ -7,6 +7,7 @@ kind: package
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: a3a909ab10328f560410c5d2befd8b540af74b926566b86ceab2fc80f6d4a567
 sources:
   - id: descriptors-index
     resource: package/src/descriptors/index.ts

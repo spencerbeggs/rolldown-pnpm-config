@@ -77,7 +77,11 @@ export function makePreviewScreen(views: PreviewViews): Screen<void> {
 						renderRow={(row, highlighted) => (
 							<Box>
 								<Text>{highlighted ? <Styled token="accent">›</Styled> : " "}</Text>
-								<DocView doc={Doc.line(row._tag === "Item" ? (lines[Number(row.key)] ?? []) : [])} />
+								{/* One viewport row is one line: a row wider than the terminal is cut to fit,
+								    never wrapped, or the frame outgrows the height the viewport budgets. */}
+								<DocView
+									doc={Doc.line(row._tag === "Item" ? (lines[Number(row.key)] ?? []) : [], { truncate: true })}
+								/>
 							</Box>
 						)}
 					/>

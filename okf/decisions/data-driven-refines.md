@@ -6,6 +6,7 @@ status: draft
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: a8475c69828a202da825fd4566224bc5c1fc768ebc18e7f1b75d11dd0a579d99
 sources:
   - id: ctx
     resource: package/src/runtime/ctx.ts

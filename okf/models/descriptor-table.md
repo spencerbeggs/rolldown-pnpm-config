@@ -6,6 +6,7 @@ resource: ../../package/src/descriptors/index.ts
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: 0a3b41baac4f8d694645c6d5df8cb9a888a96421814fa31434ee70b5575d4e11
 sources:
   - id: types-ts
     resource: ../../package/src/descriptors/types.ts

@@ -7,6 +7,7 @@ kind: api
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: 372082e6108b73345be402a770a072fff11aa66a3ad7355cf595d84d8cd61445
 sources:
   - id: discover-ts
     resource: package/src/cli/discover.ts

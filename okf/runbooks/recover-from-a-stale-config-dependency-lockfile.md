@@ -6,6 +6,7 @@ resource: ../../pnpm-lock.yaml
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: 337f269ef67905118bc9e241ee6b0fc0968353078e6449fdfa64308e039ef38a
 sources:
   - id: pnpm-lock
     resource: ../../pnpm-lock.yaml

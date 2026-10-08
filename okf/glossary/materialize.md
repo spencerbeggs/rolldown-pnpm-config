@@ -5,6 +5,7 @@ description: Two related senses — normalizeCatalogs materializing a `<name>:pe
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: 0e3642b00fad03cdbabec895d1de4e1b02ddc3bb4ade1f6cb6d21360b1050e5d
 sources:
   - id: catalogs-impl
     resource: ../../package/src/catalogs.ts

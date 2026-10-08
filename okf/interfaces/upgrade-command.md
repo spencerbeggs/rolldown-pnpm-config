@@ -6,8 +6,8 @@ kind: cli
 resource: ../../package/src/cli/commands/upgrade.ts
 generated:
   by: okfit/claude-code
-  at: 2026-10-02T15:35:24Z
-  body_sha256: 80c3f4982e6718eb5b25543e2b6ce9db82c1cfa5faf9e66e4adae0815ce48109
+  at: 2026-10-08T03:36:55Z
+  body_sha256: 35c9e3f807ac1af906d4757a39d6538bcffc899cf01ab5e5843f4dc0dcee5b36
 sources:
   - id: upgrade-ts
     resource: ../../package/src/cli/commands/upgrade.ts
@@ -62,8 +62,9 @@ The default (no `--yes`/`--check`/`--preview`/`--json`) path enters an
 interactive table showing every discovered row, up-to-date rows included
 as non-selectable context, with the cursor starting on the first
 actionable row.[^upgrade-ts] Enter applies the picks (or, under
-`--dry-run`, reports them); Esc or Ctrl-C quits, writes nothing, and exits
-`130`. While versions resolve, an interactive run draws a live progress
+`--dry-run`, reports them). Esc closes the table, prints `cancelled; nothing
+written`, writes nothing, and exits `0`; Ctrl-C interrupts, writes nothing,
+and exits `130`. While versions resolve, an interactive run draws a live progress
 line.
 
 When the run cannot prompt — `CliInteractive` is false for a pipe, an agent

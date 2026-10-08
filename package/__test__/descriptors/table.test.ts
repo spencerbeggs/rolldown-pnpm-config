@@ -1,6 +1,7 @@
 // package/__test__/descriptors/table.test.ts
+
+import { describe, expect, it } from "@effect/vitest";
 import { Effect, Schema } from "effect";
-import { describe, expect, it } from "vitest";
 import { DESCRIPTORS } from "../../src/descriptors/index.js";
 import type { FieldDescriptor } from "../../src/descriptors/types.js";
 import { STRATEGY_TABLE } from "../../src/runtime/strategies/table.js";
@@ -12,16 +13,20 @@ describe("descriptor table integrity", () => {
 			it("names a strategy that exists", () => {
 				expect(STRATEGY_TABLE[desc.strategy], `unknown strategy "${desc.strategy}"`).toBeDefined();
 			});
-			it("accepts valid samples", async () => {
-				for (const v of samplesFor(desc).valid) {
-					await expect(Effect.runPromise(Schema.decodeUnknownEffect(desc.schema)(v))).resolves.toBeDefined();
-				}
-			});
-			it("rejects invalid samples", async () => {
-				for (const v of samplesFor(desc).invalid) {
-					await expect(Effect.runPromise(Schema.decodeUnknownEffect(desc.schema)(v))).rejects.toBeTruthy();
-				}
-			});
+			it.effect("accepts valid samples", () =>
+				Effect.gen(function* () {
+					for (const v of samplesFor(desc).valid) {
+						expect(yield* Schema.decodeUnknownEffect(desc.schema)(v)).toBeDefined();
+					}
+				}),
+			);
+			it.effect("rejects invalid samples", () =>
+				Effect.gen(function* () {
+					for (const v of samplesFor(desc).invalid) {
+						expect((yield* Effect.exit(Schema.decodeUnknownEffect(desc.schema)(v)))._tag).toBe("Failure");
+					}
+				}),
+			);
 			it("declares workspaceYaml as a boolean", () => {
 				expect(typeof desc.workspaceYaml).toBe("boolean");
 			});

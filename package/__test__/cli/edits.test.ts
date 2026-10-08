@@ -1,5 +1,5 @@
+import { describe, expect, it } from "@effect/vitest";
 import { Effect } from "effect";
-import { describe, expect, it } from "vitest";
 import { buildEdits } from "../../src/cli/edits.js";
 import type { Candidate, CatalogEntry } from "../../src/cli/types.js";
 import { buildWalkItems } from "../../src/cli/walk-plan.js";
@@ -73,24 +73,26 @@ describe("buildEdits", () => {
 		]);
 	});
 
-	it("a keep on an in-sync prerelease entry produces no peer edit", async () => {
-		// Regression test for the derivePeerRange prerelease-drop bug: driftPeer
-		// must be DERIVED via buildWalkItems (not stubbed to null), since the bug
-		// only manifests through detectPeerDrift's comparison against the
-		// derived range. A hardcoded `driftPeer: null` would pass with or
-		// without the fix.
-		const e = entry({
-			pkg: "@changesets/cli",
-			currentRange: "^3.0.0-next.8",
-			rangeSpan: [0, 15],
-			peer: { value: "^3.0.0-next.8", span: [20, 35] },
-			strategy: "lock",
-		});
-		const items = await Effect.runPromise(buildWalkItems([e], new Map([["@changesets/cli", ["3.0.0-next.8"]]])));
-		const keep = items[0]?.candidates[items[0].candidates.length - 1];
-		expect(keep?.kind).toBe("keep");
-		expect(buildEdits([{ item: items[0] as WalkItem, chosen: keep as Candidate }])).toEqual([]);
-	});
+	it.effect("a keep on an in-sync prerelease entry produces no peer edit", () =>
+		Effect.gen(function* () {
+			// Regression test for the derivePeerRange prerelease-drop bug: driftPeer
+			// must be DERIVED via buildWalkItems (not stubbed to null), since the bug
+			// only manifests through detectPeerDrift's comparison against the
+			// derived range. A hardcoded `driftPeer: null` would pass with or
+			// without the fix.
+			const e = entry({
+				pkg: "@changesets/cli",
+				currentRange: "^3.0.0-next.8",
+				rangeSpan: [0, 15],
+				peer: { value: "^3.0.0-next.8", span: [20, 35] },
+				strategy: "lock",
+			});
+			const items = yield* buildWalkItems([e], new Map([["@changesets/cli", ["3.0.0-next.8"]]]));
+			const keep = items[0]?.candidates[items[0].candidates.length - 1];
+			expect(keep?.kind).toBe("keep");
+			expect(buildEdits([{ item: items[0] as WalkItem, chosen: keep as Candidate }])).toEqual([]);
+		}),
+	);
 
 	it("tags each edit with its package, kind and unquoted range", () => {
 		const entry: CatalogEntry = {

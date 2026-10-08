@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "@effect/vitest";
 import { ReleaseAgeGate } from "@effected/npm";
 import { Effect } from "effect";
-import { describe, expect, it } from "vitest";
 import { projectDecisions, resolveGatedVersions } from "../../src/cli/commands/upgrade.js";
 import { discoverCatalogEntries } from "../../src/cli/discover.js";
 import { summaryDoc } from "../../src/cli/summary.js";
@@ -43,41 +43,41 @@ function entry(pkg: string, range: string, source?: "registry" | "workspace", ca
 }
 
 describe("source routing in resolveGatedVersions", () => {
-	it("resolves a workspace-sourced entry without touching the registry", async () => {
-		const registry = trackingRegistry();
-		const out = await Effect.runPromise(
-			resolveGatedVersions(
+	it.effect("resolves a workspace-sourced entry without touching the registry", () =>
+		Effect.gen(function* () {
+			const registry = trackingRegistry();
+			const out = yield* resolveGatedVersions(
 				[entry("@fix/bumped", "^0.2.0", "workspace")],
 				registry,
 				ReleaseAgeGate.combine(),
 				Date.now(),
 				undefined,
 				makeWorkspaceResolver(FIXTURE),
-			),
-		);
-		expect(out.gated.get(versionKeyOf(entry("@fix/bumped", "^0.2.0", "workspace")))).toEqual(["0.3.0"]);
-		expect(out.unresolved).toEqual([]);
-		expect(registry.calls).toEqual([]);
-	});
+			);
+			expect(out.gated.get(versionKeyOf(entry("@fix/bumped", "^0.2.0", "workspace")))).toEqual(["0.3.0"]);
+			expect(out.unresolved).toEqual([]);
+			expect(registry.calls).toEqual([]);
+		}),
+	);
 
-	it("does not hold a workspace entry for release age even though times are empty", async () => {
-		const registry = trackingRegistry();
-		const out = await Effect.runPromise(
-			resolveGatedVersions(
+	it.effect("does not hold a workspace entry for release age even though times are empty", () =>
+		Effect.gen(function* () {
+			const registry = trackingRegistry();
+			const out = yield* resolveGatedVersions(
 				[entry("@fix/bumped", "^0.2.0", "workspace")],
 				registry,
 				ReleaseAgeGate.combine({ ageMinutes: 1440 }),
 				Date.now(),
 				undefined,
 				makeWorkspaceResolver(FIXTURE),
-			),
-		);
-		expect(out.gated.get(versionKeyOf(entry("@fix/bumped", "^0.2.0", "workspace")))).toEqual(["0.3.0"]);
-	});
+			);
+			expect(out.gated.get(versionKeyOf(entry("@fix/bumped", "^0.2.0", "workspace")))).toEqual(["0.3.0"]);
+		}),
+	);
 
-	it("routes registry-sourced entries to the registry resolver untouched", async () => {
-		const out = await Effect.runPromise(
-			resolveGatedVersions(
+	it.effect("routes registry-sourced entries to the registry resolver untouched", () =>
+		Effect.gen(function* () {
+			const out = yield* resolveGatedVersions(
 				[entry("left-pad", "^1.0.0")],
 				{
 					versions: () => Effect.succeed(["1.0.0", "1.1.0"]),
@@ -89,82 +89,88 @@ describe("source routing in resolveGatedVersions", () => {
 				Date.now(),
 				undefined,
 				makeWorkspaceResolver(FIXTURE),
-			),
-		);
-		expect(out.gated.get("left-pad")).toEqual(["1.0.0", "1.1.0"]);
-	});
+			);
+			expect(out.gated.get("left-pad")).toEqual(["1.0.0", "1.1.0"]);
+		}),
+	);
 
-	it("resolves each (pkg × route) pair separately when one name is workspace-sourced in one catalog and registry-sourced in another", async () => {
-		// The SAME package name appears twice: workspace-sourced in catalog A,
-		// registry-sourced (no `source`) in catalog B. The registry entry must get
-		// the REGISTRY version list AND stay subject to the release-age gate; the
-		// workspace entry must get the workspace next version, gate-exempt. Routing
-		// by name alone would hand both entries the workspace list and exemption.
-		const iso = (msAgo: number) => new Date(Date.now() - msAgo).toISOString();
-		const registry = {
-			versions: (_pkg: string) => Effect.succeed(["0.1.0", "0.2.5"]),
-			times: (_pkg: string) =>
-				Effect.succeed<Record<string, string>>({ "0.1.0": iso(30 * 86_400_000), "0.2.5": iso(60_000) }),
-			pnpmConfig: () => Effect.succeed<string | null>(null),
-			peerDependencies: () => Effect.succeed<Record<string, string>>({}),
-		};
-		const workspaceEntry = entry("@fix/bumped", "^0.2.0", "workspace", "effected");
-		const registryEntry = entry("@fix/bumped", "^0.1.0", undefined, "npm");
-		const out = await Effect.runPromise(
-			resolveGatedVersions(
-				[workspaceEntry, registryEntry],
-				registry,
-				ReleaseAgeGate.combine({ ageMinutes: 1440 }),
-				Date.now(),
-				undefined,
-				makeWorkspaceResolver(FIXTURE),
-			),
-		);
-		// Workspace route: the workspace next version, exempt from the age gate.
-		expect(out.gated.get(versionKeyOf(workspaceEntry))).toEqual(["0.3.0"]);
-		// Registry route: the registry list, with the young 0.2.5 age-gated out.
-		expect(out.gated.get(versionKeyOf(registryEntry))).toEqual(["0.1.0"]);
-		expect(out.raw.get(versionKeyOf(registryEntry))).toEqual(["0.1.0", "0.2.5"]);
-		expect(out.unresolved).toEqual([]);
-	});
+	it.effect(
+		"resolves each (pkg × route) pair separately when one name is workspace-sourced in one catalog and registry-sourced in another",
+		() =>
+			Effect.gen(function* () {
+				// The SAME package name appears twice: workspace-sourced in catalog A,
+				// registry-sourced (no `source`) in catalog B. The registry entry must get
+				// the REGISTRY version list AND stay subject to the release-age gate; the
+				// workspace entry must get the workspace next version, gate-exempt. Routing
+				// by name alone would hand both entries the workspace list and exemption.
+				const iso = (msAgo: number) => new Date(Date.now() - msAgo).toISOString();
+				const registry = {
+					versions: (_pkg: string) => Effect.succeed(["0.1.0", "0.2.5"]),
+					times: (_pkg: string) =>
+						Effect.succeed<Record<string, string>>({ "0.1.0": iso(30 * 86_400_000), "0.2.5": iso(60_000) }),
+					pnpmConfig: () => Effect.succeed<string | null>(null),
+					peerDependencies: () => Effect.succeed<Record<string, string>>({}),
+				};
+				const workspaceEntry = entry("@fix/bumped", "^0.2.0", "workspace", "effected");
+				const registryEntry = entry("@fix/bumped", "^0.1.0", undefined, "npm");
+				const out = yield* resolveGatedVersions(
+					[workspaceEntry, registryEntry],
+					registry,
+					ReleaseAgeGate.combine({ ageMinutes: 1440 }),
+					Date.now(),
+					undefined,
+					makeWorkspaceResolver(FIXTURE),
+				);
+				// Workspace route: the workspace next version, exempt from the age gate.
+				expect(out.gated.get(versionKeyOf(workspaceEntry))).toEqual(["0.3.0"]);
+				// Registry route: the registry list, with the young 0.2.5 age-gated out.
+				expect(out.gated.get(versionKeyOf(registryEntry))).toEqual(["0.1.0"]);
+				expect(out.raw.get(versionKeyOf(registryEntry))).toEqual(["0.1.0", "0.2.5"]);
+				expect(out.unresolved).toEqual([]);
+			}),
+	);
 
-	it("reports a workspace-sourced entry naming a package outside the workspace as unresolved", async () => {
-		const out = await Effect.runPromise(
-			resolveGatedVersions(
+	it.effect("reports a workspace-sourced entry naming a package outside the workspace as unresolved", () =>
+		Effect.gen(function* () {
+			const out = yield* resolveGatedVersions(
 				[entry("@fix/missing", "^0.1.0", "workspace")],
 				trackingRegistry(),
 				ReleaseAgeGate.combine(),
 				Date.now(),
 				undefined,
 				makeWorkspaceResolver(FIXTURE),
-			),
-		);
-		expect(out.unresolved).toEqual(["@fix/missing"]);
-	});
+			);
+			expect(out.unresolved).toEqual(["@fix/missing"]);
+		}),
+	);
 });
 
 describe("projectDecisions parity with runUpgrade for workspace entries", () => {
-	it("picks the workspace sole non-keep candidate so --preview matches what --yes writes", async () => {
-		// runUpgrade applies the sole non-keep candidate for a workspace entry even
-		// when the next version falls outside the current range (^0.2.0 does not
-		// contain 0.3.0 for a 0.x caret). The projection behind --preview and the
-		// non-interactive terminal fallback must make the SAME pick — otherwise a
-		// pending workspace bump renders as unchanged while --yes writes it.
-		const e = entry("@fix/bumped", "^0.2.0", "workspace");
-		const items = await Effect.runPromise(buildWalkItems([e], new Map([[versionKeyOf(e), ["0.3.0"]]])));
-		const decisions = projectDecisions(items, false);
-		expect(decisions).toHaveLength(1);
-		expect(decisions[0]?.chosen.kind).not.toBe("keep");
-		expect(decisions[0]?.chosen.range).toBe("^0.3.0");
-		// The rendered preview shows the bump, not an unchanged row.
-		expect(plainText(summaryDoc(decisions))).toContain("^0.3.0");
-	});
+	it.effect("picks the workspace sole non-keep candidate so --preview matches what --yes writes", () =>
+		Effect.gen(function* () {
+			// runUpgrade applies the sole non-keep candidate for a workspace entry even
+			// when the next version falls outside the current range (^0.2.0 does not
+			// contain 0.3.0 for a 0.x caret). The projection behind --preview and the
+			// non-interactive terminal fallback must make the SAME pick — otherwise a
+			// pending workspace bump renders as unchanged while --yes writes it.
+			const e = entry("@fix/bumped", "^0.2.0", "workspace");
+			const items = yield* buildWalkItems([e], new Map([[versionKeyOf(e), ["0.3.0"]]]));
+			const decisions = projectDecisions(items, false);
+			expect(decisions).toHaveLength(1);
+			expect(decisions[0]?.chosen.kind).not.toBe("keep");
+			expect(decisions[0]?.chosen.range).toBe("^0.3.0");
+			// The rendered preview shows the bump, not an unchanged row.
+			expect(plainText(summaryDoc(decisions))).toContain("^0.3.0");
+		}),
+	);
 
-	it("still never crosses the range for a registry entry", async () => {
-		const e = entry("left-pad", "^0.2.0");
-		const items = await Effect.runPromise(buildWalkItems([e], new Map([["left-pad", ["0.3.0"]]])));
-		expect(projectDecisions(items, false)).toEqual([]);
-	});
+	it.effect("still never crosses the range for a registry entry", () =>
+		Effect.gen(function* () {
+			const e = entry("left-pad", "^0.2.0");
+			const items = yield* buildWalkItems([e], new Map([["left-pad", ["0.3.0"]]]));
+			expect(projectDecisions(items, false)).toEqual([]);
+		}),
+	);
 });
 
 describe("discover picks up the source field", () => {

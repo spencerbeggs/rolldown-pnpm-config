@@ -5,6 +5,7 @@ description: What is done about a divergence — warn routes to a console box by
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: 29defc6cc566f77ea181aea3397356afcc13b352b26bf808dd1469f2a590d5dc
 sources:
   - id: enforcement-impl
     resource: ../../package/src/runtime/enforcement.ts

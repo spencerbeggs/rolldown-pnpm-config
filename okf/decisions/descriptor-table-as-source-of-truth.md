@@ -6,6 +6,7 @@ status: draft
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: 2825c7cb51788f64dd79a9457b7f101a38601b04a846656a828fce382e8cae34
 sources:
   - id: descriptors-index
     resource: package/src/descriptors/index.ts

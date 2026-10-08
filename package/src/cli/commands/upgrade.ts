@@ -5,7 +5,7 @@ import { CliDoc, CliExit, CliInteractive, CliMessage, Doc } from "@effected/cli"
 import { CliUi } from "@effected/cli/ui";
 import type { PartialReleaseAgeGate } from "@effected/npm";
 import { ReleaseAgeGate } from "@effected/npm";
-import { Console, Data, Effect, Option, Result, Runtime } from "effect";
+import { Clock, Console, Data, Effect, Option, Result, Runtime } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
 import type { VersionSource } from "../../catalogs.js";
 import { bareVersion } from "../../semver-util.js";
@@ -20,9 +20,8 @@ import { buildGroupModel, computeGroupPeers } from "../interop-live.js";
 import { derivePeerRange } from "../peer-range.js";
 import { defaultPick, planEntry } from "../plan.js";
 import { parsePnpmGate, readConfigReleaseAge } from "../release-age.js";
-import { printDoc } from "../render/print.js";
 import { failureDoc, warningDoc } from "../render/report.js";
-import { RegistryResolver, RegistryResolverLive } from "../resolve.js";
+import { RegistryResolver } from "../resolve.js";
 import { applyEdits } from "../rewrite.js";
 import { filterEntriesByCatalog, findConfigFiles, pickConfigCandidate } from "../select-file.js";
 import { summaryDoc } from "../summary.js";
@@ -331,7 +330,7 @@ export function runUpgrade(opts: {
 			entries,
 			opts.resolver,
 			gate,
-			Date.now(),
+			yield* Clock.currentTimeMillis,
 			opts.onProgress,
 			opts.workspaceResolver,
 		);
@@ -592,7 +591,7 @@ export function runUpgradePreview(opts: {
 			entries,
 			opts.resolver,
 			gate,
-			Date.now(),
+			yield* Clock.currentTimeMillis,
 			undefined,
 			opts.workspaceResolver,
 		);
@@ -623,7 +622,10 @@ export function checkOutcome(changed: readonly CheckDriftRow[]): { exitCode: 0 |
 		exitCode: 1,
 		doc: [
 			Doc.line(`Catalog drift detected in ${changed.length} package(s):`),
-			Doc.lines(changed.map((c) => `  ${c.name}  (${c.source})`)),
+			Doc.lines(
+				changed.map((c) => `  ${c.name}  (${c.source})`),
+				{ wrap: false },
+			),
 			Doc.line(["Run ", Doc.code("rolldown-pnpm-config upgrade --yes"), " to apply."]),
 		],
 	};
@@ -757,7 +759,7 @@ export function resolveTargetFile(
 /** Print the unresolved-packages warning to stderr, when there is one. */
 function warnUnresolved(unresolved: readonly string[]) {
 	return unresolved.length > 0
-		? printDoc(warningDoc(unresolvedMessage(unresolved)), { stream: "stderr" })
+		? Doc.print(warningDoc(unresolvedMessage(unresolved)), { stream: "stderr" })
 		: Effect.void;
 }
 
@@ -781,7 +783,7 @@ function resolveForWalk(
 			entries,
 			resolver,
 			gate,
-			Date.now(),
+			yield* Clock.currentTimeMillis,
 			resolveProgress(report),
 			workspaceResolver,
 		);
@@ -916,7 +918,7 @@ export const upgradeCommand = Command.make(
 				}
 				// Drift and in-sync are the gate's normal answers → stdout, exit by CliExit.
 				const outcome = checkOutcome(result.success.changed);
-				yield* printDoc(outcome.doc);
+				yield* Doc.print(outcome.doc);
 				return yield* CliExit.set(outcome.exitCode);
 			}
 			// `--yes --json` and `--dry-run --json`: the non-interactive core with a
@@ -933,7 +935,7 @@ export const upgradeCommand = Command.make(
 			const workspaceResolver = workspaceOf(file);
 			if (preview) {
 				const { doc, unresolved } = yield* runUpgradePreview({ file, resolver, full, workspaceResolver });
-				yield* printDoc(doc);
+				yield* Doc.print(doc);
 				// --preview must not hide a typo either: an unresolvable package renders as
 				// up-to-date and would otherwise be invisible in the projection.
 				return yield* warnUnresolved(unresolved);
@@ -949,7 +951,7 @@ export const upgradeCommand = Command.make(
 					: CliMessage.success(`Updated ${result.updated} package(s); skipped ${result.skipped.length}.`);
 				if (result.conflicts.length > 0) {
 					const lines = result.conflicts.map((c) => `  ${c.pkg} (kept ${c.ceiling}) blocked by ${c.blockedBy}`);
-					yield* printDoc(warningDoc(["Interop conflicts (left at your pick):", ...lines].join("\n")), {
+					yield* Doc.print(warningDoc(["Interop conflicts (left at your pick):", ...lines].join("\n")), {
 						stream: "stderr",
 					});
 				}
@@ -964,14 +966,21 @@ export const upgradeCommand = Command.make(
 			// auto-picked defaults the user never got to choose, and would silently skip
 			// the interop reconcile — so the "preview" would not match what an apply does.
 			if (!(yield* CliInteractive)) {
-				const versions = yield* resolveGatedVersions(entries, resolver, gate, Date.now(), undefined, workspaceResolver);
+				const versions = yield* resolveGatedVersions(
+					entries,
+					resolver,
+					gate,
+					yield* Clock.currentTimeMillis,
+					undefined,
+					workspaceResolver,
+				);
 				const items = yield* buildWalkItems(entries, versions.gated).pipe(
 					Effect.mapError((e) => new UpgradeError({ message: e.message })),
 				);
 				const note = dryRun
 					? "(dry run — nothing written)"
 					: "(not interactive — run with --yes to apply, or in a terminal to choose)";
-				yield* printDoc([
+				yield* Doc.print([
 					...summaryDoc(projectDecisions(items, full)),
 					Doc.line(""),
 					Doc.line(Doc.text(note, "muted")),
@@ -992,9 +1001,19 @@ export const upgradeCommand = Command.make(
 				yield* warnUnresolved(versions.unresolved);
 				return yield* CliMessage.info(nothingToUpgradeMessage(0));
 			}
-			// Esc / Ctrl-C end the table as `Cancelled`, which `CliRuntime.main` reports
-			// as one line with exit 130 — nothing below runs, so nothing is written.
-			const decisions = yield* CliUi.run(walkScreen({ items, dryRun, unresolved: versions.unresolved, interopModels }));
+			// Esc is a deliberate "never mind": say so and exit 0. Ctrl-C stays an
+			// interrupt — its `Cancelled` passes through, and `CliRuntime.main`
+			// reports it as one line with exit 130. Either way nothing is written.
+			const picked = yield* CliUi.run(
+				walkScreen({ items, dryRun, unresolved: versions.unresolved, interopModels }),
+			).pipe(
+				Effect.map(Option.some),
+				Effect.catchTag("Cancelled", (cancel) =>
+					cancel.reason === "escape" ? Effect.succeed(Option.none()) : Effect.fail(cancel),
+				),
+			);
+			if (Option.isNone(picked)) return yield* CliMessage.info("cancelled; nothing written");
+			const decisions = picked.value;
 
 			// Interop write path: honor the user's final picks + the live-derived peer
 			// floors directly — no auto-downgrade, no re-prompt. The live table already
@@ -1036,7 +1055,7 @@ export const upgradeCommand = Command.make(
 			const { accepted, rejected } = yield* validateEdits(planned, versions.raw);
 			const acceptedPkgs = new Set(accepted.map((e) => e.pkg));
 
-			yield* printDoc(summaryDoc(decisions, { conflicts: allConflicts }, rejected));
+			yield* Doc.print(summaryDoc(decisions, { conflicts: allConflicts }, rejected));
 			// The ONLY thing --dry-run skips. Everything above ran for real, so the
 			// summary reports exactly what an apply would have written.
 			if (!dryRun) {
@@ -1053,5 +1072,5 @@ export const upgradeCommand = Command.make(
 			// Repeat the unresolved warning after the run: the in-table banner is gone
 			// once the screen unmounts, and this is the last thing the author reads.
 			yield* warnUnresolved(versions.unresolved);
-		}).pipe(Effect.provide(RegistryResolverLive)),
+		}),
 ).pipe(Command.withDescription("Upgrade catalog versions in a config file"));

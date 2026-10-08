@@ -4,10 +4,15 @@ import type { Tone } from "./tone.js";
 import { tone } from "./tone.js";
 
 function swatches(entries: ReadonlyArray<readonly [label: string, t: Tone]>): Block {
-	return Doc.line([
-		Doc.text("  Legend:  "),
-		...entries.map(([label, t], i) => tone(`■ ${label}${i < entries.length - 1 ? "  " : ""}`, t)),
-	]);
+	// One row of swatches, kept whole: wrapped, a swatch would split from its label,
+	// and in the preview explorer the legend gets one line of the frame's budget.
+	return Doc.line(
+		[
+			Doc.text("  Legend:  "),
+			...entries.map(([label, t], i) => tone(`■ ${label}${i < entries.length - 1 ? "  " : ""}`, t)),
+		],
+		{ wrap: false },
+	);
 }
 
 /**

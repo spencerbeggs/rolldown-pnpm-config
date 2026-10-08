@@ -6,6 +6,7 @@ status: draft
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: a0efb9616723c2a92e70ab2788cfeca93f81cf1e9838ddc086ea050be93e2582
 sources:
   - id: freeze
     resource: package/src/plugin/freeze.ts
