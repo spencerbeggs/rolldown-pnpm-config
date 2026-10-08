@@ -6,6 +6,7 @@ status: draft
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: 9661eb4756eda9a91abd4397fd4a693121c2f139d1408f03d36349d50f2cf1a6
 sources:
   - id: discover
     resource: package/src/cli/discover.ts

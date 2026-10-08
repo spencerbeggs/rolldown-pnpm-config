@@ -6,6 +6,7 @@ stale_after: 2026-12-08T00:00:00Z
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: 8017ec0900d5f3ab99aafd8a6eb8298a400b5cf9b0eedbc89192215920eccdb8
 sources:
   - id: root-claude-md
     resource: CLAUDE.md

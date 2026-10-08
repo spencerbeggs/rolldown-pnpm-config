@@ -6,6 +6,7 @@ status: draft
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: 66494e9e7a94f2641bd0a1f32ff234c108dd368a1298c3617637849d4f6d3205
 sources:
   - id: types
     resource: package/src/runtime/types.ts

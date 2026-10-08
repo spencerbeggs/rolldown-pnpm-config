@@ -6,6 +6,7 @@ status: draft
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: 575d24fd790208a2047e26f526257de79e1650fa8d6c48f7f339e57e2ecb5dd5
 sources:
   - id: interop
     resource: package/src/cli/interop.ts

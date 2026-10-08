@@ -7,6 +7,7 @@ resource: ../../package/src/define-plugin.ts
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: caa902d901903ca12049d4f0c9bde4c72aacc0e83d61bba60a83d832b1a12fbc
 sources:
   - id: define-plugin-ts
     resource: ../../package/src/define-plugin.ts

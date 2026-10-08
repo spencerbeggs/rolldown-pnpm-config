@@ -6,6 +6,7 @@ stale_after: 2026-12-08T00:00:00Z
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: e2e84a3cbb902abb1812be80b9b66ec400a33bfed405fb4ff17237d081f57ec5
 sources:
   - id: biome-config
     resource: biome.json

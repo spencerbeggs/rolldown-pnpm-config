@@ -5,6 +5,7 @@ description: What this project is, its boundaries, and its non-goals.
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: 75190d4d007a8ebb687d7481605b7394115b01958d2a3d04301ba9d57a95f84d
 sources:
   - id: package-json
     resource: package/package.json

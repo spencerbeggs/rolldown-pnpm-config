@@ -1,5 +1,50 @@
 # rolldown-pnpm-config
 
+## 2.0.2
+
+### Bug Fixes
+
+- `upgrade`: pressing Esc on the interactive table now closes it with "cancelled; nothing written" and exits 0 instead of 130, so `pnpm run` wrappers no longer report backing out as a failure. Ctrl-C still exits 130.
+- Line-oriented CLI output (diff rows, upgrade summary table rows and `upgrade --check` drift rows) no longer wraps at any terminal width. Piped, agent and CI output is unchanged.
+- `preview`: over-wide explorer rows are truncated to the terminal width instead of wrapping, so a row's name is no longer hidden and the screen no longer overflows its height. The legend no longer wraps.
+- `preview` no longer prints Node's `MaxListenersExceededWarning` into the terminal while the explorer is drawn. [#227][#227]
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/cli | dependency | updated | ^0.14.0 | ^0.15.0 |
+| ink | dependency | updated | ^7.1.1 | ^8.0.0 |
+
+[#227][#227]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#227]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/227
+
+## 2.0.1
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effect/platform-node | dependency | updated | ^4.0.0 | ^4.0.2 |
+| @effected/cli | dependency | updated | ^0.11.0 | ^0.14.0 |
+| @effected/workspaces | dependency | updated | ^0.31.0 | ^0.32.0 |
+| @effected/yaml | dependency | updated | ^0.19.0 | ^0.19.1 |
+| effect | dependency | updated | ^4.0.0 | ^4.0.2 |
+| oxc-parser | dependency | updated | ^0.152.0 | ^0.153.0 |
+
+[#225][#225]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#225]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/225
+
 ## 2.0.0
 
 ### Breaking Changes

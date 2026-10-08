@@ -7,6 +7,7 @@ kind: package
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: 894b26c8f138b9adb9c0d8cae82be3d935aaff34d3de72b86c08647dbae15b7d
 sources:
   - id: runtime-index
     resource: package/src/runtime/index.ts

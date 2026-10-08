@@ -5,6 +5,7 @@ description: A classified disagreement between the managed value and the consume
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: 92476b5173efdeb9194c4073818b1b9a8e36ec41f9628d5d0ddda95836b65ce5
 sources:
   - id: enforcement-impl
     resource: ../../package/src/runtime/enforcement.ts

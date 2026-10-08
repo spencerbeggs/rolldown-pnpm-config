@@ -6,6 +6,7 @@ status: draft
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: 6dfd0c0172e44d5e9972df07f6c9a6b30c2596e3c4352aed254a928730534bf7
 sources:
   - id: validate
     resource: package/src/cli/validate.ts

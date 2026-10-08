@@ -6,6 +6,7 @@ status: draft
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: 4300076f6f5de3354548cf81bdf381646a9734a0a96932c191de7188434b5e2d
 sources:
   - id: peer-range
     resource: package/src/cli/peer-range.ts

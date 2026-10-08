@@ -7,6 +7,7 @@ kind: api
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: dbaddb2c960b6c8099f6f2e4f38319c1ab3575306b452e9c1ba430b6800dc3a4
 sources:
   - id: virtual-dts
     resource: package/src/virtual.d.ts

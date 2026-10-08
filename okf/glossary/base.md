@@ -5,6 +5,7 @@ description: The frozen field→value map a plugin author declared, one of the t
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: 4b94353f3f6e4c37ab91906c720dd0a1f60431829cf04f94cd8ff57ca191d98c
 sources:
   - id: runtime-index
     resource: ../../package/src/runtime/index.ts

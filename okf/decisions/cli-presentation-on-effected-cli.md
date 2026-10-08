@@ -6,8 +6,8 @@ status: draft
 supersedes: shared-styled-line-render-layer.md
 generated:
   by: okfit/claude-code
-  at: 2026-10-02T15:35:24Z
-  body_sha256: a76cfba0fa2c75e56163cfb9bee91583f1625d2751ccc38396d3a819f9d9ce43
+  at: 2026-10-08T03:36:55Z
+  body_sha256: e6f10f6fa1355c820d20b3606fc61bdd182310bce2e531252282a75bcad23d5c
 sources:
   - id: main
     resource: ../../package/src/cli/main.ts
@@ -56,9 +56,13 @@ env })` in `main.ts`.[^main] The kit therefore owns:
   theme tokens,[^tone] and `Doc.print` picks the renderer: ANSI for a
   person, plain for an agent, the GitHub log under Actions.
 - **Failures and exit codes.** Each CLI error draws itself through `CliDoc`;
-  usage errors exit 64, a quit (Esc, Ctrl-C) exits 130, `--check` drift exits 1
+  usage errors exit 64, an interrupt (Ctrl-C) exits 130, `--check` drift exits 1
   through `CliExit.set`, and every other failure exits 1.[^bin-e2e] The owner
-  chose this table over keeping a single non-zero code.[^owner]
+  chose this table over keeping a single non-zero code.[^owner] Esc on a
+  screen is a deliberate close, not an interrupt: the command catches the
+  kit's `Cancelled` with reason `escape` and exits 0, so a wrapping script
+  runner (`pnpm run`) does not report backing out of the upgrade table as a
+  failure. The owner chose this on 2026-10-07 over Esc exiting 130.[^owner]
 - **Screens.** The upgrade table, the preview explorer and the resolve
   progress view are kit screens (`CliUi.run`, `CliUi.live`) in `.tsx`
   modules loaded only on mount, so a non-interactive run never loads

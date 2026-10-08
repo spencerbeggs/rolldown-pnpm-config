@@ -1,6 +1,6 @@
 {
 	"name": "rolldown-pnpm-config",
-	"version": "2.0.0",
+	"version": "2.0.2",
 	"private": true,
 	"description": "A dogfooding example of our plugin",
 	"repository": {
@@ -43,12 +43,13 @@
 		"@effected/workspaces": "catalog:effected",
 		"@effected/yaml": "catalog:effected",
 		"effect": "catalog:effect",
-		"ink": "^7.1.1",
-		"oxc-parser": "^0.152.0",
+		"ink": "catalog:silk",
+		"oxc-parser": "^0.153.0",
 		"react": "catalog:silk"
 	},
 	"devDependencies": {
-		"@savvy-web/bundler": "^2.4.21",
+		"@effect/vitest": "catalog:effect",
+		"@savvy-web/bundler": "^2.4.23",
 		"@types/node": "catalog:silk",
 		"@types/react": "catalog:silk",
 		"rolldown": "catalog:build",

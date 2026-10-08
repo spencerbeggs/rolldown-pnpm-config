@@ -1,5 +1,5 @@
+import { describe, expect, it } from "@effect/vitest";
 import { Effect } from "effect";
-import { describe, expect, it } from "vitest";
 import type { InteropConflict, InteropResult } from "../../src/cli/interop.js";
 import {
 	buildInteropEdits,
@@ -10,7 +10,7 @@ import {
 } from "../../src/cli/interop.js";
 import type { CatalogEntry } from "../../src/cli/types.js";
 
-const run = <A>(e: Effect.Effect<A, never>) => Effect.runPromise(e);
+const run = <A>(e: Effect.Effect<A, never>) => e;
 
 /** Build an InteropResult fixture; peers/conflicts default to empty. */
 function makeResult(o: {
@@ -26,31 +26,35 @@ function makeResult(o: {
 }
 
 describe("deriveFloors", () => {
-	it("derives each member's caret floor as the lowest in-group declared floor", async () => {
-		const resolved = new Map([
-			["effect", "3.17.2"],
-			["@effect/platform", "0.90.4"],
-			["@effect/cli", "0.70.1"],
-		]);
-		// platform peers effect ^3.17.0; cli peers effect ^3.16.0 + platform ^0.90.0
-		const peers: Record<string, Record<string, string>> = {
-			effect: {},
-			"@effect/platform": { effect: "^3.17.0" },
-			"@effect/cli": { effect: "^3.16.0", "@effect/platform": "^0.90.0" },
-		};
-		const out = await run(deriveFloors(resolved, (pkg, _v) => Effect.succeed(peers[pkg] ?? {})));
-		// effect floor = lowest of {3.17.0 (platform), 3.16.0 (cli)} = 3.16.0
-		expect(out.get("effect")).toBe("^3.16.0");
-		expect(out.get("@effect/platform")).toBe("^0.90.0");
-		// cli: nobody peer-depends on it → fall back to its resolved version
-		expect(out.get("@effect/cli")).toBe("^0.70.1");
-	});
+	it.effect("derives each member's caret floor as the lowest in-group declared floor", () =>
+		Effect.gen(function* () {
+			const resolved = new Map([
+				["effect", "3.17.2"],
+				["@effect/platform", "0.90.4"],
+				["@effect/cli", "0.70.1"],
+			]);
+			// platform peers effect ^3.17.0; cli peers effect ^3.16.0 + platform ^0.90.0
+			const peers: Record<string, Record<string, string>> = {
+				effect: {},
+				"@effect/platform": { effect: "^3.17.0" },
+				"@effect/cli": { effect: "^3.16.0", "@effect/platform": "^0.90.0" },
+			};
+			const out = yield* run(deriveFloors(resolved, (pkg, _v) => Effect.succeed(peers[pkg] ?? {})));
+			// effect floor = lowest of {3.17.0 (platform), 3.16.0 (cli)} = 3.16.0
+			expect(out.get("effect")).toBe("^3.16.0");
+			expect(out.get("@effect/platform")).toBe("^0.90.0");
+			// cli: nobody peer-depends on it → fall back to its resolved version
+			expect(out.get("@effect/cli")).toBe("^0.70.1");
+		}),
+	);
 
-	it("ignores out-of-group peer dependencies", async () => {
-		const resolved = new Map([["effect", "3.17.2"]]);
-		const out = await run(deriveFloors(resolved, (_pkg, _v) => Effect.succeed({ react: "^18.0.0" })));
-		expect(out.get("effect")).toBe("^3.17.2"); // react is not a member
-	});
+	it.effect("ignores out-of-group peer dependencies", () =>
+		Effect.gen(function* () {
+			const resolved = new Map([["effect", "3.17.2"]]);
+			const out = yield* run(deriveFloors(resolved, (_pkg, _v) => Effect.succeed({ react: "^18.0.0" })));
+			expect(out.get("effect")).toBe("^3.17.2"); // react is not a member
+		}),
+	);
 });
 
 describe("resolveGroup", () => {
@@ -64,111 +68,123 @@ describe("resolveGroup", () => {
 	};
 	const lookup = (pkg: string, v: string) => Effect.succeed(peers[pkg]?.[v] ?? {});
 
-	it("keeps a mutually-compatible set unchanged", async () => {
-		const out = await run(
-			resolveGroup(
-				[
-					{ pkg: "effect", ceiling: "3.16.0", candidates: ["3.16.0"] },
-					{ pkg: "@effect/cli", ceiling: "0.70.0", candidates: ["0.70.0"] },
-				],
-				lookup,
-			),
-		);
-		expect(out.conflicts).toEqual([]);
-		expect(out.resolved.get("@effect/cli")).toBe("0.70.0");
-	});
+	it.effect("keeps a mutually-compatible set unchanged", () =>
+		Effect.gen(function* () {
+			const out = yield* run(
+				resolveGroup(
+					[
+						{ pkg: "effect", ceiling: "3.16.0", candidates: ["3.16.0"] },
+						{ pkg: "@effect/cli", ceiling: "0.70.0", candidates: ["0.70.0"] },
+					],
+					lookup,
+				),
+			);
+			expect(out.conflicts).toEqual([]);
+			expect(out.resolved.get("@effect/cli")).toBe("0.70.0");
+		}),
+	);
 
-	it("downgrades the dependent, never the peer target", async () => {
-		const out = await run(
-			resolveGroup(
-				[
-					{ pkg: "effect", ceiling: "3.17.0", candidates: ["3.16.0", "3.17.0", "3.18.0"] },
-					{ pkg: "@effect/cli", ceiling: "0.71.0", candidates: ["0.70.0", "0.71.0"] },
-				],
-				lookup,
-			),
-		);
-		// cli@0.71 needs effect ^3.18 but effect is pinned at 3.17 → cli drops to 0.70
-		expect(out.resolved.get("effect")).toBe("3.17.0");
-		expect(out.resolved.get("@effect/cli")).toBe("0.70.0");
-		expect(out.conflicts).toEqual([]);
-	});
+	it.effect("downgrades the dependent, never the peer target", () =>
+		Effect.gen(function* () {
+			const out = yield* run(
+				resolveGroup(
+					[
+						{ pkg: "effect", ceiling: "3.17.0", candidates: ["3.16.0", "3.17.0", "3.18.0"] },
+						{ pkg: "@effect/cli", ceiling: "0.71.0", candidates: ["0.70.0", "0.71.0"] },
+					],
+					lookup,
+				),
+			);
+			// cli@0.71 needs effect ^3.18 but effect is pinned at 3.17 → cli drops to 0.70
+			expect(out.resolved.get("effect")).toBe("3.17.0");
+			expect(out.resolved.get("@effect/cli")).toBe("0.70.0");
+			expect(out.conflicts).toEqual([]);
+		}),
+	);
 
-	it("reports a conflict when no candidate ≤ ceiling satisfies the peers", async () => {
-		const out = await run(
-			resolveGroup(
-				[
-					{ pkg: "effect", ceiling: "3.16.0", candidates: ["3.16.0"] },
-					{ pkg: "@effect/cli", ceiling: "0.71.0", candidates: ["0.71.0"] }, // needs effect ^3.18
-				],
-				lookup,
-			),
-		);
-		expect(out.conflicts.map((c) => c.pkg)).toEqual(["@effect/cli"]);
-		expect(out.conflicts[0]?.blockedBy).toContain("effect");
-		expect(out.resolved.get("@effect/cli")).toBe("0.71.0"); // left at ceiling
-		expect(out.resolved.get("effect")).toBe("3.16.0");
-	});
+	it.effect("reports a conflict when no candidate ≤ ceiling satisfies the peers", () =>
+		Effect.gen(function* () {
+			const out = yield* run(
+				resolveGroup(
+					[
+						{ pkg: "effect", ceiling: "3.16.0", candidates: ["3.16.0"] },
+						{ pkg: "@effect/cli", ceiling: "0.71.0", candidates: ["0.71.0"] }, // needs effect ^3.18
+					],
+					lookup,
+				),
+			);
+			expect(out.conflicts.map((c) => c.pkg)).toEqual(["@effect/cli"]);
+			expect(out.conflicts[0]?.blockedBy).toContain("effect");
+			expect(out.resolved.get("@effect/cli")).toBe("0.71.0"); // left at ceiling
+			expect(out.resolved.get("effect")).toBe("3.16.0");
+		}),
+	);
 });
 
 describe("runInterop", () => {
-	it("resolves the group and derives caret peers, fetching peerDeps via the resolver", async () => {
-		const peers: Record<string, Record<string, Record<string, string>>> = {
-			effect: { "3.17.0": {} },
-			"@effect/cli": { "0.70.0": { effect: "^3.16.0" }, "0.71.0": { effect: "^3.18.0" } },
-		};
-		const resolver = {
-			peerDependencies: (pkg: string, v: string) => Effect.succeed(peers[pkg]?.[v] ?? {}),
-		};
-		const out = await run(
-			runInterop(
-				[
-					{ pkg: "effect", ceiling: "3.17.0", candidates: ["3.17.0"] },
-					{ pkg: "@effect/cli", ceiling: "0.71.0", candidates: ["0.70.0", "0.71.0"] },
-				],
-				resolver,
-			),
-		);
-		expect(out.resolved.get("@effect/cli")).toBe("0.70.0"); // downgraded
-		expect(out.peers.get("effect")).toBe("^3.16.0"); // cli@0.70 declares effect ^3.16.0
-		expect(out.conflicts).toEqual([]);
-	});
+	it.effect("resolves the group and derives caret peers, fetching peerDeps via the resolver", () =>
+		Effect.gen(function* () {
+			const peers: Record<string, Record<string, Record<string, string>>> = {
+				effect: { "3.17.0": {} },
+				"@effect/cli": { "0.70.0": { effect: "^3.16.0" }, "0.71.0": { effect: "^3.18.0" } },
+			};
+			const resolver = {
+				peerDependencies: (pkg: string, v: string) => Effect.succeed(peers[pkg]?.[v] ?? {}),
+			};
+			const out = yield* run(
+				runInterop(
+					[
+						{ pkg: "effect", ceiling: "3.17.0", candidates: ["3.17.0"] },
+						{ pkg: "@effect/cli", ceiling: "0.71.0", candidates: ["0.70.0", "0.71.0"] },
+					],
+					resolver,
+				),
+			);
+			expect(out.resolved.get("@effect/cli")).toBe("0.70.0"); // downgraded
+			expect(out.peers.get("effect")).toBe("^3.16.0"); // cli@0.70 declares effect ^3.16.0
+			expect(out.conflicts).toEqual([]);
+		}),
+	);
 
-	it("reuses a shared cache across rounds, fetching each (pkg, version) only once", async () => {
-		const fetched: string[] = [];
-		const resolver = {
-			peerDependencies: (pkg: string, v: string) => {
-				fetched.push(`${pkg}@${v}`);
-				return Effect.succeed({} as Record<string, string>);
-			},
-		};
-		const members = [
-			{ pkg: "effect", ceiling: "3.17.0", candidates: ["3.17.0"] },
-			{ pkg: "@effect/cli", ceiling: "0.71.0", candidates: ["0.70.0", "0.71.0"] },
-		];
-		const cache = new Map<string, Record<string, string>>();
-		await run(runInterop(members, resolver, cache));
-		const afterFirst = fetched.length;
-		expect(afterFirst).toBeGreaterThan(0);
-		// A second round over the same members must hit the cache for every key.
-		await run(runInterop(members, resolver, cache));
-		expect(fetched.length).toBe(afterFirst);
-	});
+	it.effect("reuses a shared cache across rounds, fetching each (pkg, version) only once", () =>
+		Effect.gen(function* () {
+			const fetched: string[] = [];
+			const resolver = {
+				peerDependencies: (pkg: string, v: string) => {
+					fetched.push(`${pkg}@${v}`);
+					return Effect.succeed({} as Record<string, string>);
+				},
+			};
+			const members = [
+				{ pkg: "effect", ceiling: "3.17.0", candidates: ["3.17.0"] },
+				{ pkg: "@effect/cli", ceiling: "0.71.0", candidates: ["0.70.0", "0.71.0"] },
+			];
+			const cache = new Map<string, Record<string, string>>();
+			yield* run(runInterop(members, resolver, cache));
+			const afterFirst = fetched.length;
+			expect(afterFirst).toBeGreaterThan(0);
+			// A second round over the same members must hit the cache for every key.
+			yield* run(runInterop(members, resolver, cache));
+			expect(fetched.length).toBe(afterFirst);
+		}),
+	);
 
-	it("fetches afresh each call when no shared cache is passed", async () => {
-		const fetched: string[] = [];
-		const resolver = {
-			peerDependencies: (pkg: string, v: string) => {
-				fetched.push(`${pkg}@${v}`);
-				return Effect.succeed({} as Record<string, string>);
-			},
-		};
-		const members = [{ pkg: "effect", ceiling: "3.17.0", candidates: ["3.17.0"] }];
-		await run(runInterop(members, resolver));
-		const afterFirst = fetched.length;
-		await run(runInterop(members, resolver));
-		expect(fetched.length).toBe(afterFirst * 2);
-	});
+	it.effect("fetches afresh each call when no shared cache is passed", () =>
+		Effect.gen(function* () {
+			const fetched: string[] = [];
+			const resolver = {
+				peerDependencies: (pkg: string, v: string) => {
+					fetched.push(`${pkg}@${v}`);
+					return Effect.succeed({} as Record<string, string>);
+				},
+			};
+			const members = [{ pkg: "effect", ceiling: "3.17.0", candidates: ["3.17.0"] }];
+			yield* run(runInterop(members, resolver));
+			const afterFirst = fetched.length;
+			yield* run(runInterop(members, resolver));
+			expect(fetched.length).toBe(afterFirst * 2);
+		}),
+	);
 });
 
 const interopEntry = (o: Partial<CatalogEntry>): CatalogEntry => ({

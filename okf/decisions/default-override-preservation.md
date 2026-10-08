@@ -6,6 +6,7 @@ status: draft
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: 34bcfba41cb4017a4b7e4b4d71aa5ae56f4335d0a3e6eea2f56a572237d8e7b7
 sources:
   - id: effective-ts
     resource: package/src/cli/effective.ts

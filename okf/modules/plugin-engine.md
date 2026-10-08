@@ -7,6 +7,7 @@ kind: package
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
+  body_sha256: 40416a0cece88d3e2506b437f07eee409a115f6d504f0f8cecc22022519ea137
 sources:
   - id: plugin-index
     resource: package/src/plugin/index.ts
