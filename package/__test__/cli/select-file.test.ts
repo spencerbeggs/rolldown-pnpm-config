@@ -1,8 +1,8 @@
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { describe, expect, it } from "@effect/vitest";
 import { Effect } from "effect";
-import { describe, expect, it } from "vitest";
 import { filterEntriesByCatalog, findConfigFiles, pickConfigCandidate } from "../../src/cli/select-file.js";
 import type { CatalogEntry } from "../../src/cli/types.js";
 
@@ -33,15 +33,17 @@ export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: { silk: { 
 `;
 
 describe("findConfigFiles", () => {
-	it("returns only .ts files that contain a PnpmConfigPlugin catalog", async () => {
-		const dir = mkdtempSync(join(tmpdir(), "rpc-detect-"));
-		writeFileSync(join(dir, "config.ts"), CONFIG, "utf8");
-		writeFileSync(join(dir, "config.d.ts"), CONFIG, "utf8");
-		writeFileSync(join(dir, "other.ts"), "export const x = 1;\n", "utf8");
-		writeFileSync(join(dir, "notes.md"), "ignore me\n", "utf8");
-		const matches = await Effect.runPromise(findConfigFiles(dir));
-		expect(matches.map((m) => m.endsWith("config.ts"))).toEqual([true]);
-	});
+	it.effect("returns only .ts files that contain a PnpmConfigPlugin catalog", () =>
+		Effect.gen(function* () {
+			const dir = mkdtempSync(join(tmpdir(), "rpc-detect-"));
+			writeFileSync(join(dir, "config.ts"), CONFIG, "utf8");
+			writeFileSync(join(dir, "config.d.ts"), CONFIG, "utf8");
+			writeFileSync(join(dir, "other.ts"), "export const x = 1;\n", "utf8");
+			writeFileSync(join(dir, "notes.md"), "ignore me\n", "utf8");
+			const matches = yield* findConfigFiles(dir);
+			expect(matches.map((m) => m.endsWith("config.ts"))).toEqual([true]);
+		}),
+	);
 });
 
 describe("filterEntriesByCatalog", () => {

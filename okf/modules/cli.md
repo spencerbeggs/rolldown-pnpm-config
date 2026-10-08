@@ -6,8 +6,8 @@ resource: ../../package/src/cli
 kind: package
 generated:
   by: okfit/claude-code
-  at: 2026-10-02T15:35:24Z
-  body_sha256: b6d71724b6be1b63e9e4bbbb52f7396fb6abcf06ecaac5870a1f6c3569a6ca46
+  at: 2026-10-08T03:36:55Z
+  body_sha256: 95850fc431c10ebe7a8cdc9b461e151025c255ad1ff968051e3e95085b13947d
 sources:
   - id: bin
     resource: package/src/cli/bin.ts
@@ -72,14 +72,19 @@ maps a `Tone` (added, removed, unmanaged, merge, …) to a theme token and
 builds diff-shaped rows of `@effected/cli` `Doc` inlines; the producers —
 `diff/render.ts` (`renderExportDiff`), `simulated-view.ts`, `summary.ts`
 and `render/legend.ts` — emit `Doc` blocks directly, and the renderer the
-audience picks decides whether they become colour.[^tone] `diff/` also holds
+audience picks decides whether they become colour.[^tone] Rows reach stdout
+as `Doc.lines(rows, { wrap: false })` blocks (`render/print.ts`, `summary.ts`,
+the `--check` drift list), so no row ever wraps; the kit already gives piped, agent and CI output an
+unbounded width, and prose around the rows wraps at a person's terminal. `diff/` also holds
 the structured diff tree (`DiffNode`, `DiffMeta`) over canonicalized
 before/after data.[^diff-build] `ui/` holds the kit screens — the upgrade
 table (`walk-screen.tsx`, over the pure reducer in `walk-reducer.ts`), the
 preview explorer (`preview-screen.tsx`) and the resolve progress live view
 (`progress-view.tsx`) — loaded only on mount through `ui/screens.ts`, the
 one module commands import, so a non-interactive run never loads
-React.[^screens] No module under `cli/` reads `process` except `bin.ts`,
+React.[^screens] The screens load through `CliUi.lazy`, the progress view
+through `CliUi.lazyView` with an empty `final` document, so a run that
+cannot draw prints nothing for it and never imports its module. No module under `cli/` reads `process` except `bin.ts`,
 `main.ts` and `version.ts`; the working directory reaches commands as the
 `WorkingDirectory` service (`cwd.ts`).
 `local-merge.ts` (`isLocalDirective`, `applyLocalDirective`,
@@ -91,7 +96,10 @@ runtime or `base`.[^local-merge] The interactive `upgrade` table
 (`interop-live.ts`), and the release-age gate readers (`release-age.ts`)
 are internal to the `upgrade` pipeline; `resolve.ts`/`workspace-resolve.ts`
 are the two `RegistryResolver` implementations behind one
-`Context.Service` seam.
+`Context.Service` seam. The live one (`RegistryResolverLive`, which spawns
+`pnpm view`) is provided once in `main.ts`, at the edge, so a test drives
+the real command tree against a stub resolver. The release-age gate reads
+the time from Effect's `Clock`, never `Date.now()`.
 
 See [static-config-discovery](../decisions/static-config-discovery.md) and
 [cli-presentation-on-effected-cli](../decisions/cli-presentation-on-effected-cli.md).

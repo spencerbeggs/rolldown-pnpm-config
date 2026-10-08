@@ -1,8 +1,8 @@
 import { fileURLToPath } from "node:url";
 import { NodeServices } from "@effect/platform-node";
+import { describe, expect, it } from "@effect/vitest";
 import { SourceBoundary } from "@effected/workspaces/testing";
 import { Effect } from "effect";
-import { describe, expect, it } from "vitest";
 
 const CLI = fileURLToPath(new URL("../../src/cli/", import.meta.url));
 
@@ -15,16 +15,16 @@ describe("CLI process boundary", () => {
 		expect(SourceBoundary.verifyFixtures()).toEqual([]);
 	});
 
-	it("reads process and writes stdout only in bin.ts, main.ts and version.ts", async () => {
-		const scan = await Effect.runPromise(
-			SourceBoundary.scan({
+	it.effect("reads process and writes stdout only in bin.ts, main.ts and version.ts", () =>
+		Effect.gen(function* () {
+			const scan = yield* SourceBoundary.scan({
 				root: CLI,
 				rules: ["process", "node:process", "stdout-write", "console"],
 				allow: ["bin.ts", "main.ts", "version.ts"],
 				extensions: [".ts", ".tsx"],
-			}).pipe(Effect.provide(NodeServices.layer)),
-		);
-		expect(scan.files.length).toBeGreaterThan(30);
-		expect(scan.violations).toEqual([]);
-	});
+			}).pipe(Effect.provide(NodeServices.layer));
+			expect(scan.files.length).toBeGreaterThan(30);
+			expect(scan.violations).toEqual([]);
+		}),
+	);
 });

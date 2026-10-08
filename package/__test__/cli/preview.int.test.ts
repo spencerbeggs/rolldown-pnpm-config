@@ -1,8 +1,8 @@
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { describe, expect, it } from "@effect/vitest";
 import { Effect } from "effect";
-import { describe, expect, it } from "vitest";
 import { runPreviewViews } from "../../src/cli/commands/preview.js";
 import { plainText } from "./utils/doc.js";
 
@@ -24,22 +24,24 @@ function setup(workspaceContent: string): { configFile: string; workspacePath: s
 }
 
 describe("runPreviewViews", () => {
-	it("returns three views; simulated is the calculated fresh-consumer file (not a diff)", async () => {
-		const { configFile, workspacePath } = setup(
-			'overrides:\n  "rolldown-pnpm-config": "file:/abs/pkg"\npackages:\n  - pkg/*\n',
-		);
-		const views = await Effect.runPromise(runPreviewViews({ configFile, workspacePath }));
-		expect(views.changes.lines.length).toBeGreaterThan(0);
-		expect(views.full.lines.length).toBeGreaterThanOrEqual(views.changes.lines.length);
-		// changes view preserves the file: link (no removal gutter).
-		// NOTE: check that no LINE starts with "- " (the removal gutter); YAML array
-		// items ("- pkg/*") also contain "- " so a bare .not.toContain would misfire.
-		expect(plainText(views.changes)).not.toMatch(/^- /m);
-		// Simulated is the plugin's own calculated config with rule annotations — it
-		// does NOT surface the local file: override as a removal (the old behavior).
-		const sim = plainText(views.simulated);
-		expect(sim).toContain("(merge");
-		expect(sim).not.toContain("rolldown-pnpm-config");
-		expect(sim).not.toMatch(/^[-+~] /m);
-	});
+	it.effect("returns three views; simulated is the calculated fresh-consumer file (not a diff)", () =>
+		Effect.gen(function* () {
+			const { configFile, workspacePath } = setup(
+				'overrides:\n  "rolldown-pnpm-config": "file:/abs/pkg"\npackages:\n  - pkg/*\n',
+			);
+			const views = yield* runPreviewViews({ configFile, workspacePath });
+			expect(views.changes.lines.length).toBeGreaterThan(0);
+			expect(views.full.lines.length).toBeGreaterThanOrEqual(views.changes.lines.length);
+			// changes view preserves the file: link (no removal gutter).
+			// NOTE: check that no LINE starts with "- " (the removal gutter); YAML array
+			// items ("- pkg/*") also contain "- " so a bare .not.toContain would misfire.
+			expect(plainText(views.changes)).not.toMatch(/^- /m);
+			// Simulated is the plugin's own calculated config with rule annotations — it
+			// does NOT surface the local file: override as a removal (the old behavior).
+			const sim = plainText(views.simulated);
+			expect(sim).toContain("(merge");
+			expect(sim).not.toContain("rolldown-pnpm-config");
+			expect(sim).not.toMatch(/^[-+~] /m);
+		}),
+	);
 });

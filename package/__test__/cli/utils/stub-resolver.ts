@@ -1,4 +1,5 @@
-import { Effect } from "effect";
+import { Effect, Layer } from "effect";
+import { RegistryResolver, ResolveError } from "../../../src/cli/resolve.js";
 
 export interface StubSpec {
 	readonly versions?: Record<string, string[]>;
@@ -20,4 +21,19 @@ export function makeStubResolver(spec: StubSpec) {
 		peerDependencies: (pkg: string, version: string) => Effect.succeed(spec.peerDependencies?.[pkg]?.[version] ?? {}),
 		pnpmConfig: (key: string) => Effect.succeed(spec.pnpmConfig?.[key] ?? null),
 	};
+}
+
+/**
+ * {@link makeStubResolver} as a `RegistryResolver` layer, for driving a whole
+ * command: a failing fetch is the resolver's own typed `ResolveError`.
+ */
+export function stubResolverLayer(spec: StubSpec): Layer.Layer<RegistryResolver> {
+	const stub = makeStubResolver(spec);
+	return Layer.succeed(RegistryResolver, {
+		...stub,
+		versions: (pkg) =>
+			spec.failVersions?.includes(pkg)
+				? Effect.fail(new ResolveError({ pkg, message: `404 Not Found - GET https://registry.npmjs.org/${pkg}` }))
+				: Effect.succeed(spec.versions?.[pkg] ?? []),
+	});
 }

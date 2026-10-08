@@ -1,9 +1,9 @@
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { describe, expect, it } from "@effect/vitest";
 import { ReleaseAgeGate } from "@effected/npm";
 import { Effect, Option } from "effect";
-import { describe, expect, it } from "vitest";
 import {
 	applyInteropAndDecisions,
 	countChangedDecisions,
@@ -52,10 +52,10 @@ const driftResolver = makeStubResolver({ versions: { vitest: ["4.2.3"] } });
 const ZERO_GATE = ReleaseAgeGate.combine();
 
 describe("interactive apply (headless)", () => {
-	it("applies chosen decisions to the file, range + recomputed peer", async () => {
-		const file = writeTmpConfig(SOURCE);
-		const result = await Effect.runPromise(
-			Effect.gen(function* () {
+	it.effect("applies chosen decisions to the file, range + recomputed peer", () =>
+		Effect.gen(function* () {
+			const file = writeTmpConfig(SOURCE);
+			const result = yield* Effect.gen(function* () {
 				const source = readFileSync(file, "utf8");
 				const { entries } = discoverCatalogEntries(source, file);
 				const { gated: versions } = yield* resolveGatedVersions(entries, resolver, ZERO_GATE, Date.now());
@@ -66,17 +66,18 @@ describe("interactive apply (headless)", () => {
 					.map((i) => ({ item: i, chosen: i.candidates.find((c) => c.kind === "in-range")! }));
 				yield* applyInteropAndDecisions(file, source, buildEdits(decisions), []);
 				return countChangedDecisions(decisions);
-			}),
-		);
-		const out = readFileSync(file, "utf8");
-		expect(out).toContain('typescript: "^5.9.3"');
-		expect(out).toContain('range: "^4.2.3"');
-		expect(out).toContain('peer: "^4.2.0"');
-		expect(result).toBe(2);
-	});
+			});
+			const out = readFileSync(file, "utf8");
+			expect(out).toContain('typescript: "^5.9.3"');
+			expect(out).toContain('range: "^4.2.3"');
+			expect(out).toContain('peer: "^4.2.0"');
+			expect(result).toBe(2);
+		}),
+	);
 
-	it("materializes a new peer literal when strategy is set but no peer exists", async () => {
-		const SOURCE = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
+	it.effect("materializes a new peer literal when strategy is set but no peer exists", () =>
+		Effect.gen(function* () {
+			const SOURCE = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
 export const plugin = PnpmConfigPlugin({
  name: "@test/cfg",
  catalogs: { silk: { packages: {
@@ -84,10 +85,9 @@ export const plugin = PnpmConfigPlugin({
  } } },
 });
 `;
-		const file = writeTmpConfig(SOURCE);
-		const resolver = makeStubResolver({ versions: { typescript: ["5.9.0", "5.9.3"] } });
-		const out = await Effect.runPromise(
-			Effect.gen(function* () {
+			const file = writeTmpConfig(SOURCE);
+			const resolver = makeStubResolver({ versions: { typescript: ["5.9.0", "5.9.3"] } });
+			const out = yield* Effect.gen(function* () {
 				const source = readFileSync(file, "utf8");
 				const { entries } = discoverCatalogEntries(source, file);
 				const { gated: versions } = yield* resolveGatedVersions(entries, resolver, ZERO_GATE, Date.now());
@@ -97,18 +97,18 @@ export const plugin = PnpmConfigPlugin({
 					.map((i) => ({ item: i, chosen: i.candidates.find((c) => c.kind === "in-range") ?? i.candidates[0] }));
 				yield* applyInteropAndDecisions(file, source, buildEdits(decisions), []);
 				return countChangedDecisions(decisions);
-			}),
-		);
-		const result = readFileSync(file, "utf8");
-		expect(result).toContain('range: "^5.9.3"');
-		expect(result).toContain('peer: "^5.9.0"'); // peer from in-range candidate: lock-minor(5.9.3) → ^5.9.0
-		expect(out).toBeGreaterThanOrEqual(1);
-	});
+			});
+			const result = readFileSync(file, "utf8");
+			expect(result).toContain('range: "^5.9.3"');
+			expect(result).toContain('peer: "^5.9.0"'); // peer from in-range candidate: lock-minor(5.9.3) → ^5.9.0
+			expect(out).toBeGreaterThanOrEqual(1);
+		}),
+	);
 
-	it("resyncs drifted peer even when range is already at newest version", async () => {
-		const file = writeTmpConfig(DRIFT_SOURCE);
-		const result = await Effect.runPromise(
-			Effect.gen(function* () {
+	it.effect("resyncs drifted peer even when range is already at newest version", () =>
+		Effect.gen(function* () {
+			const file = writeTmpConfig(DRIFT_SOURCE);
+			const result = yield* Effect.gen(function* () {
 				const source = readFileSync(file, "utf8");
 				const { entries } = discoverCatalogEntries(source, file);
 				const { gated: versions } = yield* resolveGatedVersions(entries, driftResolver, ZERO_GATE, Date.now());
@@ -122,21 +122,22 @@ export const plugin = PnpmConfigPlugin({
 					.map((i) => ({ item: i, chosen: i.candidates.find((c) => c.kind === "keep")! }));
 				yield* applyInteropAndDecisions(file, source, buildEdits(decisions), []);
 				return countChangedDecisions(decisions);
-			}),
-		);
-		const out = readFileSync(file, "utf8");
-		// Range must be unchanged.
-		expect(out).toContain('range: "^4.2.3"');
-		// Peer must be resynced to lock-minor of 4.2.3.
-		expect(out).toContain('peer: "^4.2.0"');
-		// countChangedDecisions must count the resync as a change.
-		expect(result).toBe(1);
-	});
+			});
+			const out = readFileSync(file, "utf8");
+			// Range must be unchanged.
+			expect(out).toContain('range: "^4.2.3"');
+			// Peer must be resynced to lock-minor of 4.2.3.
+			expect(out).toContain('peer: "^4.2.0"');
+			// countChangedDecisions must count the resync as a change.
+			expect(result).toBe(1);
+		}),
+	);
 });
 
 describe("runUpgrade --yes path", () => {
-	it("resyncs a drifted existing peer under --yes when already at newest", async () => {
-		const SOURCE = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
+	it.effect("resyncs a drifted existing peer under --yes when already at newest", () =>
+		Effect.gen(function* () {
+			const SOURCE = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
 export const plugin = PnpmConfigPlugin({
 	name: "@test/cfg",
 	catalogs: { silk: { packages: {
@@ -144,17 +145,19 @@ export const plugin = PnpmConfigPlugin({
 	} } },
 });
 `;
-		const file = writeTmpConfig(SOURCE);
-		const resolver = makeStubResolver({ versions: { vitest: ["4.2.3"] } }); // already newest, no upgrade
-		const result = await Effect.runPromise(runUpgrade({ file, resolver }));
-		const out = readFileSync(file, "utf8");
-		expect(out).toContain('range: "^4.2.3"'); // range unchanged
-		expect(out).toContain('peer: "^4.2.0"'); // drifted peer ^4.1.0 resynced to lock-minor of 4.2.3
-		expect(result.updated).toBe(1);
-	});
+			const file = writeTmpConfig(SOURCE);
+			const resolver = makeStubResolver({ versions: { vitest: ["4.2.3"] } }); // already newest, no upgrade
+			const result = yield* runUpgrade({ file, resolver });
+			const out = readFileSync(file, "utf8");
+			expect(out).toContain('range: "^4.2.3"'); // range unchanged
+			expect(out).toContain('peer: "^4.2.0"'); // drifted peer ^4.1.0 resynced to lock-minor of 4.2.3
+			expect(result.updated).toBe(1);
+		}),
+	);
 
-	it("materializes a peer under --yes even when the package is already at its newest version", async () => {
-		const SOURCE = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
+	it.effect("materializes a peer under --yes even when the package is already at its newest version", () =>
+		Effect.gen(function* () {
+			const SOURCE = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
 export const plugin = PnpmConfigPlugin({
  name: "@test/cfg",
  catalogs: { silk: { packages: {
@@ -162,14 +165,15 @@ export const plugin = PnpmConfigPlugin({
  } } },
 });
 `;
-		const file = writeTmpConfig(SOURCE);
-		const resolver = makeStubResolver({ versions: { typescript: ["5.9.0"] } }); // already newest, no upgrade
-		const result = await Effect.runPromise(runUpgrade({ file, resolver }));
-		const out = readFileSync(file, "utf8");
-		expect(out).toContain('range: "^5.9.0"'); // range unchanged
-		expect(out).toContain('peer: "^5.9.0"'); // peer materialized (lock-minor of 5.9.0)
-		expect(result.updated).toBe(1);
-	});
+			const file = writeTmpConfig(SOURCE);
+			const resolver = makeStubResolver({ versions: { typescript: ["5.9.0"] } }); // already newest, no upgrade
+			const result = yield* runUpgrade({ file, resolver });
+			const out = readFileSync(file, "utf8");
+			expect(out).toContain('range: "^5.9.0"'); // range unchanged
+			expect(out).toContain('peer: "^5.9.0"'); // peer materialized (lock-minor of 5.9.0)
+			expect(result.updated).toBe(1);
+		}),
+	);
 });
 
 describe("interactive apply (rejected edits)", () => {
@@ -186,14 +190,14 @@ export const plugin = PnpmConfigPlugin({
 });
 `;
 
-	it("drops a rejected edit, applies the rest, and reports it in the summary", async () => {
-		const file = writeTmpConfig(SOURCE);
-		const rejectResolver = makeStubResolver({
-			versions: { typescript: ["5.9.0", "5.9.3"], "left-pad": ["3.4.1"] },
-		});
+	it.effect("drops a rejected edit, applies the rest, and reports it in the summary", () =>
+		Effect.gen(function* () {
+			const file = writeTmpConfig(SOURCE);
+			const rejectResolver = makeStubResolver({
+				versions: { typescript: ["5.9.0", "5.9.3"], "left-pad": ["3.4.1"] },
+			});
 
-		const summary = await Effect.runPromise(
-			Effect.gen(function* () {
+			const summary = yield* Effect.gen(function* () {
 				const source = readFileSync(file, "utf8");
 				const { entries } = discoverCatalogEntries(source, file);
 				const versions = yield* resolveGatedVersions(entries, rejectResolver, ZERO_GATE, Date.now());
@@ -206,15 +210,15 @@ export const plugin = PnpmConfigPlugin({
 				const { accepted, rejected } = yield* validateEdits(buildEdits(decisions), versions.raw);
 				yield* applyInteropAndDecisions(file, source, accepted, []);
 				return plainText(summaryDoc(decisions, undefined, rejected));
-			}),
-		);
+			});
 
-		const out = readFileSync(file, "utf8");
-		expect(out).toContain('typescript: "^5.9.3"'); // the good bump still landed
-		expect(out).toContain('peer: "3.4.1"'); // the unsatisfiable "3.4.0" was NOT written
-		expect(summary).toContain("Rejected");
-		expect(summary).toContain("no published version of left-pad satisfies 3.4.0");
-	});
+			const out = readFileSync(file, "utf8");
+			expect(out).toContain('typescript: "^5.9.3"'); // the good bump still landed
+			expect(out).toContain('peer: "3.4.1"'); // the unsatisfiable "3.4.0" was NOT written
+			expect(summary).toContain("Rejected");
+			expect(summary).toContain("no published version of left-pad satisfies 3.4.0");
+		}),
+	);
 });
 
 describe("interactive apply (atomic per-package rejection)", () => {
@@ -261,34 +265,38 @@ export const plugin = PnpmConfigPlugin({
 			return { source, accepted, rejected };
 		});
 
-	it("drops a satisfiable range edit alongside its paired unsatisfiable peer edit — writes NEITHER", async () => {
-		const file = writeTmpConfig(PAIR_SOURCE);
-		const { source, accepted, rejected } = await Effect.runPromise(planAndValidate(file));
+	it.effect("drops a satisfiable range edit alongside its paired unsatisfiable peer edit — writes NEITHER", () =>
+		Effect.gen(function* () {
+			const file = writeTmpConfig(PAIR_SOURCE);
+			const { source, accepted, rejected } = yield* planAndValidate(file);
 
-		// Both of left-pad's edits are rejected, none accepted for it.
-		expect(accepted.some((e) => e.pkg === "left-pad")).toBe(false);
-		const leftPadRejected = rejected.filter((r) => r.pkg === "left-pad");
-		expect(leftPadRejected).toHaveLength(2);
-		expect(leftPadRejected.map((r) => r.kind).sort()).toEqual(["peer", "range"]);
+			// Both of left-pad's edits are rejected, none accepted for it.
+			expect(accepted.some((e) => e.pkg === "left-pad")).toBe(false);
+			const leftPadRejected = rejected.filter((r) => r.pkg === "left-pad");
+			expect(leftPadRejected).toHaveLength(2);
+			expect(leftPadRejected.map((r) => r.kind).sort()).toEqual(["peer", "range"]);
 
-		await Effect.runPromise(applyInteropAndDecisions(file, source, accepted, []));
-		const out = readFileSync(file, "utf8");
-		// left-pad's range AND peer are byte-identical to the source — a half-written
-		// package (new range, stale peer) is exactly the bug this test guards against.
-		expect(out).toContain('"left-pad": { range: "3.4.1", peer: "3.4.1", strategy: "lock-minor" }');
-	});
+			yield* applyInteropAndDecisions(file, source, accepted, []);
+			const out = readFileSync(file, "utf8");
+			// left-pad's range AND peer are byte-identical to the source — a half-written
+			// package (new range, stale peer) is exactly the bug this test guards against.
+			expect(out).toContain('"left-pad": { range: "3.4.1", peer: "3.4.1", strategy: "lock-minor" }');
+		}),
+	);
 
-	it("does not let left-pad's rejection block either of the two good packages in the same run", async () => {
-		const file = writeTmpConfig(PAIR_SOURCE);
-		const { source, accepted } = await Effect.runPromise(planAndValidate(file));
+	it.effect("does not let left-pad's rejection block either of the two good packages in the same run", () =>
+		Effect.gen(function* () {
+			const file = writeTmpConfig(PAIR_SOURCE);
+			const { source, accepted } = yield* planAndValidate(file);
 
-		await Effect.runPromise(applyInteropAndDecisions(file, source, accepted, []));
-		const out = readFileSync(file, "utf8");
-		expect(out).toContain('typescript: "^5.9.3"'); // simple package: fully applied
-		expect(out).toContain('range: "^4.2.3"'); // vitest: range + peer both applied
-		expect(out).toContain('peer: "^4.2.0"');
-		expect(out).toContain('"left-pad": { range: "3.4.1", peer: "3.4.1", strategy: "lock-minor" }'); // untouched
-	});
+			yield* applyInteropAndDecisions(file, source, accepted, []);
+			const out = readFileSync(file, "utf8");
+			expect(out).toContain('typescript: "^5.9.3"'); // simple package: fully applied
+			expect(out).toContain('range: "^4.2.3"'); // vitest: range + peer both applied
+			expect(out).toContain('peer: "^4.2.0"');
+			expect(out).toContain('"left-pad": { range: "3.4.1", peer: "3.4.1", strategy: "lock-minor" }'); // untouched
+		}),
+	);
 });
 
 describe("dry run", () => {
@@ -296,12 +304,12 @@ describe("dry run", () => {
 	// expresses that as `if (!dryRun) applyInteropAndDecisions(...)`, so the
 	// guarantee under test is: the very edits an apply would have written leave
 	// the file byte-identical when the write is skipped.
-	it("computes real edits but leaves the file byte-identical when the write is skipped", async () => {
-		const file = writeTmpConfig(SOURCE);
-		const before = readFileSync(file, "utf8");
+	it.effect("computes real edits but leaves the file byte-identical when the write is skipped", () =>
+		Effect.gen(function* () {
+			const file = writeTmpConfig(SOURCE);
+			const before = readFileSync(file, "utf8");
 
-		const { accepted } = await Effect.runPromise(
-			Effect.gen(function* () {
+			const { accepted } = yield* Effect.gen(function* () {
 				const source = readFileSync(file, "utf8");
 				const { entries } = discoverCatalogEntries(source, file);
 				const { gated, raw } = yield* resolveGatedVersions(entries, resolver, ZERO_GATE, Date.now());
@@ -310,16 +318,16 @@ describe("dry run", () => {
 					.filter((i) => !i.upToDate)
 					.map((i) => ({ item: i, chosen: i.candidates.find((c) => c.kind === "in-range")! }));
 				return yield* validateEdits(buildEdits(decisions), raw);
-			}),
-		);
+			});
 
-		// The run produced real, applicable edits — this is not a vacuous no-op.
-		expect(accepted.length).toBeGreaterThan(0);
-		expect(accepted.some((e) => e.value === "^5.9.3")).toBe(true);
+			// The run produced real, applicable edits — this is not a vacuous no-op.
+			expect(accepted.length).toBeGreaterThan(0);
+			expect(accepted.some((e) => e.value === "^5.9.3")).toBe(true);
 
-		// ...and skipping the write (what --dry-run does) leaves the source untouched.
-		expect(readFileSync(file, "utf8")).toBe(before);
-	});
+			// ...and skipping the write (what --dry-run does) leaves the source untouched.
+			expect(readFileSync(file, "utf8")).toBe(before);
+		}),
+	);
 });
 
 describe("interactive interop apply (headless)", () => {
@@ -330,19 +338,19 @@ export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: { effect: 
 } } } });
 `;
 
-	it("holds back a dependent the user picked above the group, then materializes caret peers", async () => {
-		const file = writeTmpConfig(INTEROP_SOURCE);
-		const interopResolver = makeStubResolver({
-			versions: { effect: ["3.17.0"], "@effect/cli": ["0.70.0", "0.71.0"] },
-			peerDependencies: {
-				effect: { "3.17.0": {} },
-				// cli@0.71 needs effect ^3.18 (unavailable) → must drop to 0.70, which needs effect ^3.16
-				"@effect/cli": { "0.70.0": { effect: "^3.16.0" }, "0.71.0": { effect: "^3.18.0" } },
-			},
-		});
+	it.effect("holds back a dependent the user picked above the group, then materializes caret peers", () =>
+		Effect.gen(function* () {
+			const file = writeTmpConfig(INTEROP_SOURCE);
+			const interopResolver = makeStubResolver({
+				versions: { effect: ["3.17.0"], "@effect/cli": ["0.70.0", "0.71.0"] },
+				peerDependencies: {
+					effect: { "3.17.0": {} },
+					// cli@0.71 needs effect ^3.18 (unavailable) → must drop to 0.70, which needs effect ^3.16
+					"@effect/cli": { "0.70.0": { effect: "^3.16.0" }, "0.71.0": { effect: "^3.18.0" } },
+				},
+			});
 
-		await Effect.runPromise(
-			Effect.gen(function* () {
+			yield* Effect.gen(function* () {
 				const source = readFileSync(file, "utf8");
 				const { entries } = discoverCatalogEntries(source, file);
 				const { gated: versions } = yield* resolveGatedVersions(entries, interopResolver, ZERO_GATE, Date.now());
@@ -369,18 +377,19 @@ export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: { effect: 
 				const interopEdits = buildInteropEdits(group, result);
 				// Non-interop decisions are empty here; interop edits carry the change.
 				yield* applyInteropAndDecisions(file, source, [], interopEdits);
-			}),
-		);
+			});
 
-		const out = readFileSync(file, "utf8");
-		expect(out).toContain('effect: { range: "^3.17.0"'); // anchor unchanged
-		expect(out).toContain('"@effect/cli": { range: "^0.70.0"'); // dependent held back
-		expect(out).toContain('peer: "^3.16.0"'); // effect peer floor from cli@0.70
-		expect(out).toContain('peer: "^0.70.0"'); // cli peer floor (its own resolved version)
-	});
+			const out = readFileSync(file, "utf8");
+			expect(out).toContain('effect: { range: "^3.17.0"'); // anchor unchanged
+			expect(out).toContain('"@effect/cli": { range: "^0.70.0"'); // dependent held back
+			expect(out).toContain('peer: "^3.16.0"'); // effect peer floor from cli@0.70
+			expect(out).toContain('peer: "^0.70.0"'); // cli peer floor (its own resolved version)
+		}),
+	);
 
-	it("combines non-interop decision edits with interop edits without overlap", async () => {
-		const MIXED_SOURCE = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
+	it.effect("combines non-interop decision edits with interop edits without overlap", () =>
+		Effect.gen(function* () {
+			const MIXED_SOURCE = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
 export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: {
  silk: { packages: { typescript: "^5.9.0" } },
  effect: { packages: {
@@ -389,17 +398,16 @@ export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: {
  } },
 } });
 `;
-		const file = writeTmpConfig(MIXED_SOURCE);
-		const mixedResolver = makeStubResolver({
-			versions: { typescript: ["5.9.0", "5.9.3"], effect: ["3.17.0"], "@effect/cli": ["0.70.0", "0.71.0"] },
-			peerDependencies: {
-				effect: { "3.17.0": {} },
-				"@effect/cli": { "0.70.0": { effect: "^3.16.0" }, "0.71.0": { effect: "^3.18.0" } },
-			},
-		});
+			const file = writeTmpConfig(MIXED_SOURCE);
+			const mixedResolver = makeStubResolver({
+				versions: { typescript: ["5.9.0", "5.9.3"], effect: ["3.17.0"], "@effect/cli": ["0.70.0", "0.71.0"] },
+				peerDependencies: {
+					effect: { "3.17.0": {} },
+					"@effect/cli": { "0.70.0": { effect: "^3.16.0" }, "0.71.0": { effect: "^3.18.0" } },
+				},
+			});
 
-		await Effect.runPromise(
-			Effect.gen(function* () {
+			yield* Effect.gen(function* () {
 				const source = readFileSync(file, "utf8");
 				const { entries } = discoverCatalogEntries(source, file);
 				const { gated: versions } = yield* resolveGatedVersions(entries, mixedResolver, ZERO_GATE, Date.now());
@@ -418,14 +426,14 @@ export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: {
 				const result = yield* runInterop(members, mixedResolver);
 				const interopEdits = buildInteropEdits(group, result);
 				yield* applyInteropAndDecisions(file, source, buildEdits(nonInteropDecisions), interopEdits);
-			}),
-		);
+			});
 
-		const out = readFileSync(file, "utf8");
-		expect(out).toContain('typescript: "^5.9.3"'); // non-interop in-range bump applied
-		expect(out).toContain('"@effect/cli": { range: "^0.70.0"'); // interop downgrade applied
-		expect(out).toContain('peer: "^3.16.0"');
-	});
+			const out = readFileSync(file, "utf8");
+			expect(out).toContain('typescript: "^5.9.3"'); // non-interop in-range bump applied
+			expect(out).toContain('"@effect/cli": { range: "^0.70.0"'); // interop downgrade applied
+			expect(out).toContain('peer: "^3.16.0"');
+		}),
+	);
 });
 
 describe("interop reconcile across ceilings (headless)", () => {
@@ -439,9 +447,9 @@ describe("interop reconcile across ceilings (headless)", () => {
 		},
 	});
 
-	it("raising the anchor lets the dependent stay high", async () => {
-		await Effect.runPromise(
-			Effect.gen(function* () {
+	it.effect("raising the anchor lets the dependent stay high", () =>
+		Effect.gen(function* () {
+			yield* Effect.gen(function* () {
 				// Round 1: user picks effect low (3.17.0); cli@0.71 must drop to 0.70.
 				const members1: GroupMember[] = [
 					{ pkg: "effect", ceiling: "3.17.0", candidates: ["3.17.0", "3.18.0"] },
@@ -461,19 +469,19 @@ describe("interop reconcile across ceilings (headless)", () => {
 				const result2 = yield* runInterop(members2, loopResolver);
 				expect(result2.resolved.get("@effect/cli")).toBe("0.71.0"); // dependent stays high
 				expect(result2.conflicts).toEqual([]);
-			}),
-		);
-	});
+			});
+		}),
+	);
 
-	it("reports a true conflict at the ceiling when no downgrade satisfies it", async () => {
-		const conflictResolver = makeStubResolver({
-			peerDependencies: {
-				effect: { "3.16.0": {} },
-				"@effect/cli": { "0.71.0": { effect: "^3.18.0" } }, // unsatisfiable at effect 3.16
-			},
-		});
-		await Effect.runPromise(
-			Effect.gen(function* () {
+	it.effect("reports a true conflict at the ceiling when no downgrade satisfies it", () =>
+		Effect.gen(function* () {
+			const conflictResolver = makeStubResolver({
+				peerDependencies: {
+					effect: { "3.16.0": {} },
+					"@effect/cli": { "0.71.0": { effect: "^3.18.0" } }, // unsatisfiable at effect 3.16
+				},
+			});
+			yield* Effect.gen(function* () {
 				const members: GroupMember[] = [
 					{ pkg: "effect", ceiling: "3.16.0", candidates: ["3.16.0"] },
 					{ pkg: "@effect/cli", ceiling: "0.71.0", candidates: ["0.71.0"] },
@@ -482,24 +490,24 @@ describe("interop reconcile across ceilings (headless)", () => {
 				expect(result.conflicts.map((c) => c.pkg)).toEqual(["@effect/cli"]);
 				// The conflicted member is left at its ceiling, never silently moved.
 				expect(result.resolved.get("@effect/cli")).toBe("0.71.0");
-			}),
-		);
-	});
+			});
+		}),
+	);
 });
 
 describe("resolveTargetFile autodetect", () => {
-	it("autodetects the single config file when no path is given", async () => {
-		const dir = mkdtempSync(join(tmpdir(), "rpc-auto-"));
-		writeFileSync(
-			join(dir, "savvy.build.ts"),
-			`import { PnpmConfigPlugin } from "rolldown-pnpm-config";\nexport const p = PnpmConfigPlugin({ name: "@test/cfg", catalogs: { silk: { packages: { typescript: "^5.9.0" } } } });\n`,
-			"utf8",
-		);
-		// The working directory is injected (main.ts reads process.cwd() once), so
-		// the test never has to chdir the whole process.
-		const file = await Effect.runPromise(
-			resolveTargetFile(Option.none()).pipe(Effect.provideService(WorkingDirectory, dir)),
-		);
-		expect(file.endsWith("savvy.build.ts")).toBe(true);
-	});
+	it.effect("autodetects the single config file when no path is given", () =>
+		Effect.gen(function* () {
+			const dir = mkdtempSync(join(tmpdir(), "rpc-auto-"));
+			writeFileSync(
+				join(dir, "savvy.build.ts"),
+				`import { PnpmConfigPlugin } from "rolldown-pnpm-config";\nexport const p = PnpmConfigPlugin({ name: "@test/cfg", catalogs: { silk: { packages: { typescript: "^5.9.0" } } } });\n`,
+				"utf8",
+			);
+			// The working directory is injected (main.ts reads process.cwd() once), so
+			// the test never has to chdir the whole process.
+			const file = yield* resolveTargetFile(Option.none()).pipe(Effect.provideService(WorkingDirectory, dir));
+			expect(file.endsWith("savvy.build.ts")).toBe(true);
+		}),
+	);
 });
