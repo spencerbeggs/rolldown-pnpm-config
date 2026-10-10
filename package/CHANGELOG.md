@@ -1,5 +1,22 @@
 # rolldown-pnpm-config
 
+## 2.0.3
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/cli | dependency | updated | ^0.15.0 | ^0.16.1 |
+| @effected/env | dependency | updated | ^0.1.0 | ^0.1.1 |
+
+[#232][#232]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contributions!
+
+[#232]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/232
+
 ## 2.0.2
 
 ### Bug Fixes
