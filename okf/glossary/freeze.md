@@ -4,8 +4,8 @@ title: freeze
 description: The single build-time step where Effect runs, validating a plugin author's declared config and emitting `{ base, manifest, name }`.
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
-  body_sha256: 8380fe7a66aa49cc6cdbf5591e6d8fe1d30b807f34f383e1650d095e9ecbb8c5
+  at: 2026-10-11T16:12:12Z
+  body_sha256: f3d1ad84196af763b187f34a6e4cad7aa24ed739bbbcc185b1dc40671790f023
 sources:
   - id: freeze-impl
     resource: ../../package/src/plugin/freeze.ts
@@ -16,7 +16,8 @@ sources:
 `freeze` is the one function in this repository that runs Effect[^freeze-impl].
 It takes the plugin author's `PluginConfig`, validates `name` and each
 declared field against its descriptor-derived Schema, resolves the
-`peerDependencyRules.allowedVersionsFromCatalogs` directive, and returns
+`peerDependencyRules.allowedVersionsFromCatalogs` and `overridesFromCatalogs`
+directives into concrete entries, and returns
 `{ base, manifest, name }` — the three values that cross into the bundled,
 zero-dependency runtime[^freeze-impl].
 

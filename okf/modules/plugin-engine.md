@@ -6,8 +6,8 @@ resource: ../../package/src/plugin
 kind: package
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
-  body_sha256: 40416a0cece88d3e2506b437f07eee409a115f6d504f0f8cecc22022519ea137
+  at: 2026-10-11T16:12:12Z
+  body_sha256: 2c6fa3677f11cee1765060bc2d71054fdaddc24f2278aaa7d8e6f36bfd710f36
 sources:
   - id: plugin-index
     resource: package/src/plugin/index.ts
@@ -49,7 +49,14 @@ imported at `package/src/plugin/freeze.ts:7`, called at
 `package/src/plugin/freeze.ts:86`) resolves an optional
 `allowedVersionsFromCatalogs` directive against the declared catalogs into
 concrete `allowedVersions` rules and strips the directive before
-validating, baking the result into `base`.[^freeze]
+validating, baking the result into `base`.[^freeze] `overrides` carries the
+sibling directive: `resolveOverrides`
+(`package/src/plugin/overrides-from-catalogs.ts`) derives one
+line-scoped `"<name>@^X.0.0": "X.Y.Z"` entry per simple-range member of
+the named catalog from the top-level `overridesFromCatalogs` and merges
+the authored `overrides` over it, materializing the field when none was
+authored. The directive itself is not a managed field and never reaches
+`base` or `manifest`.[^freeze]
 
 `serialize.ts` turns `{ base, manifest, name }` into the two virtual
 modules: the pnpmfile is `import { createHooks }` plus deterministically

@@ -6,8 +6,8 @@ resource: ../../package/src/descriptors/index.ts
 kind: config
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
-  body_sha256: b5c0777a646ae125d5f1f659dec33f877693849e99d4048521031edabbb94e21
+  at: 2026-10-11T16:12:12Z
+  body_sha256: 4836e7b80bae4bd383212898901c85fcbcf3e381f9e51eefd4f8408b37f26c5f
 sources:
   - id: descriptors
     resource: package/src/descriptors
@@ -71,6 +71,16 @@ into version-qualified `allowedVersions` rules and strips before schema
 validation, baking the result into `base`. This is layered on top of the
 field by `package/src/plugin/allowed-versions.ts`; the descriptor row
 above is unchanged.[^descriptors]
+
+`overrides` has the same kind of companion in the top-level
+`overridesFromCatalogs` directive — a `{ catalog, exclude?, scope? }` (or
+array) input that `freeze` resolves into one `"<name>@^X.0.0": "X.Y.Z"`
+entry per simple-range member of the catalog (`^0.Y.0` on a 0.x line, the
+bare name under `scope: "any"`), merging the authored `overrides` over the
+result so a hand-written selector wins. Prerelease and compound-range
+members are skipped, never widened. Layered on by
+`package/src/plugin/overrides-from-catalogs.ts`; the descriptor row is
+unchanged.
 
 ## Hoisting (`hoisting.ts`) — 17 fields
 

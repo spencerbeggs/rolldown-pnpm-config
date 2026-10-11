@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { VERSION, runBin, workspaceCopy } from "./utils/bin.js";
@@ -37,6 +37,41 @@ describe("rolldown-pnpm-config bin", () => {
 		expect(r.exitCode).toBe(0);
 		expect(r.stdout.trim()).toBe(`✓ Exported to ${join(cwd, "pnpm-workspace.yaml")}`);
 		expect(readFileSync(join(cwd, "pnpm-workspace.yaml"), "utf8")).toContain("publicHoistPattern");
+	});
+
+	it("exports the overrides a catalog directive derives, with an authored selector winning", async () => {
+		// The static evaluator must accept the directive as a literal, freeze must fold
+		// it under `overrides`, and export must write the result — only the built bin
+		// proves all three at once.
+		const cwd = workspaceCopy();
+		writeFileSync(
+			join(cwd, "pnpm.config.ts"),
+			`import { PnpmConfigPlugin } from "rolldown-pnpm-config";
+
+export const plugin = PnpmConfigPlugin({
+	name: "@e2e/config",
+	catalogs: {
+		effect: {
+			packages: {
+				effect: { range: "^4.0.3", peer: "^4.0.0", strategy: "lock-minor" },
+				"@effect/vitest": { range: "^4.0.3", peer: "^4.0.0", strategy: "lock-minor" },
+				"@effect/tsgo": "0.51.1",
+			},
+		},
+	},
+	overridesFromCatalogs: { catalog: "effect", exclude: ["@effect/tsgo"] },
+	overrides: { "effect@^4.0.0": "4.0.2" },
+});
+`,
+		);
+		const r = await runBin(["export"], { cwd });
+		expect(r.exitCode).toBe(0);
+		expect(r.stderr).toBe("");
+		const yaml = readFileSync(join(cwd, "pnpm-workspace.yaml"), "utf8");
+		expect(yaml).toContain("'@effect/vitest@^4.0.0': 4.0.3");
+		expect(yaml).toContain("effect@^4.0.0: 4.0.2"); // the authored selector wins
+		expect(yaml).not.toContain("tsgo@^0.51.0");
+		expect(yaml).not.toContain("overridesFromCatalogs");
 	});
 
 	it("keeps --check --json's one-document contract even when no config is found", async () => {

@@ -35,6 +35,17 @@ peerDependencyRules: {
 
 For every exact-pinned entry in `catalog` (other than `peer` itself) it emits a qualified rule `"<name>@<pin>><peer>": <peerValue>`, where `<peerValue>` is the `peer` package's own catalog range. pnpm applies each qualified rule only when the parent instance's version matches the exact pin, so a same-named satellite on a different version line keeps its real unmet-peer complaint. `prefix` transforms the value: omit it to use the peer range verbatim, set `"^"` / `">="` (etc.) to re-prefix, or set `null` / `""` to strip to an exact version. Non-exact entries are skipped rather than widened, and a manually authored `allowedVersions` entry wins on a key clash.
 
+## Deriving overrides from a catalog
+
+`overridesFromCatalogs` derives pnpm `overrides` from a catalog, so every member of a release family resolves to the catalog's exact version everywhere in a consumer's graph. A catalog range alone cannot promise that: a caret admits a newer member, and a catalog never reaches a dependency's own dependencies, so a package that depends on one member directly can pull in a version the rest of the family was not built against. Like the peer directive above, it is resolved at build time and baked into the emitted pnpmfile, so it applies through the runtime hook, `rolldown-pnpm-config export` and `preview`.
+
+```ts
+overridesFromCatalogs: { catalog: "effect", exclude: ["@effect/tsgo"] },
+// or an array of directives to pin members from several catalogs
+```
+
+For every member whose range is a simple operator on a plain `X.Y.Z` version it emits `"<name>@^X.0.0": "X.Y.Z"` (`^0.Y.0` on a 0.x line), so only requests on that release line are pinned and a tool still built on another line keeps its own copy. Set `scope: "any"` to emit the bare package name instead and pin every request regardless of line. Prerelease and compound-range members are skipped rather than widened, `exclude` drops members that ride the catalog without belonging to the family, and an entry authored by hand under `overrides` wins on the same selector. When the pinned version is missing from the registry the install fails loudly at resolve time instead of silently pairing a newer member with an older core.
+
 ## Enforcement: absent, warn, error
 
 When the hook merges your config into a consuming repo, the repo may already declare a value that diverges from yours. Each managed field decides what happens when it does, through one of three enforcement levels:

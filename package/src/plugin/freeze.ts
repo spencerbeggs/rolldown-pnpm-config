@@ -5,6 +5,7 @@ import { DESCRIPTORS, deriveSchemas } from "../descriptors/index.js";
 import { FIELD_REGISTRY } from "../registry.js";
 import type { Base, Enforcement, Manifest } from "../runtime/types.js";
 import { resolvePeerDependencyRules } from "./allowed-versions.js";
+import { resolveOverrides } from "./overrides-from-catalogs.js";
 
 /**
  * Typed failure for invalid plugin configuration, surfaced as a build error.
@@ -77,23 +78,35 @@ export function freeze(
 				new ConfigError({ message: "Config `name` is required and must be a non-empty string" }),
 			);
 		}
+		const directiveError = (error: unknown) =>
+			new ConfigError({ message: error instanceof Error ? error.message : String(error) });
 		for (const [field, reg] of Object.entries(FIELD_REGISTRY)) {
 			if (field === "catalogs") continue;
-			const raw = (config as unknown as Record<string, unknown>)[field];
+			let raw = (config as unknown as Record<string, unknown>)[field];
+			// `overridesFromCatalogs` is a directive beside `overrides`, not a managed
+			// field of its own: with it present, an unauthored `overrides` still
+			// materializes so the derived table has somewhere to land.
+			if (raw === undefined && field === "overrides" && config.overridesFromCatalogs !== undefined) raw = {};
 			if (raw === undefined) continue;
 			const decl = normalizeField(raw);
 			const schema = FIELD_SCHEMAS[field];
-			// peerDependencyRules may carry an `allowedVersionsFromCatalogs` directive:
-			// derive its rules from the catalogs and merge them into `allowedVersions`,
-			// stripping the directive so the cleaned value passes the schema. Baked into
-			// `base` here, so both the runtime pnpmfile and `export` emit it.
+			// Two fields carry build-time directives that derive entries from the
+			// catalogs: `peerDependencyRules.allowedVersionsFromCatalogs` folds into
+			// `allowedVersions` (and is stripped so the value passes the schema), and
+			// `overridesFromCatalogs` folds under `overrides`. Both are baked into
+			// `base` here, so the runtime pnpmfile, `export` and `preview` all emit them.
 			const value =
 				field === "peerDependencyRules"
 					? yield* Effect.try({
 							try: () => resolvePeerDependencyRules(decl.value, config.catalogs),
-							catch: (error) => new ConfigError({ message: error instanceof Error ? error.message : String(error) }),
+							catch: directiveError,
 						})
-					: decl.value;
+					: field === "overrides"
+						? yield* Effect.try({
+								try: () => resolveOverrides(decl.value, config.overridesFromCatalogs, config.catalogs),
+								catch: directiveError,
+							})
+						: decl.value;
 			base[field] = schema
 				? yield* Schema.decodeUnknownEffect(schema)(value).pipe(
 						Effect.mapError((error) => new ConfigError({ message: `Invalid ${field}: ${String(error)}` })),

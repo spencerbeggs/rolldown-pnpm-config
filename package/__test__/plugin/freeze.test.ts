@@ -65,6 +65,60 @@ describe("freeze", () => {
 		}),
 	);
 
+	it.effect("derives overrides from a catalog directive and merges them under the authored overrides", () =>
+		Effect.gen(function* () {
+			const { base, manifest } = yield* freeze({
+				name: "@test/cfg",
+				catalogs: {
+					effect: {
+						packages: {
+							effect: { range: "^4.0.3", peer: "^4.0.0", strategy: "lock-minor" },
+							"@effect/platform-node": { range: "^4.0.3", peer: "^4.0.0", strategy: "lock-minor" },
+							"@effect/tsgo": "0.51.1",
+						},
+					},
+				},
+				overridesFromCatalogs: { catalog: "effect", exclude: ["@effect/tsgo"] },
+				overrides: { "tar@<1": ">=1" },
+			});
+			expect(base.overrides).toEqual({
+				"effect@^4.0.0": "4.0.3",
+				"@effect/platform-node@^4.0.0": "4.0.3",
+				"tar@<1": ">=1",
+			});
+			// The directive is not a managed field: it leaves no trace in base or manifest.
+			expect(base).not.toHaveProperty("overridesFromCatalogs");
+			expect(manifest).not.toHaveProperty("overridesFromCatalogs");
+			expect(manifest.overrides).toEqual({ strategy: "overrides", enforcement: "warn" });
+		}),
+	);
+
+	it.effect("materializes overrides from the directive alone when none are authored", () =>
+		Effect.gen(function* () {
+			const { base, manifest } = yield* freeze({
+				name: "@test/cfg",
+				catalogs: { effect: { packages: { effect: "4.0.3" } } },
+				overridesFromCatalogs: { catalog: "effect" },
+			});
+			expect(base.overrides).toEqual({ "effect@^4.0.0": "4.0.3" });
+			expect(manifest.overrides).toEqual({ strategy: "overrides", enforcement: "warn" });
+		}),
+	);
+
+	it.effect("fails with a ConfigError when the overrides directive names an undeclared catalog", () =>
+		Effect.gen(function* () {
+			const exit = yield* Effect.exit(
+				freeze({
+					name: "@test/cfg",
+					catalogs: { effect: { packages: { effect: "4.0.3" } } },
+					overridesFromCatalogs: { catalog: "nope" },
+				}),
+			);
+			expect(Exit.isFailure(exit)).toBe(true);
+			if (Exit.isFailure(exit)) expect(String(exit.cause)).toContain("ConfigError");
+		}),
+	);
+
 	it.effect("fails with ConfigError when catalogs are malformed", () =>
 		Effect.gen(function* () {
 			const bad = { name: "@test/cfg", catalogs: { silk: { packages: { a: 123 } } } } as unknown as Parameters<

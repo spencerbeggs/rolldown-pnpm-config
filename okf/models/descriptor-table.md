@@ -5,8 +5,8 @@ description: The maintainer-side shape of one FieldDescriptor entry, the eight c
 resource: ../../package/src/descriptors/index.ts
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
-  body_sha256: 0a3b41baac4f8d694645c6d5df8cb9a888a96421814fa31434ee70b5575d4e11
+  at: 2026-10-11T16:12:12Z
+  body_sha256: e3202aac2b6d12e6d6b81eabb53631f62e691aaff00835e475086ed8b49176b1
 sources:
   - id: types-ts
     resource: ../../package/src/descriptors/types.ts
@@ -133,7 +133,9 @@ value-level assertion skips, checking only that the key exists:
 
 Each is exempt from the *value* check only — all three still participate in
 key coverage, so removing one of them from `PluginConfig` entirely still
-fails the guard.[^drift-guard-test]
+fails the guard.[^drift-guard-test] The top-level `overridesFromCatalogs`
+directive is different again: it is not a pnpm field, so the guard excludes
+it from key coverage entirely, alongside `name`, `local` and `catalogs`.
 
 ## What breaks if an entry is wrong
 
