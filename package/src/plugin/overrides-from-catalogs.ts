@@ -1,4 +1,5 @@
-import type { CatalogDeclaration, CatalogPackageSpec } from "../catalogs.js";
+import type { CatalogDeclaration } from "../catalogs.js";
+import { rangeOf } from "../catalogs.js";
 import { bareVersion } from "../semver-util.js";
 
 /**
@@ -11,8 +12,8 @@ import { bareVersion } from "../semver-util.js";
  * `X.Y.Z` version, an entry `"<name>@<selector>": "<X.Y.Z>"` is emitted.
  *
  * @remarks
- * Under the default `scope: "line"` the selector is the member's caret line,
- * `^X.0.0` (or `^0.Y.0` on a 0.x line), so a request for a *different* major
+ * Under the default `scope: "line"` the selector is the member's release line,
+ * `^X.0.0` (`^0.Y.0` on a 0.x line, `~0.0.0` on 0.0.x), so a request for a *different* major
  * (or a prerelease, which no caret line admits) is left alone. Prerelease and
  * compound-range members are skipped rather than widened. An override entry
  * authored by hand wins over a derived one on the same selector, and the
@@ -40,12 +41,15 @@ const PLAIN_VERSION = /^(\d+)\.(\d+)\.(\d+)$/;
 /** A simple-operator range: an optional `^`, `~`, `>=` or `=` on one version. */
 const SIMPLE_RANGE = /^(?:\^|~|>=|=)?\s*\d/;
 
-/** The install range of a catalog spec (bare string or `{ range }` object). */
-const rangeOf = (spec: CatalogPackageSpec): string => (typeof spec === "string" ? spec : spec.range);
-
-/** The caret line a plain version belongs to: `^X.0.0`, or `^0.Y.0` when the major is 0. */
-function caretLine(major: string, minor: string): string {
-	return major === "0" ? `^0.${minor}.0` : `^${major}.0.0`;
+/**
+ * The release line a plain version belongs to: `^X.0.0`, or `^0.Y.0` when the
+ * major is 0. A `0.0.Z` version has no caret line (`^0.0.0` admits only
+ * `0.0.0` itself), so it takes the tilde line `~0.0.0`, which covers every
+ * `0.0.Z` request.
+ */
+function releaseLine(major: string, minor: string): string {
+	if (major !== "0") return `^${major}.0.0`;
+	return minor === "0" ? "~0.0.0" : `^0.${minor}.0`;
 }
 
 /** Derive the overrides for one directive. Pure; throws when the catalog or an excluded member is absent. */
@@ -74,7 +78,7 @@ function deriveOne(
 		// one version would pin more than the author asked for — so both are
 		// skipped, never widened.
 		if (match === null) continue;
-		const selector = scope === "any" ? name : `${name}@${caretLine(match[1] as string, match[2] as string)}`;
+		const selector = scope === "any" ? name : `${name}@${releaseLine(match[1] as string, match[2] as string)}`;
 		table[selector] = version;
 	}
 	return table;

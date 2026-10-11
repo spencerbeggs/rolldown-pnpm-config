@@ -44,7 +44,7 @@ overridesFromCatalogs: { catalog: "effect", exclude: ["@effect/tsgo"] },
 // or an array of directives to pin members from several catalogs
 ```
 
-For every member whose range is a simple operator on a plain `X.Y.Z` version it emits `"<name>@^X.0.0": "X.Y.Z"` (`^0.Y.0` on a 0.x line), so only requests on that release line are pinned and a tool still built on another line keeps its own copy. Set `scope: "any"` to emit the bare package name instead and pin every request regardless of line. Prerelease and compound-range members are skipped rather than widened, `exclude` drops members that ride the catalog without belonging to the family, and an entry authored by hand under `overrides` wins on the same selector. When the pinned version is missing from the registry the install fails loudly at resolve time instead of silently pairing a newer member with an older core.
+For every member whose range is a simple operator on a plain `X.Y.Z` version it emits `"<name>@^X.0.0": "X.Y.Z"` (`^0.Y.0` on a 0.x line, `~0.0.0` on a 0.0.x one, since `^0.0.0` admits nothing but itself), so only requests on that release line are pinned and a tool still built on another line keeps its own copy. Set `scope: "any"` to emit the bare package name instead and pin every request regardless of line. Prerelease and compound-range members are skipped rather than widened, `exclude` drops members that ride the catalog without belonging to the family, and an entry authored by hand under `overrides` wins on the same selector. When the pinned version is missing from the registry the install fails loudly at resolve time instead of silently pairing a newer member with an older core.
 
 ## Enforcement: absent, warn, error
 

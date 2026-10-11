@@ -5,8 +5,8 @@ description: The build reads a plugin author's config exactly as authored; only 
 status: draft
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
-  body_sha256: a0efb9616723c2a92e70ab2788cfeca93f81cf1e9838ddc086ea050be93e2582
+  at: 2026-10-11T16:23:32Z
+  body_sha256: 59bdffb07e027dc9111bc6d43756a6ce6c5c79b9790a4e4d76f4e9419b5bc0bb
 sources:
   - id: freeze
     resource: package/src/plugin/freeze.ts
@@ -44,7 +44,8 @@ associated `CatalogChange`/`CatalogChanges` types exist anywhere in
 
 The post-removal audit then found a second, independent defect in the same
 shape, and it is the stronger argument for the outcome here. The freeze path
-has exactly two consumers of `config.catalogs`: `normalizeCatalogs`, feeding
+at the time had exactly two consumers of `config.catalogs` (a third,
+`resolveOverrides`, arrived later with the same obligation): `normalizeCatalogs`, feeding
 the emitted catalogs (`package/src/plugin/freeze.ts:64`), and
 `resolvePeerDependencyRules`, which resolves the
 `allowedVersionsFromCatalogs` directive
@@ -69,9 +70,10 @@ both defects above was to delete the `syncWorkspaceCatalogs` mutation path
 entirely rather than gate it more tightly. With the `upgrade` CLI as the
 sole writer, the cross-repo convergence requirement this feature had to
 satisfy is still met. The final shape is uniformly "as authored": both
-`normalizeCatalogs` and `resolvePeerDependencyRules` read the same
-`config.catalogs` value passed into `freeze` (`freeze.ts:64` and
-`freeze.ts:86`),[^freeze] which eliminates the split-brain defect class
+`normalizeCatalogs`, `resolvePeerDependencyRules` and, since the
+`overridesFromCatalogs` directive landed, `resolveOverrides` read the same
+`config.catalogs` value passed into `freeze` (`freeze.ts:64`, `freeze.ts:101`
+and `freeze.ts:106`),[^freeze] which eliminates the split-brain defect class
 outright — a build emits exactly what the source says, always. Because the
 defect was caught pre-publish, the whole surface — `syncWorkspaceCatalogs`,
 the `onCatalogUpdate` callback, and the `CatalogChange`/`CatalogChanges`
@@ -105,9 +107,10 @@ types — could be deleted outright rather than carried forward as deprecated.
   exclusively by the `upgrade` CLI's `--yes` (apply) or `--check` (gate)
   paths; any new automation that wants to update such an entry belongs
   there, not in `freeze` or the plugin's build hook.
-- `normalizeCatalogs` (`freeze.ts:64`) and `resolvePeerDependencyRules`
-  (`freeze.ts:86`) must keep reading the same `config.catalogs` value — if a
-  future change gives either of them a different view of the catalogs
+- `normalizeCatalogs` (`freeze.ts:64`), `resolvePeerDependencyRules`
+  (`freeze.ts:101`) and `resolveOverrides` (`freeze.ts:106`) must keep
+  reading the same `config.catalogs` value — if a future change gives any
+  of them a different view of the catalogs
   (overlaid, cached, or otherwise transformed), it reopens exactly the
   split-brain defect class this decision closed.[^freeze]
 - `syncWorkspaceCatalogs`, the `onCatalogUpdate` callback, and

@@ -46,6 +46,13 @@ export interface CatalogDeclaration {
 }
 
 /**
+ * The install range of a catalog spec (bare string or `{ range }` object).
+ *
+ * @internal
+ */
+export const rangeOf = (spec: CatalogPackageSpec): string => (typeof spec === "string" ? spec : spec.range);
+
+/**
  * Normalize declarative catalog input into the resolved `{ catalog → pkg → range }`
  * map consumed by the runtime. Pure: the base catalog uses each package's
  * `range` (or bare string); a peers catalog is emitted only for packages

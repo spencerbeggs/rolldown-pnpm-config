@@ -9,6 +9,7 @@ const catalogs: Record<string, CatalogDeclaration> = {
 			"@effect/platform-node": { range: "^4.0.3", peer: "^4.0.0", strategy: "lock-minor" },
 			"@effect/vitest": "4.0.3", // bare-string exact entry — also participates
 			"@effect/tsgo": "0.51.1", // a 0.x line: the caret line is ^0.51.0
+			"@scope/tiny": "^0.0.3", // a 0.0.x version has no caret line; the tilde line ~0.0.0 covers it
 			"@effect/rc": "4.0.0-rc.118", // prerelease — skipped, a caret line cannot name it
 			"@effect/wide": ">=4 <5", // compound range — skipped
 		},
@@ -22,6 +23,7 @@ describe("deriveOverrides", () => {
 			"@effect/platform-node@^4.0.0": "4.0.3",
 			"@effect/vitest@^4.0.0": "4.0.3",
 			"@effect/tsgo@^0.51.0": "0.51.1",
+			"@scope/tiny@~0.0.0": "0.0.3",
 		});
 	});
 
@@ -38,7 +40,9 @@ describe("deriveOverrides", () => {
 	});
 
 	it('emits an unscoped selector when scope is "any"', () => {
-		expect(deriveOverrides(catalogs, { catalog: "effect", scope: "any", exclude: ["@effect/tsgo"] })).toEqual({
+		expect(
+			deriveOverrides(catalogs, { catalog: "effect", scope: "any", exclude: ["@effect/tsgo", "@scope/tiny"] }),
+		).toEqual({
 			effect: "4.0.3",
 			"@effect/platform-node": "4.0.3",
 			"@effect/vitest": "4.0.3",
@@ -67,12 +71,15 @@ describe("resolveOverrides", () => {
 			"@effect/platform-node@^4.0.0": "4.0.3",
 			"@effect/vitest@^4.0.0": "4.0.3",
 			"@effect/tsgo@^0.51.0": "0.51.1",
+			"@scope/tiny@~0.0.0": "0.0.3",
 			"tar@<1": ">=1",
 		});
 	});
 
 	it("yields the derived table alone when no overrides are authored", () => {
-		expect(resolveOverrides(undefined, { catalog: "effect", exclude: ["@effect/tsgo"] }, catalogs)).toEqual({
+		expect(
+			resolveOverrides(undefined, { catalog: "effect", exclude: ["@effect/tsgo", "@scope/tiny"] }, catalogs),
+		).toEqual({
 			"effect@^4.0.0": "4.0.3",
 			"@effect/platform-node@^4.0.0": "4.0.3",
 			"@effect/vitest@^4.0.0": "4.0.3",
