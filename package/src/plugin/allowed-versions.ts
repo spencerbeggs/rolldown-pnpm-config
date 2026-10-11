@@ -1,4 +1,5 @@
-import type { CatalogDeclaration, CatalogPackageSpec } from "../catalogs.js";
+import type { CatalogDeclaration } from "../catalogs.js";
+import { rangeOf } from "../catalogs.js";
 import { bareVersion } from "../semver-util.js";
 
 /**
@@ -29,9 +30,6 @@ export interface AllowedVersionsFromCatalogs {
 
 /** An exact version: no range operator, no wildcard — `X.Y.Z` with an optional prerelease. */
 const EXACT_VERSION = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
-
-/** The install range of a catalog spec (bare string or `{ range }` object). */
-const rangeOf = (spec: CatalogPackageSpec): string => (typeof spec === "string" ? spec : spec.range);
 
 /** Apply the `prefix` transform to a peer value: verbatim, re-prefixed, or stripped to exact. */
 function applyPrefix(peerValue: string, prefix: string | null | undefined): string {

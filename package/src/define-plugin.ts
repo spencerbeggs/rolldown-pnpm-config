@@ -1,5 +1,6 @@
 import type { CatalogDeclaration } from "./catalogs.js";
 import type { AllowedVersionsFromCatalogs } from "./plugin/allowed-versions.js";
+import type { OverridesFromCatalogs } from "./plugin/overrides-from-catalogs.js";
 import type { Enforcement } from "./runtime/types.js";
 
 /**
@@ -52,7 +53,9 @@ export interface PluginConfig {
 		 */
 		readonly localPatchesDir?: string;
 	} & {
-		readonly [K in keyof PluginConfig]?: PluginConfig[K] | LocalDirective<PluginConfig[K]>;
+		readonly [K in Exclude<keyof PluginConfig, "overridesFromCatalogs">]?:
+			| PluginConfig[K]
+			| LocalDirective<PluginConfig[K]>;
 	};
 	/** Whether pnpm prompts before purging `node_modules`. */
 	readonly confirmModulesPurge?: FieldInput<boolean>;
@@ -90,6 +93,14 @@ export interface PluginConfig {
 	readonly auditConfig?: FieldInput<Record<string, string[]>>;
 	/** Security version overrides, keyed by package selector. */
 	readonly overrides?: FieldInput<Record<string, string>>;
+	/**
+	 * Derive `overrides` from a catalog (or several), pinning every member of a
+	 * release family to its exact catalog version across the whole consumer
+	 * graph. Resolved and merged under `overrides` at build time, so the
+	 * pnpmfile, `export` and `preview` all carry the result; an authored
+	 * `overrides` entry wins on a selector clash. Not a pnpm field itself.
+	 */
+	readonly overridesFromCatalogs?: OverridesFromCatalogs | readonly OverridesFromCatalogs[];
 	/** Peer dependency rules: allowed versions plus ignore/allow-any lists. */
 	readonly peerDependencyRules?: FieldInput<{
 		readonly allowedVersions?: Record<string, string>;

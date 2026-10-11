@@ -6,8 +6,8 @@ resource: ../../package/src/define-plugin.ts
 kind: api
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
-  body_sha256: d3bf08a8ba07d339a8968ddcf53ad7ca80ea6bae30fdcaf048b43eb0ed686350
+  at: 2026-10-11T16:12:12Z
+  body_sha256: 55d8969f3b0955f107d79e92cc4cc849d4db3cdf5aa5197ade84a67eeddb7d82
 sources:
   - id: define-plugin
     resource: package/src/define-plugin.ts
@@ -51,6 +51,12 @@ the default enforcement per field.[^define-plugin]
   drift guard at `package/__test__/types/plugin-config.test-d.ts`, so an
   author-visible field's shape cannot silently widen, narrow, or drop
   without `typecheck` failing.[^drift-guard-test]
+- `overridesFromCatalogs` (`OverridesFromCatalogs`, exported from
+  `package/src/plugin/overrides-from-catalogs.ts`) is a top-level build-time
+  directive, not a pnpm field: `freeze` folds the entries it derives under
+  `overrides` and it leaves no trace in `base`, `manifest` or
+  `pnpm-workspace.yaml`. The drift guard excludes it from key coverage
+  alongside `name`, `local` and `catalogs`, and `local` does not accept it.
 - `name: string` (`package/src/define-plugin.ts:39`) is a required
   top-level field — plugin metadata, never written to
   `pnpm-workspace.yaml` and not a descriptor field; see
