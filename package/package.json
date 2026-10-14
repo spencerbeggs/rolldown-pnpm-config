@@ -44,7 +44,7 @@
 		"@effected/yaml": "catalog:effected",
 		"effect": "catalog:effect",
 		"ink": "catalog:silk",
-		"oxc-parser": "^0.153.0",
+		"oxc-parser": "^0.154.0",
 		"react": "catalog:silk"
 	},
 	"devDependencies": {
