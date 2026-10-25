@@ -25,5 +25,8 @@ export default defineConfig({
 	sourcemap: process.env.NODE_ENV === "development" || false,
 	dts: {
 		neverBundle: true,
+		// TypeScript 7.0.x ships neither the classic tsc API nor the tsgo declaration
+		// emit API that rolldown-plugin-dts >=0.29 probes for, so pick Oxc explicitly.
+		generator: "oxc",
 	},
 });
