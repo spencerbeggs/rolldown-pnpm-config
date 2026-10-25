@@ -1,5 +1,25 @@
 # rolldown-pnpm-config
 
+## 2.1.5
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/cli | dependency | updated | ^0.20.0 | ^0.22.0 |
+| @effected/npm | dependency | updated | ^0.25.0 | ^0.26.1 |
+| @effected/semver | dependency | updated | ^0.15.0 | ^0.17.0 |
+| @effected/workspaces | dependency | updated | ^0.36.1 | ^0.38.0 |
+| @effected/yaml | dependency | updated | ^0.23.0 | ^0.25.0 |
+
+[#259][#259]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#259]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/259
+
 ## 2.1.4
 
 ### Dependencies
