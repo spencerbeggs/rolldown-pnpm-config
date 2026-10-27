@@ -1,5 +1,41 @@
 # rolldown-pnpm-config
 
+## 2.2.0
+
+### Breaking Changes
+
+- The `upgrade` command's `--json` flag is replaced by `--format auto|json` (default `auto`). Scripts that passed `--json` must pass `--format json` instead; `--json` is now an unknown flag and exits 64. The JSON document itself is unchanged.
+
+### Bug Fixes
+
+- Count messages in `upgrade` now agree with the count ("1 change", "2 changes") instead of printing "change(s)".
+- The interactive `upgrade` table measures package names, ranges and annotations in terminal columns, so rows containing wide characters or emoji line up and are never split.
+- Config-file selection, patch discovery and pending-changeset reads skip dotfiles, ignore a directory named like a patch, and list candidates in sorted order on every filesystem.
+
+### Refactoring
+
+- Error messages from config loading, registry resolution, catalog freezing and patch directives no longer start with the error's class name (`NotFound: …` rather than `PlatformError: NotFound: …`). [#270][#270]
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/cli | dependency | updated | ^0.22.2 | ^0.23.0 |
+| @effected/env | dependency | updated | ^0.5.0 | ^0.6.0 |
+| @effected/glob | dependency | updated | ^0.14.0 | ^0.15.0 |
+| @effected/npm | dependency | updated | ^0.27.0 | ^0.27.1 |
+| @effected/walker | dependency | updated | ^0.20.1 | ^0.21.0 |
+| @effected/workspaces | dependency | updated | ^0.39.0 | ^0.39.1 |
+| oxc-parser | dependency | updated | ^0.155.0 | ^0.156.0 |
+
+[#270][#270]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#270]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/270
+
 ## 2.1.7
 
 ### Dependencies
@@ -869,8 +905,6 @@ Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contri
   | --- | --- | --- | --- | --- | --- |
   | @effected/workspaces | dependency | updated | ^0.17.2 | ^0.18.0 | [#99][#99] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
 
-### Patch Changes
-
 [#99]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/99
 
 ## 0.7.2
@@ -882,8 +916,6 @@ Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contri
   | @effected/workspaces | dependency | updated | ^0.17.1 | ^0.17.2 |  |
   | @effected/yaml | dependency | updated | ^0.10.0 | ^0.11.0 | [#97][#97] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
 
-### Patch Changes
-
 [#97]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/97
 
 ## 0.7.1
@@ -893,8 +925,6 @@ Thanks to [@spencerbeggs](https://github.com/apps/spencerbeggs) for their contri
 - | Dependency | Type | Action | From | To |  |
   | --- | --- | --- | --- | --- | --- |
   | @effected/workspaces | dependency | updated | ^0.17.0 | ^0.17.1 | [#93][#93] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
-
-### Patch Changes
 
 [#93]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/93
 
@@ -954,8 +984,6 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
   | @effected/npm | dependency | updated | ^0.11.0 | ^0.11.1 |  |
   | rolldown | peerDependency | updated | 1.2.4 | 1.2.5 | [#86][#86] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
 
-### Patch Changes
-
 [#86]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/86
 
 ## 0.6.2
@@ -966,8 +994,6 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
   | --- | --- | --- | --- | --- | --- |
   | @effected/npm | dependency | updated | ^0.10.0 | ^0.11.0 |  |
   | oxc-parser | dependency | updated | ^0.144.0 | ^0.146.0 | [#83][#83] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
-
-### Patch Changes
 
 [#83]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/83
 
@@ -1016,8 +1042,6 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
   | --- | --- | --- | --- | --- | --- |
   | rolldown | peerDependency | updated | 1.2.3 | 1.2.4 | [#74][#74] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
 
-### Patch Changes
-
 [#74]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/74
 
 ## 0.5.9
@@ -1027,8 +1051,6 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
 - | Dependency | Type | Action | From | To |  |
   | --- | --- | --- | --- | --- | --- |
   | @effected/yaml | dependency | updated | ^0.7.0 | ^0.8.0 | [#71][#71] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
-
-### Patch Changes
 
 [#71]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/71
 
@@ -1046,8 +1068,6 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
   | oxc-parser | dependency | updated | ^0.143.0 | ^0.144.0 |  |
   | rolldown | peerDependency | updated | 1.2.1 | 1.2.3 | [#66][#66] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
 
-### Patch Changes
-
 [#66]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/66
 
 ## 0.5.7
@@ -1060,8 +1080,6 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
   | @effected/semver | dependency | updated | ^0.2.1 | ^0.3.1 |  |
   | @effected/yaml | dependency | updated | ^0.6.0 | ^0.6.1 |  |
   | oxc-parser | dependency | updated | ^0.142.0 | ^0.143.0 | [#62][#62] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
-
-### Patch Changes
 
 [#62]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/62
 
@@ -1087,8 +1105,6 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
   | --- | --- | --- | --- | --- | --- |
   | oxc-parser | dependency | updated | ^0.141.0 | ^0.142.0 | [#58][#58] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
 
-### Patch Changes
-
 [#58]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/58
 
 ## 0.5.4
@@ -1100,8 +1116,6 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
   | @effected/npm | dependency | updated | ^0.4.0 | ^0.6.0 |  |
   | react | dependency | updated | ^19.2.7 | ^19.2.8 | [#55][#55] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
 
-### Patch Changes
-
 [#55]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/55
 
 ## 0.5.3
@@ -1112,8 +1126,6 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
   | --- | --- | --- | --- | --- | --- |
   | @effected/npm | dependency | updated | ^0.3.1 | ^0.4.0 |  |
   | @effected/yaml | dependency | updated | ^0.5.1 | ^0.6.0 | [#53][#53] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
-
-### Patch Changes
 
 [#53]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/53
 
@@ -1129,8 +1141,6 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
   | @effected/yaml | dependency | updated | ^0.5.0 | ^0.5.1 |  |
   | effect | dependency | updated | 4.0.0-beta.99 | 4.0.0-beta.101 | [#51][#51] Thanks [@spencerbeggs](https://github.com/apps/spencerbeggs)! |
 
-### Patch Changes
-
 [#51]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/51
 
 ## 0.5.1
@@ -1144,8 +1154,6 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
 - | Dependency | Type | Action | From | To |  |
   | :-- | :-- | :-- | :-- | :-- | --- |
   | @effected/npm | dependency | added | — | ^0.3.0 | [#46][#46] Thanks [@spencerbeggs](https://github.com/spencerbeggs)! |
-
-### Patch Changes
 
 [#46]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/46
 
@@ -1310,8 +1318,6 @@ Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributio
   | @effect/sql | dependency | added | — | ^0.51.1 |  |
   | @effect/typeclass | dependency | added | — | ^0.40.0 |  |
   | @effect/workflow | dependency | added | — | ^0.18.2 | [#23][#23] Thanks [@spencerbeggs](https://github.com/spencerbeggs)! |
-
-### Patch Changes
 
 [#23]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/23
 
