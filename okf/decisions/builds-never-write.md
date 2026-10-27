@@ -2,11 +2,10 @@
 type: Decision
 title: Builds never write
 description: The build reads a plugin author's config exactly as authored; only the upgrade CLI rewrites it. A memoized freeze-path sync that violated this was deleted after dogfood adoption exposed both an ungated write and a split-brain correctness defect.
-status: draft
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-10-11T16:23:32Z
-  body_sha256: 59bdffb07e027dc9111bc6d43756a6ce6c5c79b9790a4e4d76f4e9419b5bc0bb
 sources:
   - id: freeze
     resource: package/src/plugin/freeze.ts
@@ -16,6 +15,16 @@ sources:
     resource: package/src/cli/commands/upgrade.ts
 tags:
   - architecture
+verified:
+  - by: human:spencer
+    at: 2026-10-27T16:21:39Z
+integrity:
+  generated:
+    body: 59bdffb07e027dc9
+  verified:
+    by: human:spencer
+    at: 2026-10-27T16:21:39Z
+    content: 4c850f3407d4230f
 ---
 
 # Builds never write

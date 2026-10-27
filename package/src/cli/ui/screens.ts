@@ -11,7 +11,7 @@ import type { WalkScreenProps } from "./walk-screen.js";
 // This module is what the commands import. It holds no JSX and imports
 // neither `ink` nor `react`: each screen's module is loaded only when the
 // screen mounts (`CliUi.lazy`), and the progress view's only when a run draws
-// it (`CliUi.lazyView`), so `--yes`, `--check`, `--json`, an agent or a CI run
+// it (`CliUi.lazyView`), so `--yes`, `--check`, `--format json`, an agent or a CI run
 // never loads React. The view module imports only the model (`progress.ts`),
 // never this one, so the lazy import closes no cycle.
 

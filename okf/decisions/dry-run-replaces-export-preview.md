@@ -2,11 +2,10 @@
 type: Decision
 title: "--dry-run replaces --preview on export"
 description: export --preview conflated write-vs-show; the split is a static export --dry-run and a standalone interactive preview command with a non-interactive fallback.
-status: draft
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-10-02T15:35:24Z
-  body_sha256: d963ba0c51306eee525142404be2b83c0009506b77844d01c6751ccb0642da2c
 sources:
   - id: export-command
     resource: package/src/cli/commands/export.ts
@@ -16,6 +15,16 @@ sources:
     resource: package/src/cli/commands/upgrade.ts
 tags:
   - architecture
+verified:
+  - by: human:spencer
+    at: 2026-10-27T16:21:39Z
+integrity:
+  generated:
+    body: d963ba0c51306eee
+  verified:
+    by: human:spencer
+    at: 2026-10-27T16:21:39Z
+    content: d4c45aa33efea7c5
 ---
 
 # `--dry-run` replaces `--preview` on `export`

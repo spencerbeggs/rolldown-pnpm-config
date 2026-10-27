@@ -64,7 +64,7 @@ describe("upgrade, interactive, end to end", () => {
 				const stdout = yield* session.stdout;
 				expect(stdout).toMatch(/~ typescript\s+○ \^5\.9\.0\s+● \^5\.9\.3/);
 				expect(stdout).toContain("1 to update");
-				expect(stdout).toContain("Applied 1 change(s).");
+				expect(stdout).toContain("Applied 1 change.");
 				expect(readFileSync(file, "utf8")).toContain('typescript: "^5.9.3"');
 				expect(yield* session.mounts).toBe(2);
 			}),
@@ -79,7 +79,7 @@ describe("upgrade, interactive, end to end", () => {
 			const table = yield* session.next({ contains: "DRY RUN" });
 			yield* table.press("right", "enter");
 			expect(Exit.isSuccess(yield* Fiber.await(program))).toBe(true);
-			expect(yield* session.stdout).toContain("Dry run — no changes written. 1 change(s) would be applied.");
+			expect(yield* session.stdout).toContain("Dry run — no changes written. 1 change would be applied.");
 			expect(readFileSync(file, "utf8")).toBe(SOURCE);
 		}),
 	);

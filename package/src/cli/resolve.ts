@@ -1,3 +1,4 @@
+import { Fmt } from "@effected/cli";
 import { Context, Data, Effect, Layer, Predicate } from "effect";
 // The unstable/process index re-exports its modules as namespaces, so the
 // ChildProcessSpawner service class lives at ChildProcessSpawner.ChildProcessSpawner
@@ -103,7 +104,7 @@ export const RegistryResolverLive: Layer.Layer<RegistryResolver, never, Spawner>
 		const pnpmView = (pkg: string, spec: string, field: string): Effect.Effect<string, ResolveError> =>
 			spawner.string(ChildProcess.make("pnpm", ["view", spec, field, "--json"])).pipe(
 				Effect.map(stripPnpmNotices),
-				Effect.mapError((e) => new ResolveError({ pkg, message: String(e) })),
+				Effect.mapError((e) => new ResolveError({ pkg, message: Fmt.causeMessage(e) ?? Fmt.describe(e) })),
 			);
 		return {
 			versions: (pkg: string) => pnpmView(pkg, pkg, "versions").pipe(Effect.flatMap((out) => parseVersions(pkg, out))),

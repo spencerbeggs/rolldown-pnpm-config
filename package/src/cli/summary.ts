@@ -1,5 +1,5 @@
 import type { Block, Document, Inline } from "@effected/cli";
-import { Doc } from "@effected/cli";
+import { Doc, Fmt } from "@effected/cli";
 import { row, tone } from "./render/tone.js";
 import type { RejectedEdit } from "./validate.js";
 import { cellTone, displayCandidates, peerFor, tableLayout } from "./walk-reducer.js";
@@ -41,7 +41,7 @@ export function summaryDoc(
 			lines.push(row(" ", 0, [tone(`── catalog: ${entry.catalog} ──`, "unchanged")]));
 		}
 		const cells = displayCandidates(item);
-		const content: Inline[] = [tone(entry.pkg.padEnd(pkgWidth + 2), "plain")];
+		const content: Inline[] = [tone(Fmt.pad(entry.pkg, pkgWidth + 2), "plain")];
 		for (const c of cells) {
 			const selected = c.kind === chosen.kind;
 			content.push(tone(cellText(c, selected), cellTone(c, selected) ?? "unchanged"));

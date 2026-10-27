@@ -16,10 +16,10 @@ describe("rolldown-pnpm-config bin", () => {
 	});
 
 	it("exits 64 on an invalid flag combination, reporting on stderr only", async () => {
-		const r = await runBin(["upgrade", "--json"], { cwd: workspaceCopy() });
+		const r = await runBin(["upgrade", "--format", "json"], { cwd: workspaceCopy() });
 		expect(r.exitCode).toBe(64);
 		expect(r.stdout).toBe("");
-		expect(r.stderr).toContain("--json requires a non-interactive mode");
+		expect(r.stderr).toContain("--format json requires a non-interactive mode");
 		expect(r.stderr).not.toContain("UpgradeUsageError");
 	});
 
@@ -29,6 +29,13 @@ describe("rolldown-pnpm-config bin", () => {
 		expect(r.stdout).toBe("");
 		expect(r.stderr).toContain("Unrecognized flag: --bogus");
 		expect(r.stderr).toContain("USAGE");
+	});
+
+	it("rejects the retired --json flag as unknown: JSON mode is --format json", async () => {
+		const r = await runBin(["upgrade", "--check", "--json"]);
+		expect(r.exitCode).toBe(64);
+		expect(r.stdout).toBe("");
+		expect(r.stderr).toContain("Unrecognized flag: --json");
 	});
 
 	it("writes the file on a plain export and reports it on stdout", async () => {
@@ -74,8 +81,8 @@ export const plugin = PnpmConfigPlugin({
 		expect(yaml).not.toContain("overridesFromCatalogs");
 	});
 
-	it("keeps --check --json's one-document contract even when no config is found", async () => {
-		const r = await runBin(["upgrade", "--check", "--json", "--ci"]);
+	it("keeps --check --format json's one-document contract even when no config is found", async () => {
+		const r = await runBin(["upgrade", "--check", "--format", "json", "--ci"]);
 		expect(r.exitCode).toBe(1);
 		const doc = JSON.parse(r.stdout) as { command: string; inSync: boolean; error: { kind: string; message: string } };
 		expect(r.stdout).toBe(`${JSON.stringify(doc)}\n`);
@@ -87,7 +94,7 @@ export const plugin = PnpmConfigPlugin({
 	it("keeps the one-document contract for an explicit config path that does not exist", async () => {
 		// A missing path must reach the handler (not fail in the parser with an empty
 		// stdout), so a gate piping into jq always gets a document.
-		const r = await runBin(["upgrade", "missing.config.ts", "--check", "--json", "--ci"]);
+		const r = await runBin(["upgrade", "missing.config.ts", "--check", "--format", "json", "--ci"]);
 		expect(r.exitCode).toBe(1);
 		const doc = JSON.parse(r.stdout) as { command: string; error: { kind: string; message: string } };
 		expect(doc).toMatchObject({ command: "check", error: { kind: "resolution" } });

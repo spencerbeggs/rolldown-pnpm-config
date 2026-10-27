@@ -2,12 +2,11 @@
 type: Decision
 title: CLI presentation through the @effected/cli kit
 description: The CLI's audience detection, colour, document rendering, failure reporting, exit codes, prompts and Ink screens all come from @effected/cli; the producers emit the kit's Doc IR directly and no module reads process outside the entry files.
-status: draft
+status: stable
 supersedes: shared-styled-line-render-layer.md
 generated:
   by: okfit/claude-code
-  at: 2026-10-08T03:36:55Z
-  body_sha256: e6f10f6fa1355c820d20b3606fc61bdd182310bce2e531252282a75bcad23d5c
+  at: 2026-10-27T16:27:34Z
 sources:
   - id: main
     resource: ../../package/src/cli/main.ts
@@ -26,6 +25,16 @@ sources:
 tags:
   - architecture
   - dx
+verified:
+  - by: human:spencer
+    at: 2026-10-27T16:21:39Z
+integrity:
+  generated:
+    body: f6015e4ba328d745
+  verified:
+    by: human:spencer
+    at: 2026-10-27T16:21:39Z
+    content: 5a938b9ca671593f
 ---
 
 # CLI presentation through the @effected/cli kit
@@ -54,9 +63,13 @@ env })` in `main.ts`.[^main] The kit therefore owns:
 - **Rendering.** The producers (diff, Simulated view, upgrade summary,
   legend) build `Doc` blocks directly through one tone palette mapped to
   theme tokens,[^tone] and `Doc.print` picks the renderer: ANSI for a
-  person, plain for an agent, the GitHub log under Actions.
+  person, plain for an agent, the GitHub log under Actions. Machine output
+  is the kit's `--format` flag (`CliFormat.flag`, `auto|json` on `upgrade`)
+  printed through `CliFormat.print`, never a hand-rolled `--json`.
 - **Failures and exit codes.** Each CLI error draws itself through `CliDoc`;
-  usage errors exit 64, an interrupt (Ctrl-C) exits 130, `--check` drift exits 1
+  usage errors exit 64 (the parser's own, and the command's
+  `UpgradeUsageError` mapped by tag through `main`'s `exitCodes`, not marked
+  on the error), an interrupt (Ctrl-C) exits 130, `--check` drift exits 1
   through `CliExit.set`, and every other failure exits 1.[^bin-e2e] The owner
   chose this table over keeping a single non-zero code.[^owner] Esc on a
   screen is a deliberate close, not an interrupt: the command catches the
@@ -68,9 +81,10 @@ env })` in `main.ts`.[^main] The kit therefore owns:
   modules loaded only on mount, so a non-interactive run never loads
   React.[^screens]
 
-The working directory, argv, stderr's terminal state and the version are read
-only in `bin.ts`, `main.ts` and `version.ts` and passed down as values; a
-`SourceBoundary` scan pins that.[^boundary-test]
+The working directory, argv and the version are read only in `bin.ts`,
+`main.ts` and `version.ts` and passed down as values; a `SourceBoundary` scan
+pins that.[^boundary-test] Stderr's terminal state is left to the platform's
+`Stdio`, which the kit reads when `main` is given no override.
 
 ## Alternatives rejected
 
@@ -88,7 +102,7 @@ only in `bin.ts`, `main.ts` and `version.ts` and passed down as values; a
 - An unmanaged diff row now always carries its `(unmanaged)` tag, coloured
   or not, because a `Doc` is built before the renderer's colour level is
   known.
-- Product output (diffs, summaries, `--json`) goes to stdout; one-line
+- Product output (diffs, summaries, `--format json`) goes to stdout; one-line
   outcomes go through `CliMessage`; warnings and failures go to stderr.
 - A new screen goes in its own `.tsx` module behind `CliUi.lazy`, never in a
   command module.

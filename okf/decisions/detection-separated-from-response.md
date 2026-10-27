@@ -2,11 +2,10 @@
 type: Decision
 title: Detection separated from response
 description: A strategy only detects and classifies divergences; the response (warn/error/silent) lives entirely in applyEnforcement.
-status: draft
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
-  body_sha256: 66494e9e7a94f2641bd0a1f32ff234c108dd368a1298c3617637849d4f6d3205
 sources:
   - id: types
     resource: package/src/runtime/types.ts
@@ -14,6 +13,16 @@ sources:
     resource: package/src/runtime/enforcement.ts
   - id: runtime-index
     resource: package/src/runtime/index.ts
+verified:
+  - by: human:spencer
+    at: 2026-10-27T16:21:39Z
+integrity:
+  generated:
+    body: 66494e9e7a94f264
+  verified:
+    by: human:spencer
+    at: 2026-10-27T16:21:39Z
+    content: 1d253999b3587cd2
 ---
 
 # Detection separated from response

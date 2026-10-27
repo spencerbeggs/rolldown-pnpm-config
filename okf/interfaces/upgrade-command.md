@@ -6,13 +6,15 @@ kind: cli
 resource: ../../package/src/cli/commands/upgrade.ts
 generated:
   by: okfit/claude-code
-  at: 2026-10-08T03:36:55Z
-  body_sha256: 35c9e3f807ac1af906d4757a39d6538bcffc899cf01ab5e5843f4dc0dcee5b36
+  at: 2026-10-27T16:27:34Z
 sources:
   - id: upgrade-ts
     resource: ../../package/src/cli/commands/upgrade.ts
   - id: bin-ts
     resource: ../../package/src/cli/bin.ts
+integrity:
+  generated:
+    body: 3cb8adadd2ea581c
 ---
 
 # upgrade command
@@ -23,7 +25,10 @@ sources:
 (`fileArg`, `package/src/cli/commands/upgrade.ts:779`). When omitted,
 `resolveTargetFile` scans the current working directory via
 `findConfigFiles`/`pickConfigCandidate` and fails when it finds zero or
-more than one candidate.[^upgrade-ts]
+more than one candidate. Candidates are the directory's top-level `.ts`
+files (no `.d.ts`, no dotfiles), listed in sorted order by
+`@effected/walker`'s `descendSync`, so the "Multiple config files found"
+message names them in the same order on every filesystem.[^upgrade-ts]
 
 ## Flags
 
@@ -51,14 +56,16 @@ Declared at `package/src/cli/commands/upgrade.ts:780-786`:
   (`projectDecisions`, `upgrade.ts:534-564`). It has no effect on the
   interactive table, which always shows every discovered row.[^upgrade-ts]
 - `--check` — a pure drift gate; see below.
-- `--json` — machine-readable single-line JSON output; `validateJsonMode`
-  (`upgrade.ts:744-761`) rejects it unless combined with `--check`,
-  `--yes`, or `--dry-run` — never with `--preview` or the bare
-  interactive default.[^upgrade-ts]
+- `--format auto|json` — the kit's `CliFormat.flag`, default `auto` (the
+  rendering the audience gets). `json` is machine-readable single-line JSON
+  output; `validateFormatMode` rejects it unless combined with `--check`,
+  `--yes`, or `--dry-run` — never with `--preview` or the bare interactive
+  default.[^upgrade-ts] There is no `--json`: it was retired for
+  `--format json` and is now an unknown flag (exit `64`).
 
 ## Interactive default and non-interactive fallback
 
-The default (no `--yes`/`--check`/`--preview`/`--json`) path enters an
+The default (no `--yes`/`--check`/`--preview`/`--format json`) path enters an
 interactive table showing every discovered row, up-to-date rows included
 as non-selectable context, with the cursor starting on the first
 actionable row.[^upgrade-ts] Enter applies the picks (or, under
@@ -98,8 +105,9 @@ is the contract:
 
 Two distinguished output families:
 
-- Drift and in-sync go to **stdout**: `Catalog drift detected in N
-  package(s): ...` or `Catalogs are in sync.`
+- Drift and in-sync go to **stdout**: `Catalog drift detected in 1
+  package: ...` / `in N packages: ...` (`Fmt.plural`) or `Catalogs are in
+  sync.`
 - A resolution failure is the failure report on **stderr**, headed
   `Catalog check failed before drift could be evaluated (resolution
   error, not drift):`.
@@ -108,13 +116,16 @@ Each drift row is annotated with its version source:
 `<catalog>.<pkg>  (workspace)` or `<catalog>.<pkg>  (registry)` — **two
 spaces** before the paren.[^upgrade-ts]
 
-## `--json`
+## `--format json`
 
-`--json` combines only with `--check`, `--yes` or `--dry-run`; anything else
-is a usage error (exit `64`). stdout then carries exactly one single-line
-JSON document in every case, failure included (`{ "command", "inSync" |
-"applied", ..., "error": { "kind", "message" } }`), and the human failure
-report goes to stderr.[^upgrade-ts]
+`--format json` combines only with `--check`, `--yes` or `--dry-run`;
+anything else is a usage error (exit `64`, mapped by tag through
+`CliRuntime.main`'s `exitCodes`). stdout then carries exactly one
+single-line JSON document in every case, failure included (`{ "command",
+"inSync" | "applied", ..., "error": { "kind", "message" } }`), printed by
+`CliFormat.print` with `indent: 0`, and the human failure report goes to
+stderr. Under GitHub Actions a `##[` inside the document is written as the
+JSON escape `#\u0023[`, which decodes to the same text.[^upgrade-ts]
 
 ## No `up` alias, no `-i`/`--interactive` flag
 
@@ -123,8 +134,8 @@ The command is registered under the single name `"upgrade"`
 the root command's subcommand list with no alias
 (`bin.ts:9`).[^upgrade-ts][^bin-ts] The flag set declared at
 `upgrade.ts:780-786` has no `-i`/`--interactive` entry; interactive is
-simply the behavior when none of `--yes`/`--check`/`--preview`/`--json`
-is passed.
+simply the behavior when none of `--yes`/`--check`/`--preview`/`--format
+json` is passed.
 
 [^upgrade-ts]: upgrade-ts
 [^bin-ts]: bin-ts

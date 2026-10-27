@@ -10,8 +10,9 @@ import {
 	checkJsonOutcome,
 	runUpgrade,
 	upgradeJsonOutcome,
-	validateJsonMode,
+	validateFormatMode,
 } from "../../src/cli/commands/upgrade.js";
+import { EXIT_CODES } from "../../src/cli/exit-codes.js";
 import { makeWorkspaceResolver } from "../../src/cli/workspace-resolve.js";
 import { plainText } from "./utils/doc.js";
 import { makeStubResolver } from "./utils/stub-resolver.js";
@@ -44,12 +45,15 @@ const workspaceResolver = makeWorkspaceResolver(FIXTURE);
 const runCheck = (source: string, resolver = registry) =>
 	runUpgrade({ file: writeTmpConfig(source), resolver, workspaceResolver, dryRun: true }).pipe(Effect.result);
 
-/** Parse the document as ONE single-line JSON value and pin that it is nothing else (Console.log adds the newline). */
-const parseOnlyJson = (json: string): unknown => {
-	const parsed: unknown = JSON.parse(json);
-	expect(json).toBe(JSON.stringify(parsed));
-	expect(json).not.toContain("\n");
-	return parsed;
+/**
+ * The data a JSON document is printed from. `CliFormat.print` serializes it on
+ * one line (the bin e2e pins the bytes on stdout); here it must survive a JSON
+ * round-trip unchanged, so nothing in it is a value JSON cannot hold.
+ */
+const parseOnlyJson = (data: unknown): unknown => {
+	const roundTripped: unknown = JSON.parse(JSON.stringify(data));
+	expect(roundTripped).toEqual(data);
+	return roundTripped;
 };
 
 describe("checkJsonOutcome", () => {
@@ -57,7 +61,7 @@ describe("checkJsonOutcome", () => {
 		Effect.gen(function* () {
 			const result = yield* runCheck(MIXED("^0.3.0"), makeStubResolver({ versions: { typescript: ["5.9.0"] } }));
 			const out = checkJsonOutcome(result);
-			expect(parseOnlyJson(out.json)).toEqual({ command: "check", inSync: true, drift: [] });
+			expect(parseOnlyJson(out.data)).toEqual({ command: "check", inSync: true, drift: [] });
 			expect(out.exitCode).toBe(0);
 			expect(out.failure).toBeUndefined();
 		}),
@@ -67,7 +71,7 @@ describe("checkJsonOutcome", () => {
 		Effect.gen(function* () {
 			const result = yield* runCheck(MIXED("^0.2.0"));
 			const out = checkJsonOutcome(result);
-			expect(parseOnlyJson(out.json)).toEqual({
+			expect(parseOnlyJson(out.data)).toEqual({
 				command: "check",
 				inSync: false,
 				drift: [
@@ -87,7 +91,7 @@ export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: { silk: { 
 `;
 			const result = yield* runCheck(source, makeStubResolver({ versions: {} }));
 			const out = checkJsonOutcome(result);
-			const doc = parseOnlyJson(out.json) as {
+			const doc = parseOnlyJson(out.data) as {
 				command: string;
 				inSync: boolean;
 				error: { kind: string; message: string };
@@ -113,7 +117,7 @@ describe("upgradeJsonOutcome", () => {
 		Effect.gen(function* () {
 			const result = yield* runCheck(MIXED("^0.2.0"));
 			const out = upgradeJsonOutcome(result, true);
-			expect(parseOnlyJson(out.json)).toEqual({
+			expect(parseOnlyJson(out.data)).toEqual({
 				command: "upgrade",
 				applied: false,
 				updated: 2,
@@ -133,7 +137,7 @@ describe("upgradeJsonOutcome", () => {
 			const file = writeTmpConfig(MIXED("^0.2.0"));
 			const result = yield* runUpgrade({ file, resolver: registry, workspaceResolver }).pipe(Effect.result);
 			const out = upgradeJsonOutcome(result, false);
-			const doc = parseOnlyJson(out.json) as { applied: boolean; changed: unknown[] };
+			const doc = parseOnlyJson(out.data) as { applied: boolean; changed: unknown[] };
 			expect(doc.applied).toBe(true);
 			expect(doc.changed).toHaveLength(2);
 			expect(readFileSync(file, "utf8")).toContain('"@fix/bumped": { range: "^0.3.0", source: "workspace" }');
@@ -155,7 +159,7 @@ export const plugin = PnpmConfigPlugin({
 			const before = readFileSync(file, "utf8");
 			const result = yield* runUpgrade({ file, resolver: registry, workspaceResolver }).pipe(Effect.result);
 			const out = upgradeJsonOutcome(result, false);
-			const doc = parseOnlyJson(out.json) as { applied: boolean; updated: number; changed: unknown[] };
+			const doc = parseOnlyJson(out.data) as { applied: boolean; updated: number; changed: unknown[] };
 			// Nothing was written, so a bash consumer keying on .applied must not
 			// read this no-op run as a real apply.
 			expect(doc.applied).toBe(false);
@@ -173,9 +177,9 @@ export const plugin = PnpmConfigPlugin({
 				kind: "peer-strategy",
 			}),
 		);
-		const upgradeDoc = parseOnlyJson(upgradeJsonOutcome(failure, false).json) as { error: { kind: string } };
+		const upgradeDoc = parseOnlyJson(upgradeJsonOutcome(failure, false).data) as { error: { kind: string } };
 		expect(upgradeDoc.error.kind).toBe("peer-strategy");
-		const checkDoc = parseOnlyJson(checkJsonOutcome(failure).json) as { error: { kind: string } };
+		const checkDoc = parseOnlyJson(checkJsonOutcome(failure).data) as { error: { kind: string } };
 		expect(checkDoc.error.kind).toBe("peer-strategy");
 	});
 
@@ -186,7 +190,7 @@ export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: { silk: { 
 `;
 			const result = yield* runCheck(source, makeStubResolver({ versions: {} }));
 			const out = upgradeJsonOutcome(result, false);
-			const doc = parseOnlyJson(out.json) as { command: string; applied: boolean; error: { kind: string } };
+			const doc = parseOnlyJson(out.data) as { command: string; applied: boolean; error: { kind: string } };
 			expect(doc.command).toBe("upgrade");
 			expect(doc.applied).toBe(false);
 			expect(doc.error.kind).toBe("resolution");
@@ -196,25 +200,29 @@ export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: { silk: { 
 	);
 });
 
-describe("validateJsonMode", () => {
-	it("rejects --json on the interactive path with a clear message", () => {
-		const err = validateJsonMode({ json: true, check: false, yes: false, dryRun: false, preview: false });
+describe("validateFormatMode", () => {
+	it("rejects --format json on the interactive path with a clear message", () => {
+		const err = validateFormatMode({ format: "json", check: false, yes: false, dryRun: false, preview: false });
 		expect(err).toBeInstanceOf(UpgradeUsageError);
-		// A usage error, so it exits 64 rather than a resolution failure's 1.
-		expect(err?.[Runtime.errorExitCode]).toBe(64);
-		expect(err?.message).toBe("--json requires a non-interactive mode: combine it with --check, --yes, or --dry-run");
+		// A usage error, so it exits 64 rather than a resolution failure's 1 — mapped
+		// by tag through CliRuntime.main's exitCodes, not marked on the error itself.
+		expect(err === null ? undefined : EXIT_CODES[err._tag]).toBe(64);
+		expect(err !== null && Runtime.errorExitCode in err).toBe(false);
+		expect(err?.message).toBe(
+			"--format json requires a non-interactive mode: combine it with --check, --yes, or --dry-run",
+		);
 	});
 
-	it("rejects --json with --preview", () => {
-		const err = validateJsonMode({ json: true, check: false, yes: false, dryRun: false, preview: true });
+	it("rejects --format json with --preview", () => {
+		const err = validateFormatMode({ format: "json", check: false, yes: false, dryRun: false, preview: true });
 		expect(err).toBeInstanceOf(UpgradeUsageError);
 		expect(err?.message).toContain("--preview");
 	});
 
-	it("accepts --json with each non-interactive mode and is inert without --json", () => {
-		expect(validateJsonMode({ json: true, check: true, yes: false, dryRun: false, preview: false })).toBeNull();
-		expect(validateJsonMode({ json: true, check: false, yes: true, dryRun: false, preview: false })).toBeNull();
-		expect(validateJsonMode({ json: true, check: false, yes: false, dryRun: true, preview: false })).toBeNull();
-		expect(validateJsonMode({ json: false, check: false, yes: false, dryRun: false, preview: false })).toBeNull();
+	it("accepts --format json with each non-interactive mode and is inert under auto", () => {
+		expect(validateFormatMode({ format: "json", check: true, yes: false, dryRun: false, preview: false })).toBeNull();
+		expect(validateFormatMode({ format: "json", check: false, yes: true, dryRun: false, preview: false })).toBeNull();
+		expect(validateFormatMode({ format: "json", check: false, yes: false, dryRun: true, preview: false })).toBeNull();
+		expect(validateFormatMode({ format: "auto", check: false, yes: false, dryRun: false, preview: false })).toBeNull();
 	});
 });

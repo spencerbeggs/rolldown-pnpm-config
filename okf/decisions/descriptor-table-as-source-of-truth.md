@@ -2,11 +2,10 @@
 type: Decision
 title: Descriptor table as the single source of truth
 description: One declarative entry per managed pnpm field; deriveSchemas and deriveRegistry produce what code consumes, kept honest by a satisfies-based drift guard.
-status: draft
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
-  body_sha256: 2825c7cb51788f64dd79a9457b7f101a38601b04a846656a828fce382e8cae34
 sources:
   - id: descriptors-index
     resource: package/src/descriptors/index.ts
@@ -18,6 +17,16 @@ sources:
     resource: package/__test__/types/plugin-config.test-d.ts
   - id: table-test
     resource: package/__test__/descriptors/table.test.ts
+verified:
+  - by: human:spencer
+    at: 2026-10-27T16:21:39Z
+integrity:
+  generated:
+    body: 2825c7cb51788f64
+  verified:
+    by: human:spencer
+    at: 2026-10-27T16:21:39Z
+    content: 7279cb088ba54a85
 ---
 
 # Descriptor table as the single source of truth

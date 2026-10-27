@@ -2,11 +2,10 @@
 type: Decision
 title: Effect at build time only
 description: Effect is fenced entirely to the build step; the shipped pnpmfile carries zero Effect.
-status: draft
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
-  body_sha256: 648f2acf59bbc3a734a0d51675edc7a3d70d81602b65c06ec1d7ec4cc405155e
 sources:
   - id: freeze
     resource: package/src/plugin/freeze.ts
@@ -16,6 +15,16 @@ sources:
     resource: package/src/runtime/enforcement.ts
 tags:
   - architecture
+verified:
+  - by: human:spencer
+    at: 2026-10-27T16:21:39Z
+integrity:
+  generated:
+    body: 648f2acf59bbc3a7
+  verified:
+    by: human:spencer
+    at: 2026-10-27T16:21:39Z
+    content: 19ab23224e3c9c94
 ---
 
 # Effect at build time only

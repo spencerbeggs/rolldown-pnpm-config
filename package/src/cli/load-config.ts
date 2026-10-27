@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
+import { Fmt } from "@effected/cli";
 import { Effect, Predicate } from "effect";
 import { evaluatePluginConfig } from "./evaluate.js";
 import { parseWorkspace } from "./workspace-file.js";
@@ -43,7 +44,7 @@ export function loadConfigAndWorkspace<E>(
 		const parsed = existsSync(path)
 			? yield* Effect.try({
 					try: () => parseWorkspace(readFileSync(path, "utf8")),
-					catch: (e) => mkError(`Cannot read or parse ${path}: ${String(e)}`),
+					catch: (e) => mkError(`Cannot read or parse ${path}: ${Fmt.causeMessage(e) ?? Fmt.describe(e)}`),
 				})
 			: {};
 		const localCfg = Predicate.isObject(config.local) ? config.local : undefined;

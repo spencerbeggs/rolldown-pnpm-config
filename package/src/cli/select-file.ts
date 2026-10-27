@@ -1,27 +1,31 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { Effect } from "effect";
+import { GlobPattern, GlobPatternOptions } from "@effected/glob";
+import { descendSync } from "@effected/walker";
+import { nodeWalkerSyncOps } from "@effected/walker/node-sync";
+import { Effect, Result } from "effect";
 import { discoverCatalogEntries } from "./discover.js";
 import type { CatalogEntry } from "./types.js";
+
+/** Top-level `.ts` FILES of a directory, no dotfiles, sorted. */
+const TS_FILES = Result.getOrThrow(GlobPattern.compileResult("*.ts", GlobPatternOptions.make({ dot: false })));
 
 /**
  * Scan a directory for top-level `.ts` files whose source contains a usable
  * `PnpmConfigPlugin(...)` catalog (discovery yields at least one entry). Read
- * or parse failures are skipped silently. Returns absolute-or-joined paths.
+ * or parse failures are skipped silently, and so is an unreadable directory.
+ * Returns joined paths in sorted order (`@effected/walker`'s `descendSync`),
+ * so a "multiple config files" report lists them the same way on every
+ * filesystem.
  *
  * @internal
  */
 export function findConfigFiles(dir: string): Effect.Effect<string[], never> {
 	return Effect.sync(() => {
-		let names: string[];
-		try {
-			names = readdirSync(dir);
-		} catch {
-			return [];
-		}
+		const names = Result.getOrElse(descendSync(TS_FILES, { cwd: dir, ...nodeWalkerSyncOps }), () => []);
 		const matches: string[] = [];
 		for (const name of names) {
-			if (!name.endsWith(".ts") || name.endsWith(".d.ts")) continue;
+			if (name.endsWith(".d.ts")) continue;
 			const path = join(dir, name);
 			try {
 				const source = readFileSync(path, "utf8");

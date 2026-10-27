@@ -11,7 +11,8 @@ import { nothingToUpgradeMessage } from "../../src/cli/commands/upgrade.js";
 
 describe("nothingToUpgradeMessage", () => {
 	it("reports the up-to-date package count when items were discovered", () => {
-		expect(nothingToUpgradeMessage(3)).toBe("Nothing to upgrade — 3 package(s) already up to date.");
+		expect(nothingToUpgradeMessage(3)).toBe("Nothing to upgrade — 3 packages already up to date.");
+		expect(nothingToUpgradeMessage(1)).toBe("Nothing to upgrade — 1 package already up to date.");
 	});
 
 	it("reports no packages found when nothing was discovered at all", () => {

@@ -44,6 +44,21 @@ describe("findConfigFiles", () => {
 			expect(matches.map((m) => m.endsWith("config.ts"))).toEqual([true]);
 		}),
 	);
+
+	it.effect("lists every candidate in sorted order and skips dotfiles", () =>
+		Effect.gen(function* () {
+			const dir = mkdtempSync(join(tmpdir(), "rpc-detect-"));
+			for (const name of ["zeta.ts", "alpha.ts", ".hidden.ts"]) writeFileSync(join(dir, name), CONFIG, "utf8");
+			const matches = yield* findConfigFiles(dir);
+			expect(matches).toEqual([join(dir, "alpha.ts"), join(dir, "zeta.ts")]);
+		}),
+	);
+
+	it.effect("yields nothing for a directory that does not exist", () =>
+		Effect.gen(function* () {
+			expect(yield* findConfigFiles(join(tmpdir(), "rpc-detect-missing-", String(Date.now())))).toEqual([]);
+		}),
+	);
 });
 
 describe("filterEntriesByCatalog", () => {

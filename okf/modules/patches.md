@@ -6,8 +6,7 @@ resource: ../../package/src/patches
 kind: package
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
-  body_sha256: 7869ffa1a62a64dd1f704e0bd358bfd0626c18de39cdb8ef710342f8de6b462e
+  at: 2026-10-27T16:27:34Z
 sources:
   - id: discover
     resource: package/src/patches/discover.ts
@@ -17,6 +16,9 @@ sources:
     resource: package/src/patches/paths.ts
   - id: reconcile
     resource: package/src/patches/reconcile.ts
+integrity:
+  generated:
+    body: c85ab617c37128d4
 ---
 
 # Patches
@@ -27,7 +29,9 @@ sources:
 `reconcile.ts`) discovers `.patch` files in two convention folders adjacent
 to a plugin author's build file — `public/patches/` (distributed) and
 `patches/` (local-only) — via `discoverPatches`
-(`package/src/patches/discover.ts:25,30`),[^discover] reverses pnpm's
+(`package/src/patches/discover.ts`),[^discover] which lists each folder's
+top-level `.patch` files — files only, no dotfiles, sorted — with
+`@effected/walker`'s `descendSync`, reverses pnpm's
 `/`→`__` filename mangling to derive the `patchedDependencies` key, and
 rewrites distributed paths to `node_modules/.pnpm-config/<name>/<rel>`
 (`distributedRel`, `package/src/patches/paths.ts:23`).[^paths] It is shared

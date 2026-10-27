@@ -1,3 +1,4 @@
+import { Fmt } from "@effected/cli";
 import { Data, Effect, Schema } from "effect";
 import { normalizeCatalogs } from "../catalogs.js";
 import type { PluginConfig } from "../define-plugin.js";
@@ -70,7 +71,7 @@ export function freeze(
 		// catalogs is always present and special: normalize the inline declarations into
 		// the resolved map (incl. materialized peer catalogs), then validate the shape.
 		base.catalogs = yield* Schema.decodeUnknownEffect(CatalogsSchema)(normalizeCatalogs(config.catalogs)).pipe(
-			Effect.mapError((error) => new ConfigError({ message: `Invalid catalogs: ${String(error)}` })),
+			Effect.mapError((error) => new ConfigError({ message: `Invalid catalogs: ${Fmt.describe(error)}` })),
 		);
 		manifest.catalogs = { strategy: "catalogs", enforcement: "warn" };
 		if (typeof config.name !== "string" || config.name.trim() === "") {
@@ -78,8 +79,7 @@ export function freeze(
 				new ConfigError({ message: "Config `name` is required and must be a non-empty string" }),
 			);
 		}
-		const directiveError = (error: unknown) =>
-			new ConfigError({ message: error instanceof Error ? error.message : String(error) });
+		const directiveError = (error: unknown) => new ConfigError({ message: Fmt.describe(error) });
 		for (const [field, reg] of Object.entries(FIELD_REGISTRY)) {
 			if (field === "catalogs") continue;
 			let raw = (config as unknown as Record<string, unknown>)[field];
@@ -109,7 +109,7 @@ export function freeze(
 						: decl.value;
 			base[field] = schema
 				? yield* Schema.decodeUnknownEffect(schema)(value).pipe(
-						Effect.mapError((error) => new ConfigError({ message: `Invalid ${field}: ${String(error)}` })),
+						Effect.mapError((error) => new ConfigError({ message: `Invalid ${field}: ${Fmt.describe(error)}` })),
 					)
 				: value;
 			manifest[field] = {
