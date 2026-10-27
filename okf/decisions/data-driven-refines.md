@@ -2,11 +2,10 @@
 type: Decision
 title: Data-driven refines, not injected code
 description: Repo-dependent merge behavior is modeled as a data-driven refine on a descriptor, not as arbitrary injected code, keeping the manifest plain serializable data.
-status: draft
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
-  body_sha256: a8475c69828a202da825fd4566224bc5c1fc768ebc18e7f1b75d11dd0a579d99
 sources:
   - id: ctx
     resource: package/src/runtime/ctx.ts
@@ -14,6 +13,16 @@ sources:
     resource: package/src/descriptors/types.ts
   - id: runtime-index
     resource: package/src/runtime/index.ts
+verified:
+  - by: human:spencer
+    at: 2026-10-27T16:21:39Z
+integrity:
+  generated:
+    body: a8475c69828a202d
+  verified:
+    by: human:spencer
+    at: 2026-10-27T16:21:39Z
+    content: 93f8b171563d0ef4
 ---
 
 # Data-driven refines, not injected code

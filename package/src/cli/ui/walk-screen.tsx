@@ -16,7 +16,6 @@ import {
 	tableDecisions,
 	tableLayout,
 	tableStep,
-	truncateEnd,
 } from "../walk-reducer.js";
 import type { Decision, WalkItem } from "../walk-types.js";
 
@@ -132,13 +131,13 @@ export function makeWalkScreen(props: WalkScreenProps): Screen<Decision[]> {
 				const peerText = gp?.peer.get(item.entry.pkg) ?? (chosen === undefined ? "—" : peerFor(item, chosen));
 				const conflict = gp?.conflict.get(item.entry.pkg);
 				// Room left on the line for the trailing ⚠ annotation, after the peer cell.
-				const room = Math.max(8, columns - fixedPrefix - peerText.length - 3);
+				const room = Math.max(8, columns - fixedPrefix - Fmt.width(peerText) - 3);
 				// One Text per row: its spans never shrink apart, so the columns stay
 				// aligned, and a row wider than the terminal is cut at the end, not wrapped.
 				rows.push(
 					<Text key={`${item.entry.catalog}/${item.entry.pkg}`} wrap="truncate-end">
 						{onCursor ? <Styled token="accent">❯ </Styled> : "  "}
-						<Text bold={onCursor}>{Fmt.sanitize(item.entry.pkg).padEnd(pkgWidth + 2)}</Text>
+						<Text bold={onCursor}>{Fmt.pad(Fmt.sanitize(item.entry.pkg), pkgWidth + 2)}</Text>
 						{candidates.map((c, ci) => {
 							const t = cellTone(c, ci === pick);
 							const text = cellText(c, ci === pick);
@@ -153,10 +152,10 @@ export function makeWalkScreen(props: WalkScreenProps): Screen<Decision[]> {
 						{blankCell.repeat(maxCells - candidates.length)}
 						<Styled token="muted">{`│ ${peerText}`}</Styled>
 						{conflict ? (
-							<Styled token="failure">{truncateEnd(`  ⚠ needs ${Fmt.sanitize(conflict)}`, room)}</Styled>
+							<Styled token="failure">{Fmt.truncate(`  ⚠ needs ${Fmt.sanitize(conflict)}`, room)}</Styled>
 						) : null}
 						{item.peerWarning ? (
-							<Styled token="failure">{truncateEnd(`  ⚠ ${Fmt.sanitize(item.peerWarning.message)}`, room)}</Styled>
+							<Styled token="failure">{Fmt.truncate(`  ⚠ ${Fmt.sanitize(item.peerWarning.message)}`, room)}</Styled>
 						) : null}
 					</Text>,
 				);

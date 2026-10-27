@@ -40,6 +40,15 @@ describe("discoverPatches", () => {
 		expect(discoverPatches({ baseDir: base, name: "cfg" })).toHaveLength(0);
 	});
 
+	it("lists files only, skipping dotfiles and a directory named like a patch, in sorted order", () => {
+		touch("patches/b@1.0.0.patch");
+		touch("patches/a@1.0.0.patch");
+		touch("patches/.hidden@1.0.0.patch");
+		mkdirSync(join(base, "patches", "dir@1.0.0.patch"));
+		const keys = discoverPatches({ baseDir: base, name: "cfg" }).map((p) => p.key);
+		expect(keys).toEqual(["a@1.0.0", "b@1.0.0"]);
+	});
+
 	it("returns [] when neither folder exists", () => {
 		expect(discoverPatches({ baseDir: base, name: "cfg" })).toEqual([]);
 	});

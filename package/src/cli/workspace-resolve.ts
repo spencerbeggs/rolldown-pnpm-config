@@ -1,8 +1,11 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { GlobPattern, GlobPatternOptions } from "@effected/glob";
+import { descendSync } from "@effected/walker";
+import { nodeWalkerSyncOps } from "@effected/walker/node-sync";
 import { getWorkspacePackagesSync } from "@effected/workspaces";
 import { nodeSyncOps } from "@effected/workspaces/node-sync";
-import { Effect, Layer } from "effect";
+import { Effect, Layer, Result } from "effect";
 import { parseVersion } from "../semver-util.js";
 import { RegistryResolver, ResolveError } from "./resolve.js";
 import { findWorkspaceFile } from "./workspace-file.js";
@@ -21,6 +24,9 @@ interface Manifest {
 type Bump = "patch" | "minor" | "major";
 
 const BUMP_ORDER: Record<Bump, number> = { patch: 0, minor: 1, major: 2 };
+
+/** The changeset files of `.changeset/`: top-level `.md` FILES, no dotfiles, sorted. */
+const CHANGESET_FILES = Result.getOrThrow(GlobPattern.compileResult("*.md", GlobPatternOptions.make({ dot: false })));
 
 /** Matches one changeset frontmatter line: `"@scope/name": minor` (quotes optional). */
 const FRONTMATTER_LINE_RE = /^\s*["']?([^"':\s]+)["']?\s*:\s*(major|minor|patch)\s*$/;
@@ -73,13 +79,10 @@ export function readManifests(rootDir: string): Map<string, Manifest> {
 function readPendingBumps(rootDir: string): Map<string, Bump> {
 	const out = new Map<string, Bump>();
 	const dir = join(rootDir, ".changeset");
-	if (!existsSync(dir)) return out;
-	let names: string[];
-	try {
-		names = readdirSync(dir).filter((n) => n.endsWith(".md") && n !== "README.md");
-	} catch {
-		return out;
-	}
+	// An absent directory lists nothing; an unreadable one degrades the same way.
+	const names = Result.getOrElse(descendSync(CHANGESET_FILES, { cwd: dir, ...nodeWalkerSyncOps }), () => []).filter(
+		(n) => n !== "README.md",
+	);
 	for (const name of names) {
 		let text: string;
 		try {

@@ -7,8 +7,7 @@ resource: ../../package/src/cli/main.ts
 status: draft
 generated:
   by: okfit/claude-code
-  at: 2026-10-08T03:36:55Z
-  body_sha256: cf7628d9bd6a44e23d03651a2f3a72fa50a7bdb73c62e731c8b9000354221f13
+  at: 2026-10-27T16:27:34Z
 sources:
   - id: main
     resource: ../../package/src/cli/main.ts
@@ -26,6 +25,9 @@ sources:
     resource: ../../package/__test__/cli/upgrade-session.int.test.ts
 tags:
   - dx
+integrity:
+  generated:
+    body: a77b600c293539f9
 ---
 
 # CLI output, audience and exit codes
@@ -51,16 +53,20 @@ that is not a terminal gets none.
 ## Streams
 
 - **stdout** carries the product: diffs, summaries, `--check`'s drift
-  report, and under `--json` exactly one single-line JSON document and
+  report, and under `--format json` exactly one single-line JSON document and
   nothing else.[^upgrade]
 - **stderr** carries warnings (unresolvable packages, interop conflicts,
   stale patch entries), every failure report, and the help that
-  accompanies a usage error.[^bin-e2e]
-- One-line outcomes (`Exported to …`, `Applied N change(s).`) carry a
-  status glyph; success and info go to stdout.
+  accompanies a usage error.[^bin-e2e] A failure that wraps a foreign
+  error (a YAML parse, a spawn, a schema decode) quotes that error's
+  message, never its class name (`Fmt.describe` / `Fmt.causeMessage`).
+- One-line outcomes (`Exported to …`, `Applied 1 change.`, `Applied N
+  changes.`) carry a status glyph; success and info go to stdout. Counts
+  agree with their noun (`Fmt.plural`), never a `(s)` suffix.
 - Line-oriented rows — a diff row, a summary table row, a `--check` drift
   row — are never wrapped, at any width: each stays on one line with its
-  gutter, so a grep or a line-by-line reader sees every row whole. Output
+  gutter, its columns measured and padded in terminal columns (a wide
+  character counts two), so a grep or a line-by-line reader sees every row whole. Output
   that is piped, or read by an agent or CI, has no width limit at all; only
   prose beside the rows (a heading, a note) wraps at a person's
   terminal.[^rows]
@@ -76,7 +82,7 @@ Diagnostics are off by default; `--log-level` or
 | --- | --- |
 | `0` | success, including `--help`, `--version`, `--check` in sync, and closing an interactive screen with Esc (`cancelled; nothing written`) |
 | `1` | `--check` found drift, or any failure that is not a usage error or an interrupt (missing config, registry resolution, unsatisfiable range) |
-| `64` | usage error: an unknown flag, a missing argument, more than one audience flag, `--json` without `--check`/`--yes`/`--dry-run` or with `--preview` |
+| `64` | usage error: an unknown flag (including the retired `--json`), a bad `--format` value, a missing argument, more than one audience flag, `--format json` without `--check`/`--yes`/`--dry-run` or with `--preview` |
 | `130` | the user interrupted an interactive screen with Ctrl-C; nothing was written |
 
 The `preview` explorer is read-only, so closing it any way exits `0`. These

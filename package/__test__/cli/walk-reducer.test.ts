@@ -1,3 +1,4 @@
+import { Fmt } from "@effected/cli";
 import { describe, expect, it } from "vitest";
 import type { Candidate, CatalogEntry } from "../../src/cli/types.js";
 import {
@@ -5,8 +6,8 @@ import {
 	displayCandidates,
 	initTable,
 	tableDecisions,
+	tableLayout,
 	tableStep,
-	truncateEnd,
 } from "../../src/cli/walk-reducer.js";
 import type { WalkItem } from "../../src/cli/walk-types.js";
 
@@ -48,15 +49,21 @@ describe("displayCandidates", () => {
 	});
 });
 
-describe("truncateEnd", () => {
-	it("leaves a short string unchanged", () => {
-		expect(truncateEnd("hi", 5)).toBe("hi");
+describe("tableLayout", () => {
+	// A range with a wide (two-column) character: the cell must pad to the same
+	// terminal column as an ASCII one, or every later column shears.
+	const wide: Candidate = { kind: "in-range", range: "^1.0.0-漢字", version: "1.0.0-漢字", isMajor: false };
+
+	it("measures and pads cells in terminal columns", () => {
+		const layout = tableLayout([item("a", [keep, wide]), item("b", [keep, inRange])]);
+		expect(layout.cellWidth).toBe(Fmt.width("^1.0.0-漢字"));
+		const widths = [keep, wide, inRange].map((c) => Fmt.width(layout.cellText(c, false)));
+		expect(new Set(widths).size).toBe(1);
+		expect(Fmt.width(layout.blankCell)).toBe(widths[0]);
 	});
-	it("clips a long string and appends an ellipsis", () => {
-		expect(truncateEnd("hello world", 5)).toBe("hell…");
-	});
-	it("degrades to just the ellipsis at max ≤ 1", () => {
-		expect(truncateEnd("hello", 1)).toBe("…");
+
+	it("measures the package column in terminal columns", () => {
+		expect(tableLayout([item("漢字", [keep]), item("ab", [keep])]).pkgWidth).toBe(4);
 	});
 });
 

@@ -1,11 +1,11 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import type { Document } from "@effected/cli";
-import { CliDoc, CliExit, CliInteractive, CliMessage, Doc } from "@effected/cli";
+import { CliDoc, CliExit, CliFormat, CliInteractive, CliMessage, Doc, Fmt } from "@effected/cli";
 import { CliUi } from "@effected/cli/ui";
 import type { PartialReleaseAgeGate } from "@effected/npm";
 import { ReleaseAgeGate } from "@effected/npm";
-import { Clock, Console, Data, Effect, Option, Result, Runtime } from "effect";
+import { Clock, Data, Effect, Option, Result } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
 import type { VersionSource } from "../../catalogs.js";
 import { bareVersion } from "../../semver-util.js";
@@ -57,12 +57,12 @@ export class UpgradeError extends Data.TaggedError("UpgradeError")<{
 
 /**
  * An invalid flag combination: a usage error, so it exits 64 (BSD
- * `EX_USAGE`) rather than the 1 a resolution failure exits with.
+ * `EX_USAGE`) rather than the 1 a resolution failure exits with. The code is
+ * mapped by tag in `EXIT_CODES`, which `main` hands to `CliRuntime.main`.
  *
  * @internal
  */
 export class UpgradeUsageError extends Data.TaggedError("UpgradeUsageError")<{ readonly message: string }> {
-	override readonly [Runtime.errorExitCode] = 64;
 	/** The failure report `CliRuntime.main` prints: the message, without the class name. */
 	[CliDoc](): Document {
 		return failureDoc(this.message);
@@ -148,7 +148,7 @@ export function readCatalogSource(
 		});
 		const { entries, skipped } = yield* Effect.try({
 			try: () => discoverCatalogEntries(source, file),
-			catch: (e) => new UpgradeError({ message: String(e) }),
+			catch: (e) => new UpgradeError({ message: Fmt.describe(e) }),
 		});
 		return { source, entries, skipped };
 	});
@@ -448,7 +448,7 @@ export function runUpgrade(opts: {
 		if (rejected.length > 0) {
 			return yield* Effect.fail(
 				new UpgradeError({
-					message: `Refusing to write unsatisfiable range(s):\n${rejected.map((r) => `  ${r.reason}`).join("\n")}`,
+					message: `Refusing to write ${Fmt.plural(rejected.length, "unsatisfiable range")}:\n${rejected.map((r) => `  ${r.reason}`).join("\n")}`,
 				}),
 			);
 		}
@@ -528,7 +528,7 @@ export function applyInteropAndDecisions(
 export function nothingToUpgradeMessage(totalItems: number): string {
 	return totalItems === 0
 		? "Nothing to upgrade — no catalog packages found."
-		: `Nothing to upgrade — ${totalItems} package(s) already up to date.`;
+		: `Nothing to upgrade — ${Fmt.plural(totalItems, "package")} already up to date.`;
 }
 
 /**
@@ -540,7 +540,7 @@ export function nothingToUpgradeMessage(totalItems: number): string {
  */
 export function unresolvedMessage(unresolved: readonly string[]): string {
 	const list = unresolved.map((p) => `  ${p}`).join("\n");
-	return `Could not resolve ${unresolved.length} package(s) from the registry — check the name(s) for typos, or your registry auth:\n${list}`;
+	return `Could not resolve ${Fmt.plural(unresolved.length, "package")} from the registry — check each name for a typo, or your registry auth:\n${list}`;
 }
 
 /** Project walk items to the non-interactive default decisions (latest-in-range, plus peer-only keeps). @internal */
@@ -621,7 +621,7 @@ export function checkOutcome(changed: readonly CheckDriftRow[]): { exitCode: 0 |
 	return {
 		exitCode: 1,
 		doc: [
-			Doc.line(`Catalog drift detected in ${changed.length} package(s):`),
+			Doc.line(`Catalog drift detected in ${Fmt.plural(changed.length, "package")}:`),
 			Doc.lines(
 				changed.map((c) => `  ${c.name}  (${c.source})`),
 				{ wrap: false },
@@ -643,37 +643,37 @@ function driftRowJson(row: CheckDriftRow): Record<string, unknown> {
 }
 
 /**
- * The `--check --json` outcome. stdout carries exactly one single-line JSON
- * document (`json`, written with `Console.log`) in EVERY case — including the
- * resolution-failure family, which keeps its non-zero exit but must never
- * leave a bash gate with exit 1 and an empty stdout. A resolution failure is
- * also returned as `failure`, which the command fails with so the labelled
- * human report lands on stderr.
+ * The `--check --format json` outcome. stdout carries exactly one JSON
+ * document (`data`, printed by `CliFormat.print` on one line) in EVERY case —
+ * including the resolution-failure family, which keeps its non-zero exit but
+ * must never leave a bash gate with exit 1 and an empty stdout. A resolution
+ * failure is also returned as `failure`, which the command fails with so the
+ * labelled human report lands on stderr.
  *
  * @internal
  */
 export function checkJsonOutcome(result: Result.Result<UpgradeRunResult, UpgradeError>): {
 	exitCode: 0 | 1;
-	json: string;
+	data: Record<string, unknown>;
 	failure?: CheckFailedError;
 } {
 	if (Result.isFailure(result)) {
 		const { message, kind } = result.failure;
 		return {
 			exitCode: 1,
-			json: JSON.stringify({ command: "check", inSync: false, error: { kind: kind ?? "resolution", message } }),
+			data: { command: "check", inSync: false, error: { kind: kind ?? "resolution", message } },
 			failure: new CheckFailedError({ message, ...(kind !== undefined ? { kind } : {}) }),
 		};
 	}
 	const changed = result.success.changed;
 	return {
 		exitCode: changed.length === 0 ? 0 : 1,
-		json: JSON.stringify({ command: "check", inSync: changed.length === 0, drift: changed.map(driftRowJson) }),
+		data: { command: "check", inSync: changed.length === 0, drift: changed.map(driftRowJson) },
 	};
 }
 
 /**
- * The `--yes --json` / `--dry-run --json` outcome. `applied` reports whether
+ * The `--yes --format json` / `--dry-run --format json` outcome. `applied` reports whether
  * the run wrote at least one change — always false under dry-run AND on an
  * already-in-sync run, so a consumer keying on it never reads a no-op as a
  * real apply; `changed` uses the same row object as check's `drift`. A failure
@@ -686,52 +686,52 @@ export function checkJsonOutcome(result: Result.Result<UpgradeRunResult, Upgrade
 export function upgradeJsonOutcome(
 	result: Result.Result<UpgradeRunResult, UpgradeError>,
 	dryRun: boolean,
-): { json: string; failure?: UpgradeError } {
+): { data: Record<string, unknown>; failure?: UpgradeError } {
 	if (Result.isFailure(result)) {
 		const { message, kind } = result.failure;
 		return {
-			json: JSON.stringify({ command: "upgrade", applied: false, error: { kind: kind ?? "resolution", message } }),
+			data: { command: "upgrade", applied: false, error: { kind: kind ?? "resolution", message } },
 			failure: result.failure,
 		};
 	}
 	const r = result.success;
 	return {
-		json: JSON.stringify({
+		data: {
 			command: "upgrade",
 			applied: !dryRun && r.updated > 0,
 			updated: r.updated,
 			changed: r.changed.map(driftRowJson),
 			skipped: r.skipped,
 			conflicts: r.conflicts.map((c) => ({ pkg: c.pkg, ceiling: c.ceiling, blockedBy: c.blockedBy })),
-		}),
+		},
 	};
 }
 
 /**
- * Reject `--json` outside the non-interactive modes it exists for. JSON mode
- * is a machine contract (a GitHub Action parsing stdout from bash); the
+ * Reject `--format json` outside the non-interactive modes it exists for. JSON
+ * mode is a machine contract (a GitHub Action parsing stdout from bash); the
  * interactive table and the preview views have no meaningful document to emit.
- * Returns the usage error to fail with (exit 64), or null when the combination
- * is valid.
+ * Returns the usage error to fail with (exit 64, see `EXIT_CODES`), or null
+ * when the combination is valid.
  *
  * @internal
  */
-export function validateJsonMode(flags: {
-	json: boolean;
+export function validateFormatMode(flags: {
+	format: UpgradeFormat;
 	check: boolean;
 	yes: boolean;
 	dryRun: boolean;
 	preview: boolean;
 }): UpgradeUsageError | null {
-	if (!flags.json) return null;
+	if (flags.format !== "json") return null;
 	if (flags.preview) {
 		return new UpgradeUsageError({
-			message: "--json cannot be combined with --preview; use --check, --yes, or --dry-run",
+			message: "--format json cannot be combined with --preview; use --check, --yes, or --dry-run",
 		});
 	}
 	if (!flags.check && !flags.yes && !flags.dryRun) {
 		return new UpgradeUsageError({
-			message: "--json requires a non-interactive mode: combine it with --check, --yes, or --dry-run",
+			message: "--format json requires a non-interactive mode: combine it with --check, --yes, or --dry-run",
 		});
 	}
 	return null;
@@ -818,7 +818,7 @@ function resolveForWalk(
 }
 
 // No `mustExist`: the parser would reject a missing path as a usage error before
-// the handler runs, leaving `--json` with an empty stdout. A missing file instead
+// the handler runs, leaving `--format json` with an empty stdout. A missing file instead
 // fails in `readCatalogSource` ("Cannot read …"), which the JSON paths report.
 const fileArg = Argument.File("file").pipe(
 	Argument.withDescription("The config file to upgrade (autodetected in the current directory when omitted)"),
@@ -849,10 +849,16 @@ const checkFlag = Flag.Boolean("check").pipe(
 	Flag.withDescription("Exit 1 when --yes would change anything (a drift gate; never writes)"),
 	Flag.withDefault(false),
 );
-const jsonFlag = Flag.Boolean("json").pipe(
-	Flag.withDescription("Print one JSON document on stdout (with --check, --yes or --dry-run)"),
-	Flag.withDefault(false),
-);
+/** The formats `upgrade --format` offers: the audience's own rendering, or one JSON document. @internal */
+export type UpgradeFormat = "auto" | "json";
+
+const formatFlag = CliFormat.flag<UpgradeFormat>(["auto", "json"], {
+	description:
+		"Output format: auto (for whoever is reading) or json (one JSON document on stdout, with --check, --yes or --dry-run)",
+});
+
+/** JSON mode writes one single-line document, so a bash gate can pipe it straight into jq. */
+const ONE_LINE = { indent: 0 } as const;
 
 /**
  * The "upgrade" command. The default path runs the interactive table;
@@ -872,13 +878,13 @@ export const upgradeCommand = Command.make(
 		preview: previewFlag,
 		full: fullFlag,
 		check: checkFlag,
-		json: jsonFlag,
+		format: formatFlag,
 	},
-	({ file: fileOpt, yes, dryRun, catalog, preview, full, check, json }) =>
+	({ file: fileOpt, yes, dryRun, catalog, preview, full, check, format }) =>
 		Effect.gen(function* () {
 			// JSON mode is for non-interactive consumers only — reject before touching
 			// the filesystem so the usage error is fast and unambiguous.
-			const jsonRejection = validateJsonMode({ json, check, yes, dryRun, preview });
+			const jsonRejection = validateFormatMode({ format, check, yes, dryRun, preview });
 			if (jsonRejection !== null) {
 				return yield* Effect.fail(jsonRejection);
 			}
@@ -887,7 +893,7 @@ export const upgradeCommand = Command.make(
 			// the config file. Construction is lazy — a config with no workspace-sourced
 			// entries never touches the filesystem through this resolver.
 			const workspaceOf = (file: string) => makeWorkspaceResolver(findWorkspaceRoot(dirname(file)));
-			// The non-interactive core, target discovery included, so that under --json
+			// The non-interactive core, target discovery included, so that under --format json
 			// even "no config file found" lands in the result and still yields a document.
 			const nonInteractive = (forceDryRun: boolean) =>
 				resolveTargetFile(fileOpt).pipe(
@@ -901,33 +907,33 @@ export const upgradeCommand = Command.make(
 			// when anything would have been rewritten.
 			if (check) {
 				const result = yield* nonInteractive(true);
-				if (json) {
-					// stdout carries exactly one JSON document (a bash consumer feeds it
-					// straight to jq); the labelled human failure report goes to stderr.
-					const o = checkJsonOutcome(result);
-					yield* Console.log(o.json);
-					if (o.failure !== undefined) return yield* Effect.fail(o.failure);
-					return yield* CliExit.set(o.exitCode);
-				}
+				const json = checkJsonOutcome(result);
 				// A resolution failure (typo'd name, auth, peer warning) shares the
 				// non-zero exit with drift, but its report must NOT read as drift — the
-				// consuming gate reports every non-zero as "catalog drifted".
-				if (Result.isFailure(result)) {
-					const { message, kind } = result.failure;
-					return yield* Effect.fail(new CheckFailedError({ message, ...(kind !== undefined ? { kind } : {}) }));
+				// consuming gate reports every non-zero as "catalog drifted". Under
+				// --format json stdout still carries the error document (a bash consumer
+				// feeds it straight to jq); the labelled human report goes to stderr.
+				const failure = json.failure;
+				if (failure !== undefined) {
+					if (format === "json") {
+						yield* CliFormat.print("json", { doc: () => failure[CliDoc](), json: () => json.data }, ONE_LINE);
+					}
+					return yield* Effect.fail(failure);
 				}
 				// Drift and in-sync are the gate's normal answers → stdout, exit by CliExit.
-				const outcome = checkOutcome(result.success.changed);
-				yield* Doc.print(outcome.doc);
+				const outcome = checkOutcome(Result.isSuccess(result) ? result.success.changed : []);
+				yield* CliFormat.print(format, { doc: () => outcome.doc, json: () => json.data }, ONE_LINE);
 				return yield* CliExit.set(outcome.exitCode);
 			}
-			// `--yes --json` and `--dry-run --json`: the non-interactive core with a
-			// machine-readable report. `--dry-run --json` runs the same resolution as
-			// `--yes --dry-run` — JSON mode never enters the interactive walk.
-			if (json) {
+			// `--yes --format json` and `--dry-run --format json`: the non-interactive
+			// core with a machine-readable report. `--dry-run --format json` runs the
+			// same resolution as `--yes --dry-run` — JSON mode never enters the
+			// interactive walk, and json is the only format this branch prints, so its
+			// document is never built.
+			if (format === "json") {
 				const result = yield* nonInteractive(false);
 				const o = upgradeJsonOutcome(result, dryRun);
-				yield* Console.log(o.json);
+				yield* CliFormat.print("json", { doc: () => [], json: () => o.data }, ONE_LINE);
 				if (o.failure !== undefined) return yield* Effect.fail(o.failure);
 				return;
 			}
@@ -946,9 +952,9 @@ export const upgradeCommand = Command.make(
 				);
 				yield* dryRun
 					? CliMessage.info(
-							`Dry run — no changes written. ${result.updated} package(s) would be updated; skipped ${result.skipped.length}.`,
+							`Dry run — no changes written. ${Fmt.plural(result.updated, "package")} would be updated; skipped ${result.skipped.length}.`,
 						)
-					: CliMessage.success(`Updated ${result.updated} package(s); skipped ${result.skipped.length}.`);
+					: CliMessage.success(`Updated ${Fmt.plural(result.updated, "package")}; skipped ${result.skipped.length}.`);
 				if (result.conflicts.length > 0) {
 					const lines = result.conflicts.map((c) => `  ${c.pkg} (kept ${c.ceiling}) blocked by ${c.blockedBy}`);
 					yield* Doc.print(warningDoc(["Interop conflicts (left at your pick):", ...lines].join("\n")), {
@@ -1067,8 +1073,8 @@ export const upgradeCommand = Command.make(
 			);
 			const changed = nonInteropChanged + interopChanged;
 			yield* dryRun
-				? CliMessage.info(`Dry run — no changes written. ${changed} change(s) would be applied.`)
-				: CliMessage.success(`Applied ${changed} change(s).`);
+				? CliMessage.info(`Dry run — no changes written. ${Fmt.plural(changed, "change")} would be applied.`)
+				: CliMessage.success(`Applied ${Fmt.plural(changed, "change")}.`);
 			// Repeat the unresolved warning after the run: the in-table banner is gone
 			// once the screen unmounts, and this is the last thing the author reads.
 			yield* warnUnresolved(versions.unresolved);

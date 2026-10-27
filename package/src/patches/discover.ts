@@ -1,7 +1,16 @@
-import { existsSync, readdirSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
+import { GlobPattern, GlobPatternOptions } from "@effected/glob";
+import { descendSync } from "@effected/walker";
+import { nodeWalkerSyncOps } from "@effected/walker/node-sync";
+import { Result } from "effect";
 import { patchKeyFromFileName } from "./keys.js";
 import { distributedPatchPath, distributedRel } from "./paths.js";
+
+/**
+ * The patch files of one convention folder: top-level `.patch` FILES only
+ * (a directory named `x.patch` is not a patch), no dotfiles, sorted.
+ */
+const PATCH_FILES = Result.getOrThrow(GlobPattern.compileResult("*.patch", GlobPatternOptions.make({ dot: false })));
 
 /** One discovered patch file, with its derived key and (when distributed) its
  *  consumer-resolved path. @internal */
@@ -25,6 +34,10 @@ export interface DiscoverPatchesOptions {
  * file: `public/patches/` (distributed, rewritten) and `patches/` (local-only).
  * `localPatchesDir` overrides the distributed source root only. Read-only.
  *
+ * Each folder is listed with `@effected/walker`'s `descendSync`: an absent
+ * folder yields nothing, and an unreadable one throws its `DescendError`, as
+ * the bare `readdirSync` this replaced threw its `EACCES`.
+ *
  * @internal
  */
 export function discoverPatches(opts: DiscoverPatchesOptions): readonly DiscoveredPatch[] {
@@ -41,8 +54,8 @@ export function discoverPatches(opts: DiscoverPatchesOptions): readonly Discover
 	return out;
 
 	function collect(dir: string, distributed: boolean): void {
-		if (!existsSync(dir)) return;
-		for (const fileName of readdirSync(dir).sort()) {
+		const files = Result.getOrThrow(descendSync(PATCH_FILES, { cwd: dir, ...nodeWalkerSyncOps }));
+		for (const fileName of files) {
 			const key = patchKeyFromFileName(fileName);
 			if (key === null) continue;
 			const absPath = join(dir, fileName);

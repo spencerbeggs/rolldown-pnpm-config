@@ -1,3 +1,4 @@
+import { Fmt } from "@effected/cli";
 import type { Candidate } from "./types.js";
 import type { Decision, WalkItem } from "./walk-types.js";
 
@@ -29,9 +30,9 @@ const BUBBLE_WIDTH = 2;
 
 /** The column geometry shared by the interactive table and its summary mirror. @internal */
 export interface TableLayout {
-	/** Widest package name; the name column is padded to this plus two. */
+	/** Widest package name in terminal columns (`Fmt.width`); the name column is padded to this plus two. */
 	readonly pkgWidth: number;
-	/** Widest candidate cell (range text plus the major suffix when present). */
+	/** Widest candidate cell in terminal columns (range text plus the major suffix when present). */
 	readonly cellWidth: number;
 	/** Cells per row — every row emits this many, blank-padded. */
 	readonly maxCells: number;
@@ -45,15 +46,17 @@ export interface TableLayout {
  * Compute the table geometry once for a set of rows. The range and the major
  * suffix are padded TOGETHER so a major annotation never shifts a later
  * column, and every row emits `maxCells` cells so the peer separator lands
- * in the same column regardless of how many candidates a row has.
+ * in the same column regardless of how many candidates a row has. Widths are
+ * terminal columns (`Fmt.width`) and padding is `Fmt.pad`, so a wide character
+ * in a name or range keeps every later column aligned.
  *
  * @internal
  */
 export function tableLayout(items: readonly WalkItem[]): TableLayout {
 	const cells = items.map(displayCandidates);
-	const pkgWidth = items.length ? Math.max(...items.map((i) => i.entry.pkg.length)) : 0;
+	const pkgWidth = items.length ? Math.max(...items.map((i) => Fmt.width(i.entry.pkg))) : 0;
 	const cellWidth = items.length
-		? Math.max(...cells.flatMap((cs) => cs.map((c) => c.range.length + (c.isMajor ? MAJOR_SUFFIX.length : 0))))
+		? Math.max(...cells.flatMap((cs) => cs.map((c) => Fmt.width(`${c.range}${c.isMajor ? MAJOR_SUFFIX : ""}`))))
 		: 0;
 	const maxCells = items.length ? Math.max(...cells.map((cs) => cs.length)) : 0;
 	return {
@@ -62,21 +65,8 @@ export function tableLayout(items: readonly WalkItem[]): TableLayout {
 		maxCells,
 		blankCell: `${" ".repeat(BUBBLE_WIDTH + cellWidth)}  `,
 		cellText: (c, selected) =>
-			`${selected ? SELECTED : UNSELECTED} ${`${c.range}${c.isMajor ? MAJOR_SUFFIX : ""}`.padEnd(cellWidth)}  `,
+			`${selected ? SELECTED : UNSELECTED} ${Fmt.pad(`${c.range}${c.isMajor ? MAJOR_SUFFIX : ""}`, cellWidth)}  `,
 	};
-}
-
-/**
- * Truncate `s` to at most `max` display columns, appending `…` when clipped.
- * Keeps a long peer-conflict annotation from wrapping and breaking the table's
- * column alignment. A `max` of 1 or less yields just the ellipsis.
- *
- * @internal
- */
-export function truncateEnd(s: string, max: number): string {
-	if (s.length <= max) return s;
-	if (max <= 1) return "…";
-	return `${s.slice(0, max - 1)}…`;
 }
 
 /**

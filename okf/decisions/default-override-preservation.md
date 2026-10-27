@@ -2,11 +2,10 @@
 type: Decision
 title: Default override preservation
 description: "Every export run preserves file:/link:/workspace:/portal: override entries by default, making the safe behavior opt-out rather than opt-in."
-status: draft
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
-  body_sha256: 34bcfba41cb4017a4b7e4b4d71aa5ae56f4335d0a3e6eea2f56a572237d8e7b7
 sources:
   - id: effective-ts
     resource: package/src/cli/effective.ts
@@ -14,6 +13,16 @@ sources:
     resource: package/src/cli/local-merge.ts
 tags:
   - architecture
+verified:
+  - by: human:spencer
+    at: 2026-10-27T16:21:39Z
+integrity:
+  generated:
+    body: 34bcfba41cb4017a
+  verified:
+    by: human:spencer
+    at: 2026-10-27T16:21:39Z
+    content: a93a705ee1295a1c
 ---
 
 # Default override preservation

@@ -1,5 +1,20 @@
 # Log
 
+## 2026-10-27
+
+* Updated --dry-run replaces --preview on export
+* Updated Builds never write
+* Updated CLI output, audience and exit codes
+* Updated CLI presentation through the @effected/cli kit
+* Updated Data-driven refines, not injected code
+* Updated Default override preservation
+* Updated Descriptor table as the single source of truth
+* Updated Detection separated from response
+* Updated Effect at build time only
+* Updated Effect v4 collapses the declared peer closure
+* Updated Patches
+* Updated upgrade command
+
 ## 2026-10-02
 
 * Updated --dry-run replaces --preview on export

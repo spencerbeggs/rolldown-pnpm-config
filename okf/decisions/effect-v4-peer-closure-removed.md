@@ -2,11 +2,10 @@
 type: Decision
 title: Effect v4 collapses the declared peer closure
 description: The v3-era satellite peer-closure workaround in package/package.json is obsolete under Effect v4 and was removed.
-status: draft
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-09-28T21:43:44Z
-  body_sha256: f9fa0bd7e038b2ca6f3b87fb26022a9fdaee339cd184e89cb456e9b8a8462265
 sources:
   - id: package-json
     resource: package/package.json
@@ -14,6 +13,16 @@ sources:
     resource: package/src/cli/bin.ts
 tags:
   - architecture
+verified:
+  - by: human:spencer
+    at: 2026-10-27T16:21:39Z
+integrity:
+  generated:
+    body: f9fa0bd7e038b2ca
+  verified:
+    by: human:spencer
+    at: 2026-10-27T16:21:39Z
+    content: 3234507c88a64938
 ---
 
 # Effect v4 collapses the declared peer closure

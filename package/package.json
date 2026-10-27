@@ -44,11 +44,12 @@
 		"@effected/yaml": "catalog:effected",
 		"effect": "catalog:effect",
 		"ink": "catalog:silk",
-		"oxc-parser": "^0.155.0",
+		"oxc-parser": "^0.156.0",
 		"react": "catalog:silk"
 	},
 	"devDependencies": {
 		"@effect/vitest": "catalog:effect",
+		"@effected/config-file": "catalog:effected",
 		"@savvy-web/bundler": "^2.6.3",
 		"@types/node": "catalog:silk",
 		"@types/react": "catalog:silk",

@@ -29,7 +29,7 @@ For an interop catalog the peer column shows a live group-derived floor recomput
 ```bash
 npx rolldown-pnpm-config upgrade
 # opens the radio-group table, then on <Enter>:
-# Applied <n> change(s).
+# Applied <n> changes.
 ```
 
 ## Flags
@@ -42,16 +42,16 @@ npx rolldown-pnpm-config upgrade
 | `--preview` | Non-interactive projection: resolves every package, takes the default picks and prints the colorized summary — no table, no write. |
 | `--full` | Applies to the non-interactive projection (`--preview` and the CI fallback): includes up-to-date entries the projection would otherwise omit. The interactive table already shows every entry, so the flag is a no-op there. |
 | `--check` | Pure drift gate: resolves exactly as `--yes` would, writes nothing (even combined with `--yes`), and exits `0` when every entry is in sync or `1` when anything would have been rewritten. A resolution failure also exits `1`, with a report on stderr labelled as a resolution error rather than drift. The exit code is the contract — release validation phases call this. |
-| `--json` | Machine-readable output for the non-interactive modes (`--check`, `--yes`, `--dry-run`). stdout carries exactly one single-line JSON document; all human-facing text moves to stderr or is suppressed. Exit codes are unchanged. Rejected as a usage error (exit `64`) with the interactive path and with `--preview`. |
+| `--format <auto\|json>` | `auto` (the default) renders for whoever is reading. `json` is machine-readable output for the non-interactive modes (`--check`, `--yes`, `--dry-run`): stdout carries exactly one single-line JSON document; all human-facing text moves to stderr or is suppressed. Exit codes are unchanged. `--format json` is rejected as a usage error (exit `64`) with the interactive path and with `--preview`. This replaces the old `--json` flag, which is now an unknown flag. |
 
 `--yes` is the unattended path — useful in scripts or a scheduled job:
 
 ```bash
 npx rolldown-pnpm-config upgrade --yes
-# Updated <n> package(s); skipped <m>.
+# Updated <n> packages; skipped <m>.
 ```
 
-`--dry-run` runs the real table interactively and prints what would have been written, without touching the file. Its header carries a `DRY RUN` banner and the closing line reads `Dry run — no changes written.` instead of `Applied <n> change(s).`:
+`--dry-run` runs the real table interactively and prints what would have been written, without touching the file. Its header carries a `DRY RUN` banner and the closing line reads `Dry run — no changes written.` instead of `Applied <n> changes.`:
 
 ```bash
 npx rolldown-pnpm-config upgrade --dry-run
@@ -65,16 +65,16 @@ npx rolldown-pnpm-config upgrade --preview
 # example output (varies by environment)
 ```
 
-### `--json` output
+### `--format json` output
 
-`--json` is for scripts and CI (a GitHub Action parsing the CLI from bash): stdout is exactly one single-line JSON document — nothing else — so a captured `$(...)` feeds straight to `jq`:
+`--format json` is for scripts and CI (a GitHub Action parsing the CLI from bash): stdout is exactly one single-line JSON document — nothing else — so a captured `$(...)` feeds straight to `jq`:
 
 ```bash
-out=$(npx rolldown-pnpm-config upgrade --check --json) || echo "catalogs drifted or check failed"
+out=$(npx rolldown-pnpm-config upgrade --check --format json) || echo "catalogs drifted or check failed"
 echo "$out" | jq -r '.drift[] | "\(.catalog).\(.pkg): \(.from) -> \(.to // "?") (\(.source))"'
 ```
 
-`upgrade --check --json` emits `{"command":"check","inSync":true|false,"drift":[...]}` where each drift row is `{"catalog":"effected","pkg":"@effected/app","from":"^0.7.0","to":"^0.8.0","source":"workspace"}` (`to` is omitted for a peer-only resync). A failure keeps the non-zero exit but still emits a document — `{"command":"check","inSync":false,"error":{"kind":"resolution","message":"..."}}` — so a bash gate never sees exit `1` with an empty stdout; the human-readable failure label goes to stderr. `error.kind` is `"peer-strategy"` when the run refused to apply with an incompatible peer strategy, and `"resolution"` for every other failure. `upgrade --yes --json` and `upgrade --dry-run --json` emit `{"command":"upgrade","applied":true|false,"updated":n,"changed":[...],"skipped":[...],"conflicts":[...]}` with `changed` rows in the same shape as `drift`; `applied` is `true` only when the run wrote at least one change — it is `false` under `--dry-run` and on an already-in-sync run, so keying on it never mistakes a no-op for a real apply. Without one of those modes, `--json` fails fast as a usage error (exit `64`) — JSON mode never enters the interactive table.
+`upgrade --check --format json` emits `{"command":"check","inSync":true|false,"drift":[...]}` where each drift row is `{"catalog":"effected","pkg":"@effected/app","from":"^0.7.0","to":"^0.8.0","source":"workspace"}` (`to` is omitted for a peer-only resync). A failure keeps the non-zero exit but still emits a document — `{"command":"check","inSync":false,"error":{"kind":"resolution","message":"..."}}` — so a bash gate never sees exit `1` with an empty stdout; the human-readable failure label goes to stderr. `error.kind` is `"peer-strategy"` when the run refused to apply with an incompatible peer strategy, and `"resolution"` for every other failure. `upgrade --yes --format json` and `upgrade --dry-run --format json` emit `{"command":"upgrade","applied":true|false,"updated":n,"changed":[...],"skipped":[...],"conflicts":[...]}` with `changed` rows in the same shape as `drift`; `applied` is `true` only when the run wrote at least one change — it is `false` under `--dry-run` and on an already-in-sync run, so keying on it never mistakes a no-op for a real apply. Without one of those modes, `--format json` fails fast as a usage error (exit `64`) — JSON mode never enters the interactive table.
 
 A prerelease-pinned package (for example `^3.0.0-next.8`) is offered same-track prerelease candidates (`next.9` and beyond) alongside the usual stable ones, instead of being frozen until a stable release ships. A package name the registry cannot resolve at all — a typo, a removed package, an auth failure — is surfaced as its own warning rather than silently treated as up to date: the table banners it, `--preview` appends it to the projection and `--yes` fails the run outright.
 
@@ -82,14 +82,14 @@ A prerelease-pinned package (for example `^3.0.0-next.8`) is offered same-track 
 
 Every `rolldown-pnpm-config` command decides who its output is for. Pass `--human`, `--agent` or `--ci` (or `--audience <human|agent|ci>`), or set `ROLLDOWN_PNPM_CONFIG_AUDIENCE`; otherwise the CLI detects a coding agent or a CI job and falls back to a person. A person gets colour (when the terminal supports it) and the interactive table; an agent gets plain text with no escape sequences and never a prompt; a CI run gets plain text, rendered as a GitHub Actions log under Actions. Colour follows Node: `FORCE_COLOR` wins over `NO_COLOR`, and `NO_COLOR`, `NODE_DISABLE_COLORS` and `TERM=dumb` turn it off.
 
-The product — summaries, `--check`'s report, `--json` documents — goes to stdout. Warnings (such as a package the registry could not resolve) and failure reports go to stderr. `--log-level debug` (or `ROLLDOWN_PNPM_CONFIG_LOG_LEVEL`) adds diagnostics on stderr.
+The product — summaries, `--check`'s report, `--format json` documents — goes to stdout. Warnings (such as a package the registry could not resolve) and failure reports go to stderr. `--log-level debug` (or `ROLLDOWN_PNPM_CONFIG_LOG_LEVEL`) adds diagnostics on stderr.
 
 | Exit code | Meaning |
 | --------- | ------- |
 | `0` | Success, including `--check` with every catalog in sync. |
 | `1` | `--check` found drift, or the run failed (no config file, a registry or resolution failure, an unsatisfiable range). |
-| `64` | Usage error: an unknown flag, more than one audience flag, or `--json` without `--check`/`--yes`/`--dry-run`. |
-| `130` | You quit the interactive table with `Esc` or `Ctrl-C`; nothing was written. |
+| `64` | Usage error: an unknown flag (including the retired `--json`), a bad `--format` value, more than one audience flag, or `--format json` without `--check`/`--yes`/`--dry-run` or with `--preview`. |
+| `130` | You interrupted the interactive table with `Ctrl-C`; nothing was written. (`Esc` closes it with `cancelled; nothing written` and exits `0`.) |
 
 ## Materialized peer ranges
 
