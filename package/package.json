@@ -50,6 +50,7 @@
 	"devDependencies": {
 		"@effect/vitest": "catalog:effect",
 		"@effected/config-file": "catalog:effected",
+		"@effected/toml": "catalog:effected",
 		"@savvy-web/bundler": "^2.7.0",
 		"@types/node": "catalog:silk",
 		"@types/react": "catalog:silk",
