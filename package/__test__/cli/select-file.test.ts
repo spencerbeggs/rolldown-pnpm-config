@@ -5,6 +5,7 @@ import { describe, expect, it } from "@effect/vitest";
 import { Effect } from "effect";
 import { filterEntriesByCatalog, findConfigFiles, pickConfigCandidate } from "../../src/cli/select-file.js";
 import type { CatalogEntry } from "../../src/cli/types.js";
+import { provideNodeFs } from "./utils/fs.js";
 
 const entry = (catalog: string, pkg: string): CatalogEntry => ({
 	catalog,
@@ -42,7 +43,7 @@ describe("findConfigFiles", () => {
 			writeFileSync(join(dir, "notes.md"), "ignore me\n", "utf8");
 			const matches = yield* findConfigFiles(dir);
 			expect(matches.map((m) => m.endsWith("config.ts"))).toEqual([true]);
-		}),
+		}).pipe(provideNodeFs),
 	);
 
 	it.effect("lists every candidate in sorted order and skips dotfiles", () =>
@@ -51,13 +52,13 @@ describe("findConfigFiles", () => {
 			for (const name of ["zeta.ts", "alpha.ts", ".hidden.ts"]) writeFileSync(join(dir, name), CONFIG, "utf8");
 			const matches = yield* findConfigFiles(dir);
 			expect(matches).toEqual([join(dir, "alpha.ts"), join(dir, "zeta.ts")]);
-		}),
+		}).pipe(provideNodeFs),
 	);
 
 	it.effect("yields nothing for a directory that does not exist", () =>
 		Effect.gen(function* () {
 			expect(yield* findConfigFiles(join(tmpdir(), "rpc-detect-missing-", String(Date.now())))).toEqual([]);
-		}),
+		}).pipe(provideNodeFs),
 	);
 });
 

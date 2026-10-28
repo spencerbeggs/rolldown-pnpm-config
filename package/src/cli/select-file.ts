@@ -1,9 +1,8 @@
-import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { GlobPattern, GlobPatternOptions } from "@effected/glob";
 import { descendSync } from "@effected/walker";
 import { nodeWalkerSyncOps } from "@effected/walker/node-sync";
-import { Effect, Result } from "effect";
+import { Effect, FileSystem, Result } from "effect";
 import { discoverCatalogEntries } from "./discover.js";
 import type { CatalogEntry } from "./types.js";
 
@@ -20,20 +19,20 @@ const TS_FILES = Result.getOrThrow(GlobPattern.compileResult("*.ts", GlobPattern
  *
  * @internal
  */
-export function findConfigFiles(dir: string): Effect.Effect<string[], never> {
-	return Effect.sync(() => {
+export function findConfigFiles(dir: string): Effect.Effect<string[], never, FileSystem.FileSystem> {
+	return Effect.gen(function* () {
+		const fs = yield* FileSystem.FileSystem;
 		const names = Result.getOrElse(descendSync(TS_FILES, { cwd: dir, ...nodeWalkerSyncOps }), () => []);
 		const matches: string[] = [];
 		for (const name of names) {
 			if (name.endsWith(".d.ts")) continue;
 			const path = join(dir, name);
-			try {
-				const source = readFileSync(path, "utf8");
-				const { entries } = discoverCatalogEntries(source, path);
-				if (entries.length > 0) matches.push(path);
-			} catch {
-				// unreadable or unparseable — skip
-			}
+			// Unreadable or unparseable — skip (discovery, not a read the user asked for).
+			const usable = yield* fs.readFileString(path).pipe(
+				Effect.flatMap((source) => Effect.try(() => discoverCatalogEntries(source, path).entries.length > 0)),
+				Effect.orElseSucceed(() => false),
+			);
+			if (usable) matches.push(path);
 		}
 		return matches;
 	});

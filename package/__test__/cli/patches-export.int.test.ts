@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "@effect/vitest";
 import { Effect } from "effect";
 import { runExport } from "../../src/cli/commands/export.js";
+import { provideNodeFs } from "./utils/fs.js";
 
 let root: string;
 beforeEach(() => {
@@ -41,7 +42,7 @@ describe("runExport patch merge", () => {
 			expect(yaml).toContain("bar@1.0.0: patches/bar@1.0.0.patch");
 			// the distributed .pnpm-config path must NOT leak into the local workspace file
 			expect(yaml).not.toContain(".pnpm-config");
-		}),
+		}).pipe(provideNodeFs),
 	);
 
 	it.effect("respects an explicit patchedDependencies map and skips discovery", () =>
@@ -67,6 +68,6 @@ describe("runExport patch merge", () => {
 			// existing siblings are still preserved
 			expect(yaml).toContain("foo@2.0.0: examples/rolldown/public/patches/foo@2.0.0.patch");
 			expect(yaml).toContain("bar@1.0.0: patches/bar@1.0.0.patch");
-		}),
+		}).pipe(provideNodeFs),
 	);
 });

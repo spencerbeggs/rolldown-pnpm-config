@@ -6,6 +6,7 @@ import { Effect, Runtime } from "effect";
 import { CheckFailedError, checkOutcome, runUpgrade } from "../../src/cli/commands/upgrade.js";
 import { makeWorkspaceResolver } from "../../src/cli/workspace-resolve.js";
 import { plainText } from "./utils/doc.js";
+import { provideNodeFs } from "./utils/fs.js";
 import { makeStubResolver } from "./utils/stub-resolver.js";
 import { writeTmpConfig } from "./utils/tmp-config.js";
 
@@ -46,7 +47,7 @@ describe("workspace-sourced entries on the non-interactive path", () => {
 					source: "workspace",
 				},
 			]);
-		}),
+		}).pipe(provideNodeFs),
 	);
 
 	it.effect("reports drift without writing under dryRun", () =>
@@ -70,7 +71,7 @@ describe("workspace-sourced entries on the non-interactive path", () => {
 					source: "workspace",
 				},
 			]);
-		}),
+		}).pipe(provideNodeFs),
 	);
 
 	it.effect("reports no change when the entry already matches the workspace next version", () =>
@@ -85,7 +86,7 @@ describe("workspace-sourced entries on the non-interactive path", () => {
 			});
 			expect(readFileSync(file, "utf8")).toBe(before);
 			expect(out.changed).toEqual([]);
-		}),
+		}).pipe(provideNodeFs),
 	);
 });
 

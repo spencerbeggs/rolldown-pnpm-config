@@ -5,6 +5,7 @@ import { TestClock } from "effect/testing";
 import { runUpgrade, runUpgradePreview } from "../../src/cli/commands/upgrade.js";
 import { DAY, atNow, isoAgo } from "./utils/clock.js";
 import { plainText } from "./utils/doc.js";
+import { provideNodeFs } from "./utils/fs.js";
 import { makeStubResolver } from "./utils/stub-resolver.js";
 import { writeTmpConfig } from "./utils/tmp-config.js";
 
@@ -46,7 +47,7 @@ describe("runUpgrade (non-interactive)", () => {
 			expect(result).toContain('peer: "^4.2.0"');
 			expect(result).not.toContain("6.0.0");
 			expect(out.updated).toBe(2);
-		}),
+		}).pipe(provideNodeFs),
 	);
 });
 
@@ -72,7 +73,7 @@ export const plugin = PnpmConfigPlugin({
 			const out = yield* runUpgrade({ file, resolver: gatedResolver() });
 			expect(readFileSync(file, "utf8")).toContain('typescript: "^5.9.0"'); // unchanged — 5.9.3 is too young
 			expect(out.updated).toBe(0);
-		}),
+		}).pipe(provideNodeFs),
 	);
 
 	// The gate reads the time from `Clock`, so moving the clock past the 1440
@@ -86,7 +87,7 @@ export const plugin = PnpmConfigPlugin({
 			const out = yield* runUpgrade({ file, resolver: gatedResolver() });
 			expect(readFileSync(file, "utf8")).toContain('typescript: "^5.9.3"');
 			expect(out.updated).toBe(1);
-		}),
+		}).pipe(provideNodeFs),
 	);
 });
 
@@ -113,7 +114,7 @@ export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: { effect: 
 			expect(result).toContain('"@effect/cli": { range: "^0.70.0"'); // cli held — 0.71 needs effect ^3.18
 			expect(result).toContain('peer: "^3.16.0"'); // effect peer floor from cli@0.70
 			expect(out.conflicts).toEqual([]);
-		}),
+		}).pipe(provideNodeFs),
 	);
 });
 
@@ -143,7 +144,7 @@ export const plugin = PnpmConfigPlugin({
 			expect(failureText(exit)).toContain("no published version of left-pad satisfies 3.4.0");
 			// Nothing at all was written — not even the entries that WOULD have been fine.
 			expect(readFileSync(file, "utf8")).toBe(before);
-		}),
+		}).pipe(provideNodeFs),
 	);
 
 	// The user's real case, with lock-minor instead of lock: flooring a prerelease is
@@ -169,7 +170,7 @@ export const plugin = PnpmConfigPlugin({
 			expect(failureText(exit)).toContain("incompatible peer strategy");
 			expect(failureText(exit)).toContain("@changesets/cli: lock-minor cannot floor the prerelease");
 			expect(readFileSync(file, "utf8")).toBe(before);
-		}),
+		}).pipe(provideNodeFs),
 	);
 
 	it.effect("fails on a peer warning even when the entry also has a range bump to apply", () =>
@@ -186,7 +187,7 @@ export const plugin = PnpmConfigPlugin({
 			expect(Exit.isFailure(exit)).toBe(true);
 			expect(failureText(exit)).toContain("incompatible peer strategy");
 			expect(readFileSync(file, "utf8"), "a warned entry must not have its range bumped either").toBe(before);
-		}),
+		}).pipe(provideNodeFs),
 	);
 
 	it.effect("still fails hard on the fixture the interactive path drops-and-reports (asymmetry pin)", () =>
@@ -217,7 +218,7 @@ export const plugin = PnpmConfigPlugin({
 			expect(Exit.isFailure(exit), "--yes must abort the whole run, not drop-and-report").toBe(true);
 			expect(failureText(exit)).toContain("no published version of left-pad satisfies 3.4.0");
 			expect(readFileSync(file, "utf8"), "typescript's otherwise-good edit must NOT be written either").toBe(before);
-		}),
+		}).pipe(provideNodeFs),
 	);
 
 	it.effect("never applies a major bump", () =>
@@ -237,7 +238,7 @@ export const plugin = PnpmConfigPlugin({
 			expect(result).toContain('"^1.2.9"'); // latest in-range
 			expect(result).not.toContain("^2."); // never the major
 			expect(out.rejected).toEqual([]);
-		}),
+		}).pipe(provideNodeFs),
 	);
 
 	it.effect("validates against the UNGATED list so the release-age gate cannot reject a good range", () =>
@@ -266,7 +267,7 @@ export const plugin = PnpmConfigPlugin({
 
 			expect(Exit.isSuccess(exit), `validation must run against the ungated list: ${failureText(exit)}`).toBe(true);
 			expect(readFileSync(file, "utf8")).toContain('peer: "^2.0.0"'); // drifted peer resynced
-		}),
+		}).pipe(provideNodeFs),
 	);
 });
 
@@ -301,7 +302,7 @@ export const plugin = PnpmConfigPlugin({
 			expect(text.replace(/\^3\.0\.0-next\.8/g, ""), "the bogus ^3.0.0 resync target must not appear").not.toContain(
 				"3.0.0",
 			);
-		}),
+		}).pipe(provideNodeFs),
 	);
 
 	it.effect("leaves the file byte-identical under --yes", () =>
@@ -312,7 +313,7 @@ export const plugin = PnpmConfigPlugin({
 			expect(readFileSync(file, "utf8"), "a keep must not rewrite the prerelease peer").toBe(before);
 			expect(out.updated).toBe(0);
 			expect(out.rejected).toEqual([]);
-		}),
+		}).pipe(provideNodeFs),
 	);
 });
 
@@ -329,7 +330,7 @@ export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: { silk: { 
 			expect(out).toContain("typescript");
 			expect(out).toContain("● ^5.9.3"); // in-range bump chosen, its bubble filled
 			expect(readFileSync(file, "utf8")).toBe(before);
-		}),
+		}).pipe(provideNodeFs),
 	);
 });
 
@@ -365,7 +366,7 @@ export const plugin = PnpmConfigPlugin({
 			// Nothing is written — not even typescript's perfectly good bump. Under --yes a
 			// config with a bad name is a broken config; applying half of it is worse.
 			expect(readFileSync(file, "utf8")).toBe(before);
-		}),
+		}).pipe(provideNodeFs),
 	);
 
 	it.effect("--preview reports the unresolvable package instead of omitting it", () =>
@@ -374,7 +375,7 @@ export const plugin = PnpmConfigPlugin({
 			const out = yield* runUpgradePreview({ file, resolver: typoResolver, full: false });
 			// The command prints these as a warning on stderr beside the projection.
 			expect(out.unresolved).toEqual(["efect"]);
-		}),
+		}).pipe(provideNodeFs),
 	);
 
 	it.effect("--yes --dry-run computes the real edits but writes NOTHING", () =>
@@ -394,7 +395,7 @@ export const plugin = PnpmConfigPlugin({
 			expect(out.updated).toBe(2);
 			// ...and the file is untouched.
 			expect(readFileSync(file, "utf8")).toBe(before);
-		}),
+		}).pipe(provideNodeFs),
 	);
 
 	it.effect("--yes succeeds normally when every package resolves", () =>
@@ -406,6 +407,6 @@ export const plugin = PnpmConfigPlugin({
 			const out = yield* runUpgrade({ file, resolver: allResolve });
 			expect(out.updated).toBe(2);
 			expect(readFileSync(file, "utf8")).toContain('typescript: "^5.9.3"');
-		}),
+		}).pipe(provideNodeFs),
 	);
 });
