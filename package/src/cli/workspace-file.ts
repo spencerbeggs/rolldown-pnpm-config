@@ -1,5 +1,5 @@
-import { existsSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { locateWorkspaceRootSync } from "@effected/workspaces";
+import { nodeSyncOps } from "@effected/workspaces/node-sync";
 import { Yaml, YamlStringifyOptions } from "@effected/yaml";
 import { Result } from "effect";
 
@@ -36,19 +36,13 @@ export function canonicalize(value: unknown): unknown {
 
 /**
  * Walk up from `startDir` to the nearest directory containing a
- * pnpm-workspace.yaml; returns the file path or null.
+ * pnpm-workspace.yaml; returns the file path or null. A `package.json`
+ * `workspaces` field is not a marker here: this tool targets pnpm only.
  *
  * @internal
  */
 export function findWorkspaceFile(startDir: string): string | null {
-	let dir = startDir;
-	for (;;) {
-		const candidate = join(dir, FILENAME);
-		if (existsSync(candidate)) return candidate;
-		const parent = dirname(dir);
-		if (parent === dir) return null;
-		dir = parent;
-	}
+	return locateWorkspaceRootSync(startDir, { ...nodeSyncOps, markers: [FILENAME] })?.path ?? null;
 }
 
 /** Parse pnpm-workspace.yaml source; empty/whitespace yields an empty object. @internal */

@@ -44,7 +44,7 @@ export function loadConfigAndWorkspace<E>(
 		const parsed = existsSync(path)
 			? yield* Effect.try({
 					try: () => parseWorkspace(readFileSync(path, "utf8")),
-					catch: (e) => mkError(`Cannot read or parse ${path}: ${Fmt.causeMessage(e) ?? Fmt.describe(e)}`),
+					catch: (e) => mkError(`Cannot read or parse ${path}: ${Fmt.errorText(e)}`),
 				})
 			: {};
 		const localCfg = Predicate.isObject(config.local) ? config.local : undefined;
