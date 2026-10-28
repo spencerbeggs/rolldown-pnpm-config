@@ -1,10 +1,13 @@
 import type { Strategy } from "../types.js";
 
+/** Code-unit order: locale-independent, so the render is the same on every machine. */
+const byCodeUnit = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
+
 /** Union `managed` with `local` (when present), deduped and sorted for a stable render. @internal */
 export function unionSort(managed: readonly string[], local: readonly string[] | undefined): string[] {
 	const set = new Set(managed);
 	for (const item of local ?? []) set.add(item);
-	return [...set].sort((a, b) => a.localeCompare(b));
+	return [...set].sort(byCodeUnit);
 }
 
 /**
@@ -27,7 +30,7 @@ export const arrayRecordUnion: Strategy = (base, local) => {
 	const child = (local ?? {}) as Record<string, readonly string[] | undefined>;
 	const keys = new Set([...Object.keys(managed), ...Object.keys(child)]);
 	const result: Record<string, string[]> = {};
-	for (const key of [...keys].sort((a, b) => a.localeCompare(b))) {
+	for (const key of [...keys].sort(byCodeUnit)) {
 		const merged = unionSort(managed[key] ?? [], child[key]);
 		if (merged.length > 0) result[key] = merged;
 	}

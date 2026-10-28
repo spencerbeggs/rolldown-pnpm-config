@@ -3,6 +3,7 @@
 ## 2026-10-28
 
 * Updated CLI output, audience and exit codes
+* Updated LocalDirective
 
 ## 2026-10-27
 

@@ -1,4 +1,4 @@
-import { Predicate } from "effect";
+import { Order, Predicate } from "effect";
 import type { ChangeKind, DiffMeta, DiffNode } from "./types.js";
 
 const isObject = Predicate.isObject;
@@ -43,7 +43,7 @@ function diffArray(
 	const here = [...path, key];
 	const b = new Set(before.map(String));
 	const a = new Set(after.map(String));
-	const keys = [...new Set([...b, ...a])].sort((x, y) => x.localeCompare(y));
+	const keys = [...new Set([...b, ...a])].sort(Order.String);
 	const children: DiffNode[] = keys.map((el) => {
 		const inB = b.has(el);
 		const inA = a.has(el);
@@ -63,7 +63,7 @@ function diffValue(
 ): DiffNode {
 	const here = [...path, key];
 	if (isObject(before) && isObject(after)) {
-		const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])].sort((x, y) => x.localeCompare(y));
+		const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])].sort(Order.String);
 		const children = keys.map((k) => {
 			if (!(k in before)) return uniform(k, here, after[k], "added");
 			if (!(k in after)) return uniform(k, here, before[k], "removed");
@@ -93,7 +93,7 @@ function diffValue(
  * @internal
  */
 export function buildDiff(before: Record<string, unknown>, after: Record<string, unknown>, meta: DiffMeta): DiffNode {
-	const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])].sort((x, y) => x.localeCompare(y));
+	const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])].sort(Order.String);
 	const children = keys.map((k) => {
 		const tag: DiffNode["tag"] | undefined = meta.localKeys.has(k)
 			? "local"

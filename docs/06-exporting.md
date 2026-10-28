@@ -11,7 +11,7 @@ npx rolldown-pnpm-config export [path]
 
 With no `path` argument the command finds the nearest `pnpm-workspace.yaml` walking up from the current directory. The optional path argument points at a specific file.
 
-The export command normalizes the file: it parses the existing YAML, merges the managed config in, sorts keys alphabetically and sorts array fields lexicographically, then re-emits the whole file. Comments are not preserved. Fields and catalogs the plugin does not manage are left untouched.
+The export command normalizes the file: it parses the existing YAML, merges the managed config in, sorts keys and array fields by character code (so uppercase sorts before lowercase, and the order is the same on every machine), then re-emits the whole file. Comments are not preserved. Fields and catalogs the plugin does not manage are left untouched.
 
 ## Previewing changes before writing
 
@@ -63,8 +63,8 @@ Each entry in `local` is either a bare value (which overwrites the managed value
 | ---- | ------ |
 | bare value | Overwrites the managed value entirely. |
 | `{ value }` | Overwrites the managed value entirely. |
-| `{ strategy: "union", value }` | Record merge (value wins on key clash) or array set-union. |
-| `{ strategy: "difference", value }` | Remove keys in `value` from the managed record, or remove elements from the managed array. |
+| `{ strategy: "union", value }` | Record merge (value wins on key clash) or array set-union. Array elements are deduped by value, so two objects with the same keys count once. |
+| `{ strategy: "difference", value }` | Remove keys in `value` from the managed record, or remove elements from the managed array (an object element matches by value, whatever its key order). |
 | `{ preserve: [...protocols] }` | For `overrides` only: copy back entries from the existing file whose value starts with a listed protocol prefix. Overrides the default `["file","link","workspace","portal"]` list. |
 
 A full example:

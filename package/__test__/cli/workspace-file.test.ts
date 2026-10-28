@@ -37,3 +37,16 @@ describe("canonicalize", () => {
 		expect(Object.keys(canonicalize({ b: 1, a: { d: 1, c: 2 } }) as Record<string, unknown>)).toEqual(["a", "b"]);
 	});
 });
+
+describe("parseWorkspace", () => {
+	it("treats a top-level sequence as an empty workspace, not an index-keyed record", () => {
+		expect(parseWorkspace("- a\n- b\n")).toEqual({});
+	});
+});
+
+describe("canonicalize ordering is locale-independent", () => {
+	it("sorts keys and primitive arrays by code unit", () => {
+		expect(Object.keys(canonicalize({ b: 1, B: 2, a: 3 }) as object)).toEqual(["B", "a", "b"]);
+		expect(canonicalize(["b", "B", "a"])).toEqual(["B", "a", "b"]);
+	});
+});

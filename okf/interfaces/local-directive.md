@@ -6,13 +6,15 @@ kind: api
 resource: ../../package/src/define-plugin.ts
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
-  body_sha256: caa902d901903ca12049d4f0c9bde4c72aacc0e83d61bba60a83d832b1a12fbc
+  at: 2026-10-28T23:43:44Z
 sources:
   - id: define-plugin-ts
     resource: ../../package/src/define-plugin.ts
   - id: local-merge-ts
     resource: ../../package/src/cli/local-merge.ts
+integrity:
+  generated:
+    body: 83a92777ee2a2e62
 ---
 
 # LocalDirective
@@ -45,9 +47,9 @@ Applied by `applyLocalDirective(managed, raw, parsed, field)`
 | --- | --- |
 | Bare value (no directive wrapper) | Overwrite the managed value (`local-merge.ts:62-63`). |
 | `{ value }` | Overwrite the managed value (`local-merge.ts:62-63`). |
-| `{ strategy: "union", value }` | Record merge — `{ ...managed, ...value }`, `value` wins on key clash — or array set-union (`local-merge.ts:24-38`, `local-merge.ts:60-61`). |
-| `{ strategy: "difference", value }` | Remove `value`'s keys from a managed record, or remove `value`'s elements from a managed array (`local-merge.ts:24-38`). |
-| `{ strategy: "merge", value }` | Treated as `union` semantics (`local-merge.ts:59`). Used by `local.patchedDependencies` to upsert this plugin's owned keys while preserving unowned ones. |
+| `{ strategy: "union", value }` | Record merge — `{ ...managed, ...value }`, `value` wins on key clash — or array set-union, deduped with elements compared structurally (`local-merge.ts:22-35`, `local-merge.ts:56-58`). |
+| `{ strategy: "difference", value }` | Remove `value`'s keys from a managed record, or remove `value`'s elements from a managed array, matching elements structurally so an object matches whatever its key order (`local-merge.ts:22-35`). |
+| `{ strategy: "merge", value }` | Treated as `union` semantics (`local-merge.ts:56`). Used by `local.patchedDependencies` to upsert this plugin's owned keys while preserving unowned ones. |
 | `{ strategy: "rewrite" }` | Passthrough at this layer — carries no `value`, so `result = managed` (`local-merge.ts:64-66`); the actual rewrite happens in the patch pipeline (see [patch-distribution](patch-distribution.md)). |
 | `preserve` (overrides field only, applied after the above) | Copies back any entry from the existing file's `overrides` whose value string starts with `<proto>:` for a proto in the preserve list. Defaults to `DEFAULT_PRESERVE = ["file", "link", "workspace", "portal"]` when absent (`local-merge.ts:1-2`, `local-merge.ts:68-79`).[^local-merge-ts] |
 

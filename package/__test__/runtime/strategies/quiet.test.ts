@@ -27,3 +27,14 @@ describe("arrayRecordUnion", () => {
 		expect(r.divergences).toEqual([]);
 	});
 });
+
+describe("array strategies order is locale-independent", () => {
+	it("sorts union elements and record axes by code unit", () => {
+		expect(arrayUnion(["b", "B"], ["a"], ctx).merged).toEqual(["B", "a", "b"]);
+		expect(Object.keys(arrayRecordUnion({ b: ["x"], B: ["x"] }, { a: ["x"] }, ctx).merged as object)).toEqual([
+			"B",
+			"a",
+			"b",
+		]);
+	});
+});
