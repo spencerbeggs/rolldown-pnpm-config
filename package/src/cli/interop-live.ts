@@ -2,7 +2,7 @@ import type { Range, SemVer } from "@effected/semver";
 import { Effect } from "effect";
 import { bareVersion, parseRange, parseVersion } from "../semver-util.js";
 import type { FetchPeer } from "./interop.js";
-import { INTEROP_PEER_CONCURRENCY } from "./interop.js";
+import { INTEROP_PEER_CONCURRENCY, lowestVersion } from "./interop.js";
 
 /** One in-group peer requirement: a dep this member peers on, at a range. @internal */
 export interface PeerReq {
@@ -63,21 +63,7 @@ export function computeGroupPeers(model: GroupModel, selected: ReadonlyMap<strin
 	for (const m of model.members) {
 		const v = selected.get(m);
 		if (v === undefined) continue;
-		const declared = declaredFloors.get(m);
-		if (declared?.length) {
-			let minStr = declared[0] as string;
-			let minSv = model.ver.get(minStr) ?? null;
-			for (const f of declared.slice(1)) {
-				const sv = model.ver.get(f) ?? null;
-				if (sv && (minSv === null || sv.compare(minSv) < 0)) {
-					minSv = sv;
-					minStr = f;
-				}
-			}
-			peer.set(m, `^${minStr}`);
-		} else {
-			peer.set(m, `^${v}`);
-		}
+		peer.set(m, `^${lowestVersion(declaredFloors.get(m) ?? []) ?? v}`);
 	}
 
 	const conflict = new Map<string, string>();

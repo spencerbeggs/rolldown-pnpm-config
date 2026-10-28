@@ -73,3 +73,29 @@ describe("applyLocalDirective", () => {
 		expect(out).toEqual(["a"]);
 	});
 });
+
+describe("applyLocalDirective array strategies compare elements structurally", () => {
+	it("unions arrays, deduping structurally equal objects regardless of key order", () => {
+		const out = applyLocalDirective(
+			[{ p: 1, q: 2 }, "a"],
+			{ strategy: "union", value: [{ q: 2, p: 1 }, "a", "b"] },
+			undefined,
+			"x",
+		);
+		expect(out).toEqual([{ p: 1, q: 2 }, "a", "b"]);
+	});
+
+	it("dedupes the managed side of a union even when the value adds nothing", () => {
+		expect(applyLocalDirective(["a", "a"], { strategy: "union", value: [] }, undefined, "x")).toEqual(["a"]);
+	});
+
+	it("subtracts structurally equal objects regardless of key order", () => {
+		const out = applyLocalDirective(
+			[{ p: 1, q: 2 }, "a", "b"],
+			{ strategy: "difference", value: [{ q: 2, p: 1 }, "b"] },
+			undefined,
+			"x",
+		);
+		expect(out).toEqual(["a"]);
+	});
+});

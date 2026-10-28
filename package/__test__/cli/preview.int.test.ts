@@ -5,6 +5,7 @@ import { describe, expect, it } from "@effect/vitest";
 import { Effect } from "effect";
 import { runPreviewViews } from "../../src/cli/commands/preview.js";
 import { plainText } from "./utils/doc.js";
+import { provideNodeFs } from "./utils/fs.js";
 
 const CONFIG = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
 export const plugin = PnpmConfigPlugin({
@@ -42,6 +43,6 @@ describe("runPreviewViews", () => {
 			expect(sim).toContain("(merge");
 			expect(sim).not.toContain("rolldown-pnpm-config");
 			expect(sim).not.toMatch(/^[-+~] /m);
-		}),
+		}).pipe(provideNodeFs),
 	);
 });

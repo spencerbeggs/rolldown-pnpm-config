@@ -1,7 +1,7 @@
-import { existsSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { locateWorkspaceRootSync } from "@effected/workspaces";
+import { nodeSyncOps } from "@effected/workspaces/node-sync";
 import { Yaml, YamlStringifyOptions } from "@effected/yaml";
-import { Result } from "effect";
+import { Order, Predicate, Result } from "effect";
 
 const FILENAME = "pnpm-workspace.yaml";
 // lineWidth 0 disables wrapping (parity with the previous `yaml` renderer).
@@ -22,12 +22,12 @@ function allPrimitive(arr: readonly unknown[]): boolean {
 export function canonicalize(value: unknown): unknown {
 	if (Array.isArray(value)) {
 		const mapped = value.map(canonicalize);
-		return allPrimitive(mapped) ? [...mapped].sort((a, b) => String(a).localeCompare(String(b))) : mapped;
+		return allPrimitive(mapped) ? [...mapped].sort((a, b) => Order.String(String(a), String(b))) : mapped;
 	}
-	if (value !== null && typeof value === "object") {
+	if (Predicate.isObject(value)) {
 		return Object.fromEntries(
 			Object.entries(value as Record<string, unknown>)
-				.sort(([a], [b]) => a.localeCompare(b))
+				.sort(([a], [b]) => Order.String(a, b))
 				.map(([k, v]) => [k, canonicalize(v)]),
 		);
 	}
@@ -36,19 +36,13 @@ export function canonicalize(value: unknown): unknown {
 
 /**
  * Walk up from `startDir` to the nearest directory containing a
- * pnpm-workspace.yaml; returns the file path or null.
+ * pnpm-workspace.yaml; returns the file path or null. A `package.json`
+ * `workspaces` field is not a marker here: this tool targets pnpm only.
  *
  * @internal
  */
 export function findWorkspaceFile(startDir: string): string | null {
-	let dir = startDir;
-	for (;;) {
-		const candidate = join(dir, FILENAME);
-		if (existsSync(candidate)) return candidate;
-		const parent = dirname(dir);
-		if (parent === dir) return null;
-		dir = parent;
-	}
+	return locateWorkspaceRootSync(startDir, { ...nodeSyncOps, markers: [FILENAME] })?.path ?? null;
 }
 
 /** Parse pnpm-workspace.yaml source; empty/whitespace yields an empty object. @internal */
@@ -56,7 +50,7 @@ export function parseWorkspace(source: string): Record<string, unknown> {
 	// A malformed document throws (YamlParseError), matching the previous
 	// `yaml` parser's throw-on-error behavior.
 	const parsed = Result.getOrThrow(Yaml.parseResult(source));
-	return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+	return Predicate.isObject(parsed) ? (parsed as Record<string, unknown>) : {};
 }
 
 /** Render a workspace object: deterministic key sort + yaml.stringify. @internal */

@@ -1,11 +1,10 @@
-import { readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import type { Document } from "@effected/cli";
 import { CliDoc, CliExit, CliFormat, CliInteractive, CliMessage, Doc, Fmt } from "@effected/cli";
 import { CliUi } from "@effected/cli/ui";
 import type { PartialReleaseAgeGate } from "@effected/npm";
 import { ReleaseAgeGate } from "@effected/npm";
-import { Clock, Data, Effect, Option, Result } from "effect";
+import { Clock, Data, Effect, FileSystem, Option, Result } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
 import type { VersionSource } from "../../catalogs.js";
 import { bareVersion } from "../../semver-util.js";
@@ -137,15 +136,22 @@ interface Resolver {
 	readonly peerDependencies: (pkg: string, version: string) => Effect.Effect<Record<string, string>, unknown>;
 }
 
+/** Write the rewritten config source back to `file`. */
+function writeSource(file: string, next: string): Effect.Effect<void, UpgradeError, FileSystem.FileSystem> {
+	return Effect.flatMap(FileSystem.FileSystem, (fs) =>
+		fs.writeFileString(file, next).pipe(Effect.mapError(() => new UpgradeError({ message: `Cannot write ${file}` }))),
+	);
+}
+
 /** Read a config file and statically discover its catalog entries. @internal */
 export function readCatalogSource(
 	file: string,
-): Effect.Effect<{ source: string; entries: CatalogEntry[]; skipped: string[] }, UpgradeError> {
+): Effect.Effect<{ source: string; entries: CatalogEntry[]; skipped: string[] }, UpgradeError, FileSystem.FileSystem> {
 	return Effect.gen(function* () {
-		const source = yield* Effect.try({
-			try: () => readFileSync(file, "utf8"),
-			catch: () => new UpgradeError({ message: `Cannot read ${file}` }),
-		});
+		const fs = yield* FileSystem.FileSystem;
+		const source = yield* fs
+			.readFileString(file)
+			.pipe(Effect.mapError(() => new UpgradeError({ message: `Cannot read ${file}` })));
 		const { entries, skipped } = yield* Effect.try({
 			try: () => discoverCatalogEntries(source, file),
 			catch: (e) => new UpgradeError({ message: Fmt.describe(e) }),
@@ -284,11 +290,10 @@ export function resolveGatedVersions(
 export function resolveProgress(
 	report: (event: ProgressEvent) => Effect.Effect<void>,
 ): (resolved: number, total: number) => Effect.Effect<void> {
-	const noun = (n: number) => `${n} package${n === 1 ? "" : "s"}`;
-	const finished = (total: number) => report({ _tag: "Finished", label: `Resolved ${noun(total)}` });
+	const finished = (total: number) => report({ _tag: "Finished", label: `Resolved ${Fmt.plural(total, "package")}` });
 	return (resolved, total) => {
 		if (resolved === 0) {
-			const begin = report({ _tag: "Phase", label: `Resolving ${noun(total)}`, total });
+			const begin = report({ _tag: "Phase", label: `Resolving ${Fmt.plural(total, "package")}`, total });
 			return total === 0 ? Effect.andThen(begin, finished(total)) : begin;
 		}
 		const step = report({ _tag: "Step", done: resolved });
@@ -322,7 +327,7 @@ export function runUpgrade(opts: {
 	dryRun?: boolean;
 	/** Workspace-backed resolver for entries with `source: "workspace"`. */
 	workspaceResolver?: Resolver;
-}): Effect.Effect<UpgradeRunResult, UpgradeError> {
+}): Effect.Effect<UpgradeRunResult, UpgradeError, FileSystem.FileSystem> {
 	return Effect.gen(function* () {
 		const { source, entries, skipped } = yield* readCatalogSource(opts.file);
 		const gate = yield* computeGate(source, opts.file, opts.resolver);
@@ -463,10 +468,7 @@ export function runUpgrade(opts: {
 		// precise opposite of what someone adding the flag in CI is asking for.
 		if (allEdits.length > 0 && !opts.dryRun) {
 			const next = applyEdits(source, allEdits);
-			yield* Effect.try({
-				try: () => writeFileSync(opts.file, next, "utf8"),
-				catch: () => new UpgradeError({ message: `Cannot write ${opts.file}` }),
-			});
+			yield* writeSource(opts.file, next);
 		}
 
 		const updated = changedSpans.size;
@@ -506,15 +508,11 @@ export function applyInteropAndDecisions(
 	source: string,
 	nonInteropEdits: readonly Edit[],
 	interopEdits: readonly Edit[],
-): Effect.Effect<void, UpgradeError> {
+): Effect.Effect<void, UpgradeError, FileSystem.FileSystem> {
 	return Effect.gen(function* () {
 		const edits = [...nonInteropEdits, ...interopEdits];
 		if (edits.length === 0) return;
-		const next = applyEdits(source, edits);
-		yield* Effect.try({
-			try: () => writeFileSync(file, next, "utf8"),
-			catch: () => new UpgradeError({ message: `Cannot write ${file}` }),
-		});
+		yield* writeSource(file, applyEdits(source, edits));
 	});
 }
 
@@ -583,7 +581,11 @@ export function runUpgradePreview(opts: {
 	full: boolean;
 	/** Workspace-backed resolver for entries with `source: "workspace"`. */
 	workspaceResolver?: Resolver;
-}): Effect.Effect<{ readonly doc: Document; readonly unresolved: readonly string[] }, UpgradeError> {
+}): Effect.Effect<
+	{ readonly doc: Document; readonly unresolved: readonly string[] },
+	UpgradeError,
+	FileSystem.FileSystem
+> {
 	return Effect.gen(function* () {
 		const { source, entries } = yield* readCatalogSource(opts.file);
 		const gate = yield* computeGate(source, opts.file, opts.resolver);
@@ -745,7 +747,7 @@ export function validateFormatMode(flags: {
  */
 export function resolveTargetFile(
 	fileOpt: Option.Option<string>,
-): Effect.Effect<string, UpgradeError, WorkingDirectory> {
+): Effect.Effect<string, UpgradeError, WorkingDirectory | FileSystem.FileSystem> {
 	return Effect.gen(function* () {
 		const explicit = Option.getOrUndefined(fileOpt);
 		if (explicit !== undefined) return explicit;

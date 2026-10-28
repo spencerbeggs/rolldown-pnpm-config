@@ -37,3 +37,9 @@ describe("emitPnpmfileModule", () => {
 		expect(src).toContain('"@acme/cfg")');
 	});
 });
+
+describe("sortKeys ordering is locale-independent", () => {
+	it("sorts keys by code unit", () => {
+		expect(Object.keys(sortKeys({ b: 1, B: 2, a: 3 }) as object)).toEqual(["B", "a", "b"]);
+	});
+});

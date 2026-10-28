@@ -11,6 +11,7 @@ const PEERS: Record<string, Record<string, string>> = {
 	"B@0.96.0": {},
 	"B@0.97.0": {},
 	"C@2.0.0": { B: "^0.95.0" },
+	"D@1.0.0": { B: "*" }, // a floor that does not parse as a version
 };
 const fetchPeer: FetchPeer = (pkg, v) => Effect.succeed(PEERS[`${pkg}@${v}`] ?? {});
 
@@ -66,6 +67,21 @@ describe("computeGroupPeers", () => {
 			// Raise B to 0.97.0 → satisfied, no conflict.
 			const good = computeGroupPeers(m, sel({ A: "1.1.0", B: "0.97.0" }));
 			expect(good.conflict.has("A")).toBe(false);
+		}),
+	);
+});
+
+describe("computeGroupPeers floor fallback", () => {
+	it.effect("falls back to ^selected when no declared floor parses, as the --yes path does", () =>
+		Effect.gen(function* () {
+			const m = yield* buildGroupModel(
+				new Map([
+					["B", ["0.96.0"]],
+					["D", ["1.0.0"]],
+				]),
+				fetchPeer,
+			);
+			expect(computeGroupPeers(m, sel({ B: "0.96.0", D: "1.0.0" })).peer.get("B")).toBe("^0.96.0");
 		}),
 	);
 });

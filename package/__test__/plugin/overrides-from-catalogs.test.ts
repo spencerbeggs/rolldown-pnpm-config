@@ -90,4 +90,14 @@ describe("resolveOverrides", () => {
 		const v = { "tar@<1": ">=1" };
 		expect(resolveOverrides(v, undefined, catalogs)).toBe(v);
 	});
+
+	it("ignores an authored overrides array rather than spreading it into index keys", () => {
+		expect(
+			resolveOverrides(["tar@<1"], { catalog: "effect", exclude: ["@effect/tsgo", "@scope/tiny"] }, catalogs),
+		).toEqual({
+			"effect@^4.0.0": "4.0.3",
+			"@effect/platform-node@^4.0.0": "4.0.3",
+			"@effect/vitest@^4.0.0": "4.0.3",
+		});
+	});
 });

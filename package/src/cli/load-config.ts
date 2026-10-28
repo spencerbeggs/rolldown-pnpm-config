@@ -1,6 +1,5 @@
-import { existsSync, readFileSync } from "node:fs";
 import { Fmt } from "@effected/cli";
-import { Effect, Predicate } from "effect";
+import { Effect, FileSystem, Predicate } from "effect";
 import { evaluatePluginConfig } from "./evaluate.js";
 import { parseWorkspace } from "./workspace-file.js";
 
@@ -22,17 +21,22 @@ export interface LoadedConfig {
  * parse the workspace file when present. `mkError` wraps each failure
  * message in the command's own error type.
  *
+ * IO goes through the platform `FileSystem`. Only a workspace file that is
+ * NOT FOUND reads as absent (`fs.exists` maps `NotFound` to `false`); an
+ * existence check that fails for any other reason (EACCES, ENOTDIR, EIO) is a
+ * `Cannot read or parse` failure, never a silent "create it fresh".
+ *
  * @internal
  */
 export function loadConfigAndWorkspace<E>(
 	opts: { configFile: string; workspacePath: string },
 	mkError: (message: string) => E,
-): Effect.Effect<LoadedConfig, E> {
+): Effect.Effect<LoadedConfig, E, FileSystem.FileSystem> {
 	return Effect.gen(function* () {
-		const configSource = yield* Effect.try({
-			try: () => readFileSync(opts.configFile, "utf8"),
-			catch: () => mkError(`Cannot read ${opts.configFile}`),
-		});
+		const fs = yield* FileSystem.FileSystem;
+		const configSource = yield* fs
+			.readFileString(opts.configFile)
+			.pipe(Effect.mapError(() => mkError(`Cannot read ${opts.configFile}`)));
 		const { config, errors } = evaluatePluginConfig(configSource, opts.configFile);
 		if (config === null) {
 			return yield* Effect.fail(mkError(`No PnpmConfigPlugin call found in ${opts.configFile}`));
@@ -41,11 +45,13 @@ export function loadConfigAndWorkspace<E>(
 			return yield* Effect.fail(mkError(`Non-literal config values: ${errors.join("; ")}`));
 		}
 		const path = opts.workspacePath;
-		const parsed = existsSync(path)
-			? yield* Effect.try({
-					try: () => parseWorkspace(readFileSync(path, "utf8")),
-					catch: (e) => mkError(`Cannot read or parse ${path}: ${Fmt.causeMessage(e) ?? Fmt.describe(e)}`),
-				})
+		const cannotRead = (e: unknown) => mkError(`Cannot read or parse ${path}: ${Fmt.errorText(e)}`);
+		const present = yield* fs.exists(path).pipe(Effect.mapError(cannotRead));
+		const parsed = present
+			? yield* fs.readFileString(path).pipe(
+					Effect.mapError(cannotRead),
+					Effect.flatMap((text) => Effect.try({ try: () => parseWorkspace(text), catch: cannotRead })),
+				)
 			: {};
 		const localCfg = Predicate.isObject(config.local) ? config.local : undefined;
 		return { config, localCfg, path, parsed };

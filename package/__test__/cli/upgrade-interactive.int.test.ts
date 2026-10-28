@@ -21,6 +21,7 @@ import { validateEdits } from "../../src/cli/validate.js";
 import { buildWalkItems } from "../../src/cli/walk-plan.js";
 import type { Decision } from "../../src/cli/walk-types.js";
 import { plainText } from "./utils/doc.js";
+import { provideNodeFs } from "./utils/fs.js";
 import { makeStubResolver } from "./utils/stub-resolver.js";
 import { writeTmpConfig } from "./utils/tmp-config.js";
 
@@ -72,7 +73,7 @@ describe("interactive apply (headless)", () => {
 			expect(out).toContain('range: "^4.2.3"');
 			expect(out).toContain('peer: "^4.2.0"');
 			expect(result).toBe(2);
-		}),
+		}).pipe(provideNodeFs),
 	);
 
 	it.effect("materializes a new peer literal when strategy is set but no peer exists", () =>
@@ -102,7 +103,7 @@ export const plugin = PnpmConfigPlugin({
 			expect(result).toContain('range: "^5.9.3"');
 			expect(result).toContain('peer: "^5.9.0"'); // peer from in-range candidate: lock-minor(5.9.3) → ^5.9.0
 			expect(out).toBeGreaterThanOrEqual(1);
-		}),
+		}).pipe(provideNodeFs),
 	);
 
 	it.effect("resyncs drifted peer even when range is already at newest version", () =>
@@ -130,7 +131,7 @@ export const plugin = PnpmConfigPlugin({
 			expect(out).toContain('peer: "^4.2.0"');
 			// countChangedDecisions must count the resync as a change.
 			expect(result).toBe(1);
-		}),
+		}).pipe(provideNodeFs),
 	);
 });
 
@@ -152,7 +153,7 @@ export const plugin = PnpmConfigPlugin({
 			expect(out).toContain('range: "^4.2.3"'); // range unchanged
 			expect(out).toContain('peer: "^4.2.0"'); // drifted peer ^4.1.0 resynced to lock-minor of 4.2.3
 			expect(result.updated).toBe(1);
-		}),
+		}).pipe(provideNodeFs),
 	);
 
 	it.effect("materializes a peer under --yes even when the package is already at its newest version", () =>
@@ -172,7 +173,7 @@ export const plugin = PnpmConfigPlugin({
 			expect(out).toContain('range: "^5.9.0"'); // range unchanged
 			expect(out).toContain('peer: "^5.9.0"'); // peer materialized (lock-minor of 5.9.0)
 			expect(result.updated).toBe(1);
-		}),
+		}).pipe(provideNodeFs),
 	);
 });
 
@@ -217,7 +218,7 @@ export const plugin = PnpmConfigPlugin({
 			expect(out).toContain('peer: "3.4.1"'); // the unsatisfiable "3.4.0" was NOT written
 			expect(summary).toContain("Rejected");
 			expect(summary).toContain("no published version of left-pad satisfies 3.4.0");
-		}),
+		}).pipe(provideNodeFs),
 	);
 });
 
@@ -281,7 +282,7 @@ export const plugin = PnpmConfigPlugin({
 			// left-pad's range AND peer are byte-identical to the source — a half-written
 			// package (new range, stale peer) is exactly the bug this test guards against.
 			expect(out).toContain('"left-pad": { range: "3.4.1", peer: "3.4.1", strategy: "lock-minor" }');
-		}),
+		}).pipe(provideNodeFs),
 	);
 
 	it.effect("does not let left-pad's rejection block either of the two good packages in the same run", () =>
@@ -295,7 +296,7 @@ export const plugin = PnpmConfigPlugin({
 			expect(out).toContain('range: "^4.2.3"'); // vitest: range + peer both applied
 			expect(out).toContain('peer: "^4.2.0"');
 			expect(out).toContain('"left-pad": { range: "3.4.1", peer: "3.4.1", strategy: "lock-minor" }'); // untouched
-		}),
+		}).pipe(provideNodeFs),
 	);
 });
 
@@ -384,7 +385,7 @@ export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: { effect: 
 			expect(out).toContain('"@effect/cli": { range: "^0.70.0"'); // dependent held back
 			expect(out).toContain('peer: "^3.16.0"'); // effect peer floor from cli@0.70
 			expect(out).toContain('peer: "^0.70.0"'); // cli peer floor (its own resolved version)
-		}),
+		}).pipe(provideNodeFs),
 	);
 
 	it.effect("combines non-interop decision edits with interop edits without overlap", () =>
@@ -432,7 +433,7 @@ export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: {
 			expect(out).toContain('typescript: "^5.9.3"'); // non-interop in-range bump applied
 			expect(out).toContain('"@effect/cli": { range: "^0.70.0"'); // interop downgrade applied
 			expect(out).toContain('peer: "^3.16.0"');
-		}),
+		}).pipe(provideNodeFs),
 	);
 });
 
@@ -508,6 +509,6 @@ describe("resolveTargetFile autodetect", () => {
 			// the test never has to chdir the whole process.
 			const file = yield* resolveTargetFile(Option.none()).pipe(Effect.provideService(WorkingDirectory, dir));
 			expect(file.endsWith("savvy.build.ts")).toBe(true);
-		}),
+		}).pipe(provideNodeFs),
 	);
 });

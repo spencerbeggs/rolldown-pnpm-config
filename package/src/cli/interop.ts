@@ -88,8 +88,14 @@ export interface GroupResolution {
 	readonly conflicts: readonly InteropConflict[];
 }
 
-/** The lowest parseable version string in `list`, or null when none parses. */
-function lowestVersion(list: readonly string[]): string | null {
+/**
+ * The lowest parseable version string in `list`, or null when none parses.
+ * Shared by the `--yes` resolver and the interactive table so both write the
+ * same peer floor.
+ *
+ * @internal
+ */
+export function lowestVersion(list: readonly string[]): string | null {
 	let best: { f: string; sv: SemVer } | null = null;
 	for (const f of list) {
 		const sv = parseVersion(f);

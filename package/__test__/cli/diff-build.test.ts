@@ -81,3 +81,11 @@ describe("buildDiff", () => {
 		expect(kinds.swc).toBe("removed");
 	});
 });
+
+describe("buildDiff ordering is locale-independent", () => {
+	it("orders child keys by code unit", () => {
+		const cats = { b: {}, B: {}, a: {} };
+		const root = buildDiff({ catalogs: cats }, { catalogs: cats }, meta());
+		expect((child(root, "catalogs")?.children ?? []).map((c) => c.key)).toEqual(["B", "a", "b"]);
+	});
+});

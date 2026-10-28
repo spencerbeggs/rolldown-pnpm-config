@@ -1,4 +1,4 @@
-import { Predicate } from "effect";
+import { Array as Arr, Predicate } from "effect";
 
 /** Default protocols whose existing-file override entries are preserved. @internal */
 export const DEFAULT_PRESERVE: readonly string[] = ["file", "link", "workspace", "portal"];
@@ -23,9 +23,8 @@ function combine(managed: unknown, value: unknown, strategy: "union" | "differen
 	if (Array.isArray(managed) || Array.isArray(value)) {
 		const m = Array.isArray(managed) ? managed : [];
 		const v = Array.isArray(value) ? value : [];
-		if (strategy === "union") return [...new Set([...m, ...v])];
-		const drop = new Set(v.map((x) => JSON.stringify(x)));
-		return m.filter((x) => !drop.has(JSON.stringify(x)));
+		// Elements compare structurally (Equal), so equal objects dedupe and match whatever their key order.
+		return strategy === "union" ? Arr.dedupe(Arr.appendAll(m, v)) : Arr.difference(m, v);
 	}
 	const m = Predicate.isObject(managed) ? managed : {};
 	const v = Predicate.isObject(value) ? value : {};

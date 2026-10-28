@@ -7,7 +7,7 @@ resource: ../../package/src/cli/main.ts
 status: draft
 generated:
   by: okfit/claude-code
-  at: 2026-10-27T16:27:34Z
+  at: 2026-10-28T21:49:02Z
 sources:
   - id: main
     resource: ../../package/src/cli/main.ts
@@ -27,7 +27,7 @@ tags:
   - dx
 integrity:
   generated:
-    body: a77b600c293539f9
+    body: 85f8671606c1af7a
 ---
 
 # CLI output, audience and exit codes
@@ -59,7 +59,8 @@ that is not a terminal gets none.
   stale patch entries), every failure report, and the help that
   accompanies a usage error.[^bin-e2e] A failure that wraps a foreign
   error (a YAML parse, a spawn, a schema decode) quotes that error's
-  message, never its class name (`Fmt.describe` / `Fmt.causeMessage`).
+  message, never its class name (`Fmt.errorText`, or `Fmt.describe` for a
+  value with no cause chain).
 - One-line outcomes (`Exported to …`, `Applied 1 change.`, `Applied N
   changes.`) carry a status glyph; success and info go to stdout. Counts
   agree with their noun (`Fmt.plural`), never a `(s)` suffix.

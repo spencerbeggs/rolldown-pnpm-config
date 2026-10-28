@@ -15,6 +15,7 @@ import {
 import { EXIT_CODES } from "../../src/cli/exit-codes.js";
 import { makeWorkspaceResolver } from "../../src/cli/workspace-resolve.js";
 import { plainText } from "./utils/doc.js";
+import { provideNodeFs } from "./utils/fs.js";
 import { makeStubResolver } from "./utils/stub-resolver.js";
 import { writeTmpConfig } from "./utils/tmp-config.js";
 
@@ -64,7 +65,7 @@ describe("checkJsonOutcome", () => {
 			expect(parseOnlyJson(out.data)).toEqual({ command: "check", inSync: true, drift: [] });
 			expect(out.exitCode).toBe(0);
 			expect(out.failure).toBeUndefined();
-		}),
+		}).pipe(provideNodeFs),
 	);
 
 	it.effect("emits mixed workspace and registry drift rows with from/to/source", () =>
@@ -81,7 +82,7 @@ describe("checkJsonOutcome", () => {
 			});
 			expect(out.exitCode).toBe(1);
 			expect(out.failure).toBeUndefined();
-		}),
+		}).pipe(provideNodeFs),
 	);
 
 	it.effect("emits an error document on stdout for a resolution failure, with the human message on stderr", () =>
@@ -108,7 +109,7 @@ export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: { silk: { 
 			expect(out.failure === undefined ? "" : plainText(out.failure[CliDoc]())).toContain(
 				"resolution error, not drift",
 			);
-		}),
+		}).pipe(provideNodeFs),
 	);
 });
 
@@ -129,7 +130,7 @@ describe("upgradeJsonOutcome", () => {
 				conflicts: [],
 			});
 			expect(out.failure).toBeUndefined();
-		}),
+		}).pipe(provideNodeFs),
 	);
 
 	it.effect("emits applied:true after a real write under --yes", () =>
@@ -141,7 +142,7 @@ describe("upgradeJsonOutcome", () => {
 			expect(doc.applied).toBe(true);
 			expect(doc.changed).toHaveLength(2);
 			expect(readFileSync(file, "utf8")).toContain('"@fix/bumped": { range: "^0.3.0", source: "workspace" }');
-		}),
+		}).pipe(provideNodeFs),
 	);
 
 	it.effect("reports applied:false on an already-in-sync --yes run", () =>
@@ -167,7 +168,7 @@ export const plugin = PnpmConfigPlugin({
 			expect(doc.changed).toEqual([]);
 			expect(out.failure).toBeUndefined();
 			expect(readFileSync(file, "utf8")).toBe(before);
-		}),
+		}).pipe(provideNodeFs),
 	);
 
 	it("labels a peer-strategy refusal distinctly from a resolution failure", () => {
@@ -196,7 +197,7 @@ export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: { silk: { 
 			expect(doc.error.kind).toBe("resolution");
 			// The command fails with the error, so the exit is non-zero and the message is on stderr.
 			expect(out.failure).toBeInstanceOf(UpgradeError);
-		}),
+		}).pipe(provideNodeFs),
 	);
 });
 

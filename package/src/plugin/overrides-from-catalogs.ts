@@ -1,3 +1,4 @@
+import { Predicate } from "effect";
 import type { CatalogDeclaration } from "../catalogs.js";
 import { rangeOf } from "../catalogs.js";
 import { bareVersion } from "../semver-util.js";
@@ -115,6 +116,6 @@ export function resolveOverrides(
 ): unknown {
 	if (directives === undefined) return authored;
 	const derived = deriveOverrides(catalogs, directives);
-	const manual = authored !== null && typeof authored === "object" ? (authored as Record<string, string>) : {};
+	const manual = Predicate.isObject(authored) ? (authored as Record<string, string>) : {};
 	return { ...derived, ...manual };
 }
