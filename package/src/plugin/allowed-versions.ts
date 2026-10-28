@@ -1,3 +1,4 @@
+import { Predicate } from "effect";
 import type { CatalogDeclaration } from "../catalogs.js";
 import { rangeOf } from "../catalogs.js";
 import { bareVersion } from "../semver-util.js";
@@ -86,7 +87,7 @@ export function deriveAllowedVersions(
  * @internal
  */
 export function resolvePeerDependencyRules(value: unknown, catalogs: Record<string, CatalogDeclaration>): unknown {
-	if (value === null || typeof value !== "object" || !("allowedVersionsFromCatalogs" in value)) return value;
+	if (!Predicate.isObject(value) || !("allowedVersionsFromCatalogs" in value)) return value;
 	const { allowedVersionsFromCatalogs, ...rest } = value as {
 		allowedVersionsFromCatalogs: AllowedVersionsFromCatalogs | readonly AllowedVersionsFromCatalogs[];
 		allowedVersions?: Record<string, string>;

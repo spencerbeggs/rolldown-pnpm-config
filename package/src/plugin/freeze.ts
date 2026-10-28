@@ -1,5 +1,5 @@
 import { Fmt } from "@effected/cli";
-import { Data, Effect, Schema } from "effect";
+import { Data, Effect, Predicate, Schema } from "effect";
 import { normalizeCatalogs } from "../catalogs.js";
 import type { PluginConfig } from "../define-plugin.js";
 import { DESCRIPTORS, deriveSchemas } from "../descriptors/index.js";
@@ -39,7 +39,7 @@ const WRAPPED_KEYS = new Set(["value", "enforcement", "excludeByRepo"]);
  * @internal
  */
 export function isWrappedField(input: unknown): input is { value: unknown } {
-	if (input === null || typeof input !== "object") return false;
+	if (!Predicate.isObject(input)) return false;
 	const keys = Object.keys(input);
 	return keys.includes("value") && keys.every((k) => WRAPPED_KEYS.has(k));
 }

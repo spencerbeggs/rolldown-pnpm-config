@@ -1,14 +1,13 @@
 import { readFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { GlobPattern, GlobPatternOptions } from "@effected/glob";
 import { descendSync } from "@effected/walker";
 import { nodeWalkerSyncOps } from "@effected/walker/node-sync";
-import { getWorkspacePackagesSync } from "@effected/workspaces";
+import { findWorkspaceRootSync, getWorkspacePackagesSync } from "@effected/workspaces";
 import { nodeSyncOps } from "@effected/workspaces/node-sync";
 import { Effect, Layer, Result } from "effect";
 import { parseVersion } from "../semver-util.js";
 import { RegistryResolver, ResolveError } from "./resolve.js";
-import { findWorkspaceFile } from "./workspace-file.js";
 
 /** The RegistryResolver service shape, shared by the registry and workspace implementations. */
 type ResolverShape = (typeof RegistryResolver)["Service"];
@@ -192,6 +191,5 @@ export function makeWorkspaceResolver(rootDir: string): ResolverShape {
  * @internal
  */
 export function findWorkspaceRoot(startDir: string): string {
-	const file = findWorkspaceFile(resolve(startDir));
-	return file === null ? resolve(startDir) : dirname(file);
+	return findWorkspaceRootSync(startDir, { ...nodeSyncOps, markers: ["pnpm-workspace.yaml"] }) ?? resolve(startDir);
 }

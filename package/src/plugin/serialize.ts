@@ -1,9 +1,10 @@
+import { Predicate } from "effect";
 /** Recursively sort object keys for deterministic output; arrays keep order. */
 export function sortKeys(value: unknown): unknown {
 	if (Array.isArray(value)) {
 		return value.map(sortKeys);
 	}
-	if (value !== null && typeof value === "object") {
+	if (Predicate.isObject(value)) {
 		return Object.fromEntries(
 			Object.entries(value as Record<string, unknown>)
 				.sort(([a], [b]) => a.localeCompare(b))

@@ -1,5 +1,6 @@
 import type { BlockOf, Inline } from "@effected/cli";
 import { Doc } from "@effected/cli";
+import { Predicate } from "effect";
 import type { Enforcement, Manifest, ManifestEntry } from "../runtime/types.js";
 import { scalarText } from "./diff/render.js";
 import { row, tone } from "./render/tone.js";
@@ -45,7 +46,7 @@ function flatten(key: string, value: unknown, depth: number, ann: Inline[]): Arr
 		const items = value.map((el) => row(" ", depth + 1, [tone(`- ${scalarText(el)}`, "plain")]));
 		return [header, ...items];
 	}
-	if (value !== null && typeof value === "object") {
+	if (Predicate.isObject(value)) {
 		const header = row(" ", depth, [tone(`${key}:`, "plain"), ...ann]);
 		const kids = Object.entries(value as Record<string, unknown>).flatMap(([k, v]) => flatten(k, v, depth + 1, []));
 		return [header, ...kids];

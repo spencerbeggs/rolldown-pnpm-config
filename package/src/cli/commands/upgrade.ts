@@ -284,11 +284,10 @@ export function resolveGatedVersions(
 export function resolveProgress(
 	report: (event: ProgressEvent) => Effect.Effect<void>,
 ): (resolved: number, total: number) => Effect.Effect<void> {
-	const noun = (n: number) => `${n} package${n === 1 ? "" : "s"}`;
-	const finished = (total: number) => report({ _tag: "Finished", label: `Resolved ${noun(total)}` });
+	const finished = (total: number) => report({ _tag: "Finished", label: `Resolved ${Fmt.plural(total, "package")}` });
 	return (resolved, total) => {
 		if (resolved === 0) {
-			const begin = report({ _tag: "Phase", label: `Resolving ${noun(total)}`, total });
+			const begin = report({ _tag: "Phase", label: `Resolving ${Fmt.plural(total, "package")}`, total });
 			return total === 0 ? Effect.andThen(begin, finished(total)) : begin;
 		}
 		const step = report({ _tag: "Step", done: resolved });

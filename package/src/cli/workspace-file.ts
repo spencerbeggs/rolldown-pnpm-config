@@ -1,7 +1,7 @@
 import { locateWorkspaceRootSync } from "@effected/workspaces";
 import { nodeSyncOps } from "@effected/workspaces/node-sync";
 import { Yaml, YamlStringifyOptions } from "@effected/yaml";
-import { Result } from "effect";
+import { Predicate, Result } from "effect";
 
 const FILENAME = "pnpm-workspace.yaml";
 // lineWidth 0 disables wrapping (parity with the previous `yaml` renderer).
@@ -24,7 +24,7 @@ export function canonicalize(value: unknown): unknown {
 		const mapped = value.map(canonicalize);
 		return allPrimitive(mapped) ? [...mapped].sort((a, b) => String(a).localeCompare(String(b))) : mapped;
 	}
-	if (value !== null && typeof value === "object") {
+	if (Predicate.isObject(value)) {
 		return Object.fromEntries(
 			Object.entries(value as Record<string, unknown>)
 				.sort(([a], [b]) => a.localeCompare(b))
