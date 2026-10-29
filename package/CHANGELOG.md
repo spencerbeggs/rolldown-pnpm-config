@@ -1,5 +1,39 @@
 # rolldown-pnpm-config
 
+## 2.2.1
+
+### Bug Fixes
+
+- A `local` directive with `strategy: "union"` or `"difference"` on an array field now compares elements by value. Two objects with the same keys dedupe in a union and match in a difference, whatever their key order. Before, a union kept both copies, and a difference missed an object whose keys were written in another order.
+- `export` and `preview` sort keys and array fields by character code instead of the machine's locale, so the written `pnpm-workspace.yaml` is the same on every machine. Uppercase now sorts before lowercase. The pnpmfile runtime's array merges use the same order.
+- A `pnpm-workspace.yaml` whose top level is a list is read as an empty workspace instead of a record keyed `"0"`, `"1"`, and so on.
+- An `overrides` array authored beside `overridesFromCatalogs` is ignored instead of being spread into index-keyed overrides.
+- `export` and `preview` stop with a "Cannot read or parse" error when they cannot check whether `pnpm-workspace.yaml` exists (for example a permission error), instead of treating the file as absent and writing a fresh one.
+- `upgrade`'s interactive table writes the same interop peer floor as `--yes`. When no in-group peer range parsed as a version (such as `"*"`), it used to write a broken `peer: "^*"` instead of falling back to `^<selected>`. [#275][#275]
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effect/platform-node | dependency | updated | ^4.0.6 | ^4.0.7 |
+| @effected/cli | dependency | updated | ^0.23.0 | ^0.24.0 |
+| @effected/env | dependency | updated | ^0.6.0 | ^0.7.0 |
+| @effected/glob | dependency | updated | ^0.15.0 | ^0.16.0 |
+| @effected/npm | dependency | updated | ^0.27.1 | ^0.28.0 |
+| @effected/semver | dependency | updated | ^0.18.0 | ^0.19.0 |
+| @effected/walker | dependency | updated | ^0.21.0 | ^0.22.0 |
+| @effected/workspaces | dependency | updated | ^0.39.1 | ^0.40.0 |
+| @effected/yaml | dependency | updated | ^0.25.1 | ^0.26.0 |
+| effect | dependency | updated | ^4.0.6 | ^4.0.7 |
+
+[#275][#275]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#275]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/275
+
 ## 2.2.0
 
 ### Breaking Changes
