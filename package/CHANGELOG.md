@@ -1,5 +1,36 @@
 # rolldown-pnpm-config
 
+## 2.3.0
+
+### Features
+
+- `overridesFromCatalogs` takes an `include` list that selects which catalog members are pinned, so one catalog can hold a release family pinned graph-wide beside packages that must not be. `{ catalog: "effected", include: ["effect", "@effect/*"] }` pins the Effect family and leaves every other member, including ones added later, unpinned.
+- `include` and `exclude` both accept glob patterns such as `@effect/*` beside exact names. A `*` stays within the scope or the bare name, so `@effect*` does not match `@effect/vitest`.
+- A member matched by both lists is excluded. An entry that matches no member still fails the build, as an unknown `exclude` name already did, and an empty `include` is rejected rather than pinning nothing. [#278][#278]
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effect/platform-node | dependency | updated | ^4.0.7 | ~4.1.1 |
+| @effected/cli | dependency | updated | ^0.24.0 | ^0.25.0 |
+| @effected/env | dependency | updated | ^0.7.0 | ^0.9.0 |
+| @effected/glob | dependency | updated | ^0.16.0 | ^0.17.0 |
+| @effected/npm | dependency | updated | ^0.28.0 | ^0.29.0 |
+| @effected/semver | dependency | updated | ^0.19.0 | ^0.20.0 |
+| @effected/walker | dependency | updated | ^0.22.0 | ^0.24.0 |
+| @effected/workspaces | dependency | updated | ^0.40.0 | ^0.41.0 |
+| @effected/yaml | dependency | updated | ^0.26.0 | ^0.27.0 |
+| effect | dependency | updated | ^4.0.7 | ~4.1.1 |
+
+[#278][#278]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#278]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/278
+
 ## 2.2.1
 
 ### Bug Fixes
