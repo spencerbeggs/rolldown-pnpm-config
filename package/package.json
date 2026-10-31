@@ -33,7 +33,7 @@
 		"types:check": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@effect/platform-node": "catalog:effect",
+		"@effect/platform-node": "catalog:effected",
 		"@effected/cli": "catalog:effected",
 		"@effected/env": "catalog:effected",
 		"@effected/glob": "catalog:effected",
@@ -42,13 +42,13 @@
 		"@effected/walker": "catalog:effected",
 		"@effected/workspaces": "catalog:effected",
 		"@effected/yaml": "catalog:effected",
-		"effect": "catalog:effect",
+		"effect": "catalog:effected",
 		"ink": "catalog:silk",
 		"oxc-parser": "^0.156.0",
 		"react": "catalog:silk"
 	},
 	"devDependencies": {
-		"@effect/vitest": "catalog:effect",
+		"@effect/vitest": "catalog:effected",
 		"@effected/config-file": "catalog:effected",
 		"@effected/toml": "catalog:effected",
 		"@savvy-web/bundler": "^2.7.0",
