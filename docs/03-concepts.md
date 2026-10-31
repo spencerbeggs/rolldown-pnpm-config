@@ -41,10 +41,12 @@ For every exact-pinned entry in `catalog` (other than `peer` itself) it emits a 
 
 ```ts
 overridesFromCatalogs: { catalog: "effect", exclude: ["@effect/tsgo"] },
+// or select a subset of a mixed catalog by pattern
+overridesFromCatalogs: { catalog: "effected", include: ["effect", "@effect/*"] },
 // or an array of directives to pin members from several catalogs
 ```
 
-For every member whose range is a simple operator on a plain `X.Y.Z` version it emits `"<name>@^X.0.0": "X.Y.Z"` (`^0.Y.0` on a 0.x line, `~0.0.0` on a 0.0.x one, since `^0.0.0` admits nothing but itself), so only requests on that release line are pinned and a tool still built on another line keeps its own copy. Set `scope: "any"` to emit the bare package name instead and pin every request regardless of line. Prerelease and compound-range members are skipped rather than widened, `exclude` drops members that ride the catalog without belonging to the family, and an entry authored by hand under `overrides` wins on the same selector. When the pinned version is missing from the registry the install fails loudly at resolve time instead of silently pairing a newer member with an older core.
+For every member whose range is a simple operator on a plain `X.Y.Z` version it emits `"<name>@^X.0.0": "X.Y.Z"` (`^0.Y.0` on a 0.x line, `~0.0.0` on a 0.0.x one, since `^0.0.0` admits nothing but itself), so only requests on that release line are pinned and a tool still built on another line keeps its own copy. Set `scope: "any"` to emit the bare package name instead and pin every request regardless of line. Prerelease and compound-range members are skipped rather than widened, and an entry authored by hand under `overrides` wins on the same selector. `include` and `exclude` select the members to pin, so one catalog can hold a pinned release family beside packages that must not be pinned graph-wide; each entry is an exact name or a glob pattern such as `@effect/*` (matched with `effect/Glob`, where `*` does not cross the scope's `/`). A member matched by both lists is excluded. Every entry must match at least one member and an empty `include` is rejected, so a typo fails the build instead of silently changing the pin set. When the pinned version is missing from the registry the install fails loudly at resolve time instead of silently pairing a newer member with an older core.
 
 ## Enforcement: absent, warn, error
 

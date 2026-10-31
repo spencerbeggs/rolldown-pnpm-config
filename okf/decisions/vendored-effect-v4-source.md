@@ -1,12 +1,11 @@
 ---
 type: Decision
 title: Vendored v4 source as the API authority
-description: Effect v4 source is vendored read-only under .repos/, pinned to the version catalog:effect resolves, and consulted instead of the lagging published docs.
+description: Effect v4 source is vendored read-only under .repos/, pinned to the effect version catalog:effected resolves, and consulted instead of the lagging published docs.
 status: draft
 generated:
   by: okfit/claude-code
-  at: 2026-10-02T15:35:24Z
-  body_sha256: e3933981ec263f6ede5b1e6a802feac1964ab912f754f4de614de7fe28efddeb
+  at: 2026-10-31T20:42:34Z
 sources:
   - id: repos-config
     resource: .repos/config.json
@@ -16,6 +15,9 @@ sources:
     resource: pnpm-lock.yaml
 tags:
   - architecture
+integrity:
+  generated:
+    body: 6b6d2eb0f6e38cae
 ---
 
 # Vendored v4 source as the API authority
@@ -25,7 +27,7 @@ tags:
 Effect v4 spent a long stretch on the release-candidate line and is now
 stable (`4.0.0`), but its published docs can still lag the code — a v4 signature or module shape recalled
 from memory or an older cached doc may already be wrong. The build-time/CLI
-dependency surface resolves `effect` from `catalog:effect`.
+dependency surface resolves `effect` from `catalog:effected` (served by `@effected/pnpm-plugin-effected`).
 
 ## Decision
 
@@ -36,7 +38,7 @@ vendored source is treated as the authority for v4 API shapes and is consulted i
 Effect line or to documentation that may not have caught up yet.
 
 The pin is not a fixed version number to be repeated indefinitely: the rule
-is that it tracks whatever version `catalog:effect` currently resolves to,
+is that it tracks whatever version `catalog:effected` currently resolves `effect` to,
 and is re-pinned when that changes. At the time of writing both agree:
 `.repos/config.json` pins `ref: "effect@4.0.0"`[^repos-config] and
 `pnpm-lock.yaml` resolves `effect` to `4.0.0`.[^lockfile] Since the stable
@@ -71,7 +73,7 @@ the source was the wrong call.
   vendored pin should be refreshed.
 - Do not hard-code a specific pinned version number into guidance or
   documentation as if it were permanent; state the tracking rule instead,
-  since the pin is expected to move as `catalog:effect` is bumped.
+  since the pin is expected to move as `catalog:effected` is bumped.
 - The vendored source at `.repos/effect` is read-only and exists purely as a
   lookup authority for agents and contributors, not as a build input.
 

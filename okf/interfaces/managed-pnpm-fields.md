@@ -6,13 +6,15 @@ resource: ../../package/src/descriptors/index.ts
 kind: config
 generated:
   by: okfit/claude-code
-  at: 2026-10-11T16:23:32Z
-  body_sha256: 62e4fabe4cae27ee285db946895372f6eca57701ee4c4e2a376313a878d453fc
+  at: 2026-10-31T20:42:34Z
 sources:
   - id: descriptors
     resource: package/src/descriptors
 tags:
   - architecture
+integrity:
+  generated:
+    body: b9f2fae59a5e3bd0
 ---
 
 # Managed pnpm fields
@@ -73,12 +75,14 @@ field by `package/src/plugin/allowed-versions.ts`; the descriptor row
 above is unchanged.[^descriptors]
 
 `overrides` has the same kind of companion in the top-level
-`overridesFromCatalogs` directive — a `{ catalog, exclude?, scope? }` (or
+`overridesFromCatalogs` directive — a `{ catalog, include?, exclude?, scope? }` (or
 array) input that `freeze` resolves into one `"<name>@^X.0.0": "X.Y.Z"`
 entry per simple-range member of the catalog (`^0.Y.0` on a 0.x line,
 `~0.0.0` on a 0.0.x one, the bare name under `scope: "any"`), merging the authored `overrides` over the
 result so a hand-written selector wins. Prerelease and compound-range
-members are skipped, never widened. Layered on by
+members are skipped, never widened. `include` and `exclude` take exact
+names or glob patterns (`@effect/*`); `exclude` wins on overlap, and an
+entry matching no member (or an empty `include`) throws. Layered on by
 `package/src/plugin/overrides-from-catalogs.ts`; the descriptor row is
 unchanged.
 

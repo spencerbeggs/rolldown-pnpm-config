@@ -5,8 +5,7 @@ description: Force pnpm to pick up a `configDependencies` version bump when it k
 resource: ../../pnpm-lock.yaml
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
-  body_sha256: 337f269ef67905118bc9e241ee6b0fc0968353078e6449fdfa64308e039ef38a
+  at: 2026-10-31T20:42:34Z
 sources:
   - id: pnpm-lock
     resource: ../../pnpm-lock.yaml
@@ -14,6 +13,9 @@ sources:
     resource: ../../pnpm-workspace.yaml
 tags:
   - release
+integrity:
+  generated:
+    body: 78b127ef4300b6d1
 ---
 
 # Recover from a stale config-dependency lockfile
@@ -24,7 +26,7 @@ captured here for the first time.
 ## Trigger
 
 A `configDependencies` entry's version was bumped in
-`pnpm-workspace.yaml` (currently `@effected/pnpm-plugin-effect` and
+`pnpm-workspace.yaml` (currently `@effected/pnpm-plugin-effected` and
 `@savvy-web/pnpm-plugin-silk`), but pnpm keeps loading the old plugin
 version — `pnpm install`, even with `--force`, reports the workspace as
 already up to date and does not resolve the new

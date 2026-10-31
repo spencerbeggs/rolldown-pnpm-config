@@ -1,4 +1,4 @@
-import { Predicate } from "effect";
+import { Glob, Predicate } from "effect";
 import type { CatalogDeclaration } from "../catalogs.js";
 import { rangeOf } from "../catalogs.js";
 import { bareVersion } from "../semver-util.js";
@@ -20,12 +20,28 @@ import { bareVersion } from "../semver-util.js";
  * authored by hand wins over a derived one on the same selector, and the
  * consumer's own `overrides` still win over the plugin's at install time.
  *
+ * `include` and `exclude` select which members are pinned, so one catalog can
+ * hold both a release family that is pinned graph-wide and packages that are
+ * not. Each entry is an exact package name or a glob pattern (`@effect/*`),
+ * matched with `effect/Glob` against the whole name; `*` stays within the
+ * scope or the bare name. A member matched by both lists is excluded. Every
+ * entry must match at least one member, and an empty `include` is rejected,
+ * so a typo throws instead of silently widening or narrowing the pin set.
+ *
  * @public
  */
 export interface OverridesFromCatalogs {
 	/** The catalog whose members are pinned. */
 	readonly catalog: string;
-	/** Members left out, e.g. a tool that rides the catalog but is not part of the release family. */
+	/**
+	 * Members to pin, as exact names or glob patterns (`effect`, `@effect/*`);
+	 * the rest are skipped. Omitted, every member is a candidate.
+	 */
+	readonly include?: readonly string[];
+	/**
+	 * Members left out, as exact names or glob patterns, e.g. a tool that rides
+	 * the catalog but is not part of the release family. Wins over `include`.
+	 */
 	readonly exclude?: readonly string[];
 	/**
 	 * How each selector is scoped. `"line"` (the default) qualifies the package
@@ -53,24 +69,44 @@ function releaseLine(major: string, minor: string): string {
 	return minor === "0" ? "~0.0.0" : `^0.${minor}.0`;
 }
 
-/** Derive the overrides for one directive. Pure; throws when the catalog or an excluded member is absent. */
+/**
+ * Compile a filter list into a member predicate, throwing when an entry
+ * matches no member (an exact name or a pattern alike).
+ */
+function compileFilter(
+	entries: readonly string[],
+	members: readonly string[],
+	label: "included" | "excluded",
+	catalog: string,
+): (name: string) => boolean {
+	const globs = entries.map((entry) => {
+		const glob = Glob.make(entry);
+		if (!members.some((name) => Glob.match(glob, name))) {
+			throw new Error(`overridesFromCatalogs: ${label} member "${entry}" is not in catalog "${catalog}"`);
+		}
+		return glob;
+	});
+	return (name) => globs.some((glob) => Glob.match(glob, name));
+}
+
+/** Derive the overrides for one directive. Pure; throws when the catalog is absent or a filter entry matches nothing. */
 function deriveOne(
 	catalogs: Record<string, CatalogDeclaration>,
-	{ catalog, exclude = [], scope = "line" }: OverridesFromCatalogs,
+	{ catalog, include, exclude = [], scope = "line" }: OverridesFromCatalogs,
 ): Record<string, string> {
 	const decl = catalogs[catalog];
 	if (decl === undefined) {
 		throw new Error(`overridesFromCatalogs: catalog "${catalog}" is not declared`);
 	}
-	for (const name of exclude) {
-		if (!(name in decl.packages)) {
-			throw new Error(`overridesFromCatalogs: excluded member "${name}" is not in catalog "${catalog}"`);
-		}
+	if (include?.length === 0) {
+		throw new Error(`overridesFromCatalogs: include for catalog "${catalog}" is empty, which would pin nothing`);
 	}
-	const excluded = new Set(exclude);
+	const members = Object.keys(decl.packages);
+	const isIncluded = include === undefined ? () => true : compileFilter(include, members, "included", catalog);
+	const isExcluded = compileFilter(exclude, members, "excluded", catalog);
 	const table: Record<string, string> = {};
 	for (const [name, spec] of Object.entries(decl.packages)) {
-		if (excluded.has(name)) continue;
+		if (!isIncluded(name) || isExcluded(name)) continue;
 		const range = rangeOf(spec);
 		if (!SIMPLE_RANGE.test(range) || /\s/.test(range.trim())) continue;
 		const version = bareVersion(range);
