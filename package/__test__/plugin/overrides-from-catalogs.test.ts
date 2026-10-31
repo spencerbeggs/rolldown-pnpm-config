@@ -64,6 +64,73 @@ describe("deriveOverrides", () => {
 	});
 });
 
+describe("deriveOverrides member filters", () => {
+	// One catalog holding a release family pinned graph-wide (effect, @effect/*)
+	// beside a kit that must not be (@effected/*), the shape #277 asks for.
+	const merged: Record<string, CatalogDeclaration> = {
+		effected: {
+			packages: {
+				effect: "~4.1.1",
+				"@effect/platform-node": "~4.1.1",
+				"@effect/vitest": "~4.1.1",
+				"@effected/cli": "^0.25.0",
+				"@effected/npm": { range: "^0.29.0", source: "workspace" },
+			},
+		},
+	};
+
+	it("pins only the members an include pattern selects", () => {
+		expect(deriveOverrides(merged, { catalog: "effected", include: ["effect", "@effect/*"] })).toEqual({
+			"effect@^4.0.0": "4.1.1",
+			"@effect/platform-node@^4.0.0": "4.1.1",
+			"@effect/vitest@^4.0.0": "4.1.1",
+		});
+	});
+
+	it("adds no override for a new member outside the include patterns", () => {
+		const grown = {
+			effected: { packages: { ...merged.effected?.packages, "@effected/brand-new": "^0.1.0" } },
+		};
+		const table = deriveOverrides(grown, { catalog: "effected", include: ["effect", "@effect/*"] });
+		expect(Object.keys(table).some((k) => k.startsWith("@effected/"))).toBe(false);
+	});
+
+	it("accepts a pattern in exclude", () => {
+		expect(Object.keys(deriveOverrides(merged, { catalog: "effected", exclude: ["@effected/*"] })).sort()).toEqual([
+			"@effect/platform-node@^4.0.0",
+			"@effect/vitest@^4.0.0",
+			"effect@^4.0.0",
+		]);
+	});
+
+	it("does not let * cross the scope separator", () => {
+		expect(() => deriveOverrides(merged, { catalog: "effected", include: ["@effect*"] })).toThrow(/not in catalog/);
+	});
+
+	it("excludes a member matched by both include and exclude", () => {
+		const table = deriveOverrides(merged, {
+			catalog: "effected",
+			include: ["effect", "@effect/*"],
+			exclude: ["@effect/vitest"],
+		});
+		expect(table).not.toHaveProperty("@effect/vitest@^4.0.0");
+		expect(table["effect@^4.0.0"]).toBe("4.1.1");
+	});
+
+	it("throws when an include or exclude pattern matches no member", () => {
+		expect(() => deriveOverrides(merged, { catalog: "effected", include: ["@efect/*"] })).toThrow(
+			/included member "@efect\/\*" is not in catalog "effected"/,
+		);
+		expect(() => deriveOverrides(merged, { catalog: "effected", exclude: ["@effectd/*"] })).toThrow(
+			/excluded member "@effectd\/\*" is not in catalog "effected"/,
+		);
+	});
+
+	it("throws on an empty include rather than pinning nothing", () => {
+		expect(() => deriveOverrides(merged, { catalog: "effected", include: [] })).toThrow(/include .* is empty/);
+	});
+});
+
 describe("resolveOverrides", () => {
 	it("merges derived entries under the authored overrides, which win on a key clash", () => {
 		expect(resolveOverrides({ "effect@^4.0.0": "PINNED", "tar@<1": ">=1" }, { catalog: "effect" }, catalogs)).toEqual({

@@ -6,8 +6,7 @@ resource: ../../package/src/plugin
 kind: package
 generated:
   by: okfit/claude-code
-  at: 2026-10-11T16:12:12Z
-  body_sha256: 2c6fa3677f11cee1765060bc2d71054fdaddc24f2278aaa7d8e6f36bfd710f36
+  at: 2026-10-31T20:42:34Z
 sources:
   - id: plugin-index
     resource: package/src/plugin/index.ts
@@ -15,6 +14,9 @@ sources:
     resource: package/src/plugin/freeze.ts
   - id: serialize
     resource: package/src/plugin/serialize.ts
+integrity:
+  generated:
+    body: 2c5d89c13c5c99a4
 ---
 
 # Plugin engine
@@ -53,7 +55,9 @@ validating, baking the result into `base`.[^freeze] `overrides` carries the
 sibling directive: `resolveOverrides`
 (`package/src/plugin/overrides-from-catalogs.ts`) derives one
 line-scoped `"<name>@^X.0.0": "X.Y.Z"` entry per simple-range member of
-the named catalog from the top-level `overridesFromCatalogs` and merges
+the named catalog from the top-level `overridesFromCatalogs` (narrowed by
+its `include`/`exclude` name patterns, compiled with core `effect/Glob`)
+and merges
 the authored `overrides` over it, materializing the field when none was
 authored. The directive itself is not a managed field and never reaches
 `base` or `manifest`.[^freeze]

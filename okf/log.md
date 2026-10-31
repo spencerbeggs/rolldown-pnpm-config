@@ -1,5 +1,13 @@
 # Log
 
+## 2026-10-31
+
+* Updated Effect v4 collapses the declared peer closure
+* Updated Managed pnpm fields
+* Updated Plugin engine
+* Updated Recover from a stale config-dependency lockfile
+* Updated Vendored v4 source as the API authority
+
 ## 2026-10-28
 
 * Updated CLI output, audience and exit codes
