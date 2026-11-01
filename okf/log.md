@@ -44,6 +44,8 @@
 * Updated rolldown-pnpm-config
 * Updated strategy
 * Updated { base, manifest, name } contract
+* Added Export writes pnpm-workspace.yaml as edits, not a re-render
+* Updated export and preview commands
 
 ## 2026-10-31
 
