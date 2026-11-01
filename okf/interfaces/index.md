@@ -1,7 +1,7 @@
 # Interface
 
 * [CLI output, audience and exit codes](cli-output.md) - What every rolldown-pnpm-config subcommand promises a script, an agent or a person about who its output is for, which stream each line lands on, colour, and its exit code.
-* [Catalog entry, peer strategy, and version source](catalog-peer-strategy.md) - The catalog package spec shape an author writes, the PeerStrategy/VersionSource authoring fields, and the colon-only \<name\>:peers materialized catalog naming.
+* [Catalog entry, peer strategy, and version source](catalog-peer-strategy.md) - The catalog package spec shape an author writes, the PeerStrategy/VersionSource authoring fields, and the colon-only \<name>:peers materialized catalog naming.
 * [LocalDirective](local-directive.md) - The per-field export-time override contract authors write under \`local\` in a \`PnpmConfigPlugin({...})\` call.
 * [Managed pnpm fields](managed-pnpm-fields.md) - The 121 pnpm settings fields this library manages, grouped by category, plus the keys deliberately excluded from coverage.
 * [PnpmConfigPlugin authoring surface](plugin-config.md) - The single canonical, statically analyzable PnpmConfigPlugin({...}) call a plugin author writes against.
