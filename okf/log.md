@@ -1,5 +1,52 @@
 # Log
 
+## 2026-11-01
+
+* Updated "lock" pins to the version verbatim
+* Updated --yes is strict, interactive is lenient
+* Updated A non-public localPatchesDir can dangle
+* Updated A prerelease workspace next version cannot be planned
+* Updated Add a managed field through the descriptor table only
+* Updated Build the dual outputs
+* Updated CLI
+* Updated CLI presentation through the @effected/cli kit
+* Updated Catalog entry, peer strategy, and version source
+* Updated Commit message format
+* Updated Descriptor table
+* Updated Descriptor table
+* Updated Effect v4 collapses the declared peer closure
+* Updated Import and module style
+* Updated Interop strategy reconciles the group, not one package
+* Updated Keep the managed-fields interface in step with the descriptor table
+* Updated Keep virtual.d.ts self-contained
+* Updated Major bumps are interactive-only
+* Updated Never set private to false in the source package.json
+* Updated No execution of the config
+* Updated PnpmConfigPlugin authoring surface
+* Updated Release and publish
+* Updated Runtime
+* Updated Shared StyledLine render layer, not per-command ad hoc color
+* Updated Standard plugin, no bundler coupling
+* Updated Surgical span rewrite, operator preserved
+* Updated Test file layout
+* Updated Vendored v4 source as the API authority
+* Updated Virtual module specifiers
+* Updated base
+* Updated divergence
+* Updated enforcement
+* Updated freeze
+* Updated interop group
+* Updated local is post-freeze, export-time only
+* Updated manifest
+* Updated materialize
+* Updated patch distribution
+* Updated pnpm settings
+* Updated rolldown-pnpm-config
+* Updated strategy
+* Updated { base, manifest, name } contract
+* Added Export writes pnpm-workspace.yaml as edits, not a re-render
+* Updated export and preview commands
+
 ## 2026-10-31
 
 * Updated Effect v4 collapses the declared peer closure

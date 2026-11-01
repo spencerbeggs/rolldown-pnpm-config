@@ -136,4 +136,29 @@ describe("runExport", () => {
 			expect("lodash" in overrides).toBe(false);
 		}).pipe(provideNodeFs),
 	);
+
+	it.effect("writes as edits in the file's own style, keeping comments and unchanged lines (#280)", () =>
+		Effect.gen(function* () {
+			const source = [
+				"# hand-maintained",
+				"packages:",
+				'  - "pkg/*"',
+				"catalogs:",
+				"  silk:",
+				'    "typescript": "^5.8.0" # bumped by export',
+				"",
+			].join("\n");
+			const { configFile, workspacePath } = setup(source);
+			yield* runExport({ configFile, workspacePath, preview: false });
+			const out = readFileSync(workspacePath, "utf8");
+			// Untouched lines keep their bytes; the changed scalar keeps its quotes and comment.
+			expect(out.startsWith('# hand-maintained\npackages:\n  - "pkg/*"\ncatalogs:\n  silk:\n')).toBe(true);
+			expect(out).toContain('    "typescript": "^5.9.0" # bumped by export\n');
+			// Inserted sequences follow the file: indented under their key, double-quoted.
+			expect(out).toContain('publicHoistPattern:\n  - "@override/*"\n');
+			// A second export over its own output is byte-identical.
+			yield* runExport({ configFile, workspacePath, preview: false });
+			expect(readFileSync(workspacePath, "utf8")).toBe(out);
+		}).pipe(provideNodeFs),
+	);
 });

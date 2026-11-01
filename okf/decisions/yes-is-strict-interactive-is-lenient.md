@@ -2,17 +2,26 @@
 type: Decision
 title: "--yes is strict, interactive is lenient"
 description: Every planned edit is validated against the registry before rewrite; interactively a rejection is dropped at whole-package granularity and reported, while --yes fails hard on any warning.
-status: draft
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
-  body_sha256: 6dfd0c0172e44d5e9972df07f6c9a6b30c2596e3c4352aed254a928730534bf7
 sources:
   - id: validate
     resource: package/src/cli/validate.ts
   - id: upgrade-command
     resource: package/src/cli/commands/upgrade.ts
 tags: []
+verified:
+  - by: human:spencer
+    at: 2026-11-01T21:52:55Z
+integrity:
+  generated:
+    body: 6dfd0c0172e44d5e
+  verified:
+    by: human:spencer
+    at: 2026-11-01T21:52:55Z
+    content: 1d5ec77cd630fd60
 ---
 
 # "--yes is strict, interactive is lenient"

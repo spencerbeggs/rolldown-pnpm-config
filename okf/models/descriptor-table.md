@@ -6,7 +6,6 @@ resource: ../../package/src/descriptors/index.ts
 generated:
   by: okfit/claude-code
   at: 2026-10-11T16:12:12Z
-  body_sha256: e3202aac2b6d12e6d6b81eabb53631f62e691aaff00835e475086ed8b49176b1
 sources:
   - id: types-ts
     resource: ../../package/src/descriptors/types.ts
@@ -18,6 +17,9 @@ sources:
     resource: ../../package/src/plugin/freeze.ts
   - id: drift-guard-test
     resource: ../../package/__test__/types/plugin-config.test-d.ts
+integrity:
+  generated:
+    body: e3202aac2b6d12e6
 ---
 
 # Descriptor table

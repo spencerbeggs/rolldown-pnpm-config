@@ -6,13 +6,15 @@ kind: cli
 resource: ../../package/src/cli/commands/export.ts
 generated:
   by: okfit/claude-code
-  at: 2026-10-02T15:35:24Z
-  body_sha256: d2d36fce80189ff2a1aca2bbf76c8d16812961a9f51c35b8fd03dc9ea9257be0
+  at: 2026-11-01T21:54:22Z
 sources:
   - id: export-ts
     resource: ../../package/src/cli/commands/export.ts
   - id: preview-ts
     resource: ../../package/src/cli/commands/preview.ts
+integrity:
+  generated:
+    body: 82a6edff6dcd9c9a
 ---
 
 # export and preview commands
@@ -26,6 +28,14 @@ result into the consuming repo's `pnpm-workspace.yaml`
 line, `✓ Exported to <path>`, on stdout.[^export-ts] It also prints
 stale-entry and key-mismatch warnings to stderr from the patch reconcile
 report.[^export-ts]
+
+An existing `pnpm-workspace.yaml` is edited in place rather than
+re-rendered. Comments, the author's key order, each scalar's quoting and
+every unchanged line are kept. Inserted or replaced content follows the
+file's own indent width, sequence indentation and quote style, and new keys
+append to their mapping. A new or empty file is rendered from scratch with
+sorted keys, 2-space indent, unindented sequences and single quotes. See
+[the write-path decision](../decisions/workspace-write-path.md).[^export-ts]
 
 ## `export [path] --dry-run [--full]`
 

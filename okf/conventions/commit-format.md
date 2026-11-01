@@ -6,10 +6,12 @@ stale_after: 2026-12-08T00:00:00Z
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
-  body_sha256: a4a8f3f5ffc520cab513a9279951376216ee9ca9df7fd221839ce29689aafb8a
 sources:
   - id: root-claude-md
     resource: CLAUDE.md
+integrity:
+  generated:
+    body: a4a8f3f5ffc520ca
 ---
 
 # Commit message format

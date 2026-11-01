@@ -16,13 +16,15 @@ tags:
 verified:
   - by: human:spencer
     at: 2026-10-27T16:21:39Z
+  - by: human:spencer
+    at: 2026-11-01T21:52:55Z
 integrity:
   generated:
     body: ba48ef205c8af4fc
   verified:
     by: human:spencer
-    at: 2026-10-27T16:21:39Z
-    content: 3234507c88a64938
+    at: 2026-11-01T21:52:55Z
+    content: ab9ed91e9d6b0d65
 ---
 
 # Effect v4 collapses the declared peer closure

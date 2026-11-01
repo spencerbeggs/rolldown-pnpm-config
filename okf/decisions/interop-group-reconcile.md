@@ -2,11 +2,10 @@
 type: Decision
 title: Interop strategy reconciles the group, not one package
 description: The "interop" peer strategy reconciles a whole catalog group against its members' cross-peers, pinning at each member's ceiling and downgrading only dependents; the interactive and --yes paths diverge on how conflicts surface.
-status: draft
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
-  body_sha256: 575d24fd790208a2047e26f526257de79e1650fa8d6c48f7f339e57e2ecb5dd5
 sources:
   - id: interop
     resource: package/src/cli/interop.ts
@@ -15,6 +14,16 @@ sources:
 tags:
   - architecture
   - performance
+verified:
+  - by: human:spencer
+    at: 2026-11-01T21:52:55Z
+integrity:
+  generated:
+    body: 575d24fd790208a2
+  verified:
+    by: human:spencer
+    at: 2026-11-01T21:52:55Z
+    content: e32fc8a133ea9553
 ---
 
 # Interop strategy reconciles the group, not one package
