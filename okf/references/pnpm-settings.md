@@ -10,9 +10,11 @@ sources:
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
-  body_sha256: 63f0e0aca2c7227cce1bb0fd99da3c42384f3077f46100e3f4613c8fa5af755d
 tags:
   - architecture
+integrity:
+  generated:
+    body: 63f0e0aca2c7227c
 ---
 
 # pnpm settings

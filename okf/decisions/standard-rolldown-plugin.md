@@ -2,14 +2,23 @@
 type: Decision
 title: Standard plugin, no bundler coupling
 description: PnpmConfigPlugin ships as a standard tsdown/rolldown plugin so the library never hard-depends on the Savvy bundler.
-status: draft
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
-  body_sha256: b803bb04793891f93a760ecb0524e282b73b2fdd5cfc1481434fda0df25855d2
 sources:
   - id: plugin-index
     resource: package/src/plugin/index.ts
+verified:
+  - by: human:spencer
+    at: 2026-11-01T21:52:55Z
+integrity:
+  generated:
+    body: b803bb04793891f9
+  verified:
+    by: human:spencer
+    at: 2026-11-01T21:52:55Z
+    content: a6460675f90ed0e2
 ---
 
 # Standard plugin, no bundler coupling

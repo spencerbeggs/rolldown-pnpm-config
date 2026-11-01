@@ -6,7 +6,6 @@ status: deprecated
 generated:
   by: okfit/claude-code
   at: 2026-10-02T15:35:24Z
-  body_sha256: b0107395e920f7da4422d82637207b36ed6f6944e1541b70943982f36dfaecc0
 sources:
   - id: styled-ts
     resource: package/src/cli/ui/styled.ts
@@ -16,6 +15,9 @@ sources:
     resource: package/src/cli/ui/ansi.ts
 tags:
   - architecture
+integrity:
+  generated:
+    body: b0107395e920f7da
 ---
 
 # Shared StyledLine render layer, not per-command ad hoc color

@@ -2,11 +2,10 @@
 type: Decision
 title: No execution of the config
 description: Discovery and rewrite in the upgrade CLI are 100% static through oxc byte spans; the config is never executed to learn its catalog versions.
-status: draft
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
-  body_sha256: 70ff30c3b86b105ecb05e8cfc44e8b91c98012ca1fdbc80484e2ce04366e2226
 sources:
   - id: discover
     resource: package/src/cli/discover.ts
@@ -16,6 +15,16 @@ sources:
     resource: package/src/catalogs.ts
 tags:
   - architecture
+verified:
+  - by: human:spencer
+    at: 2026-11-01T21:52:55Z
+integrity:
+  generated:
+    body: 70ff30c3b86b105e
+  verified:
+    by: human:spencer
+    at: 2026-11-01T21:52:55Z
+    content: eeacd40708b51409
 ---
 
 # No execution of the config

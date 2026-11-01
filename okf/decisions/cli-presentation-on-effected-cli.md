@@ -28,13 +28,15 @@ tags:
 verified:
   - by: human:spencer
     at: 2026-10-27T16:21:39Z
+  - by: human:spencer
+    at: 2026-11-01T21:52:55Z
 integrity:
   generated:
     body: f6015e4ba328d745
   verified:
     by: human:spencer
-    at: 2026-10-27T16:21:39Z
-    content: 5a938b9ca671593f
+    at: 2026-11-01T21:52:55Z
+    content: e879efb89107e92c
 ---
 
 # CLI presentation through the @effected/cli kit

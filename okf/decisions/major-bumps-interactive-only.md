@@ -2,11 +2,10 @@
 type: Decision
 title: Major bumps are interactive-only
 description: "--yes resolves within range only; there is deliberately no flag that applies a major version bump automatically, with one exception for workspace-sourced entries."
-status: draft
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
-  body_sha256: fc338343e575e8e4198759ee738328231e6fd87a4d61da1bfd500e8ea1cdfe8d
 sources:
   - id: plan
     resource: package/src/cli/plan.ts
@@ -18,6 +17,16 @@ sources:
     resource: package/src/catalogs.ts
 tags:
   - architecture
+verified:
+  - by: human:spencer
+    at: 2026-11-01T21:52:55Z
+integrity:
+  generated:
+    body: fc338343e575e8e4
+  verified:
+    by: human:spencer
+    at: 2026-11-01T21:52:55Z
+    content: 9fcf93838dae6c66
 ---
 
 # Major bumps are interactive-only

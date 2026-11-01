@@ -2,11 +2,10 @@
 type: Decision
 title: "local is post-freeze, export-time only"
 description: "Per-repo local adjustments belong only in the export step and never in freeze, base, or the bundled runtime artifact, since the pnpmfile must be identical for every consumer of the plugin."
-status: draft
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
-  body_sha256: 248015fb109dcfc4b20abbcc6ce15e67dafadc010407eca1519e558f9bcb3b41
 sources:
   - id: define-plugin-ts
     resource: package/src/define-plugin.ts
@@ -16,6 +15,16 @@ sources:
     resource: package/src/plugin/freeze.ts
 tags:
   - architecture
+verified:
+  - by: human:spencer
+    at: 2026-11-01T21:52:55Z
+integrity:
+  generated:
+    body: 248015fb109dcfc4
+  verified:
+    by: human:spencer
+    at: 2026-11-01T21:52:55Z
+    content: 0d5607a52f8f5282
 ---
 
 # `local` is post-freeze, export-time only

@@ -6,7 +6,6 @@ resource: ../../package/savvy.build.ts
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
-  body_sha256: 61bc45ea28dff6f89465532509af696e24905b4b865d9eb048242510bf139fe7
 sources:
   - id: savvy-build
     resource: ../../package/savvy.build.ts
@@ -21,6 +20,9 @@ sources:
 tags:
   - release
   - architecture
+integrity:
+  generated:
+    body: 61bc45ea28dff6f8
 ---
 
 # Build the dual outputs
