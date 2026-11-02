@@ -153,9 +153,9 @@ function sequenceChanges(path: YamlPath, prev: readonly unknown[], next: readonl
 		}
 	}
 	added.sort((a, b) => Order.String(String(a), String(b)));
-	const changes: Change[] = removed.reverse().map((i) => ({ path: [...path, i], value: undefined }));
-	const length = prev.length - removed.length;
-	for (const [i, v] of added.entries()) changes.push({ path: [...path, length + i], value: v });
+	const changes: Change[] = added.map((v, i) => ({ path: [...path, prev.length + i], value: v }));
+	for (const i of removed.reverse()) changes.push({ path: [...path, i], value: undefined });
+	return changes;
 	return changes;
 }
 
