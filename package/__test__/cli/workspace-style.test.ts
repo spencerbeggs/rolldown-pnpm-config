@@ -3,8 +3,10 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { inferWorkspaceStyle, parseWorkspace, renderWorkspace, writeWorkspace } from "../../src/cli/workspace-file.js";
 
+// Stored as `.yaml.txt` so the pre-commit YAML formatter cannot normalize away
+// the very style each fixture is named for.
 const FIXTURES = join(import.meta.dirname, "fixtures", "workspace-style");
-const fixture = (name: string): string => readFileSync(join(FIXTURES, name), "utf8");
+const fixture = (name: string): string => readFileSync(join(FIXTURES, `${name}.txt`), "utf8");
 
 /** The source with `effect` bumped to ~4.1.1, everything else as parsed. */
 function bumpEffect(source: string): Record<string, unknown> {
@@ -106,5 +108,62 @@ describe("writeWorkspace", () => {
 		// A top-level sequence votes for double quotes but not for nested-sequence indentation.
 		const next = { publicHoistPattern: ["@types/*"] };
 		expect(writeWorkspace('- "a"\n', next)).toBe('publicHoistPattern:\n- "@types/*"\n');
+	});
+
+	it("adds one item to an all-quoted list without touching the others", () => {
+		const source = 'onlyBuiltDependencies:\n  - "esbuild"\n  - "sharp"\nstrictDepBuilds: true\n';
+		const out = writeWorkspace(source, { onlyBuiltDependencies: ["esbuild", "sharp", "zz"], strictDepBuilds: true });
+		expect(out).toBe('onlyBuiltDependencies:\n  - "esbuild"\n  - "sharp"\n  - "zz"\nstrictDepBuilds: true\n');
+	});
+
+	it("removes one item from a list without touching the others", () => {
+		const source = "onlyBuiltDependencies:\n- 'esbuild' # native\n- 'sharp'\n- 'swc'\n";
+		const out = writeWorkspace(source, { onlyBuiltDependencies: ["esbuild", "swc"] });
+		expect(out).toBe("onlyBuiltDependencies:\n- 'esbuild' # native\n- 'swc'\n");
+	});
+
+	it("quotes a new key where the file quotes keys by choice", () => {
+		const source = fixture("double-indented.yaml");
+		const next = parseWorkspace(source) as { catalogs: { effected: Record<string, string> } };
+		next.catalogs.effected.vitest = "^4.0.0";
+		expect(writeWorkspace(source, next)).toContain('    "effect": ~4.1.0\n    "vitest": ^4.0.0\n');
+	});
+
+	it("leaves a new key plain where the file quotes only what it must", () => {
+		const source = 'catalogs:\n  effected:\n    "@effect/vitest": ~4.1.0\n    effect: ~4.1.0\n';
+		const out = writeWorkspace(source, {
+			catalogs: { effected: { "@effect/vitest": "~4.1.0", effect: "~4.1.0", vitest: "^4.0.0" } },
+		});
+		expect(out).toBe(`${source}    vitest: ^4.0.0\n`);
+	});
+
+	it("keeps CRLF line endings on both the splice and the insert path", () => {
+		const source = "packages:\r\n  - pkg/*\r\ncatalogs:\r\n  silk:\r\n    typescript: ^5.8.0\r\n";
+		const out = writeWorkspace(source, {
+			packages: ["pkg/*"],
+			catalogs: { silk: { typescript: "^5.9.0" } },
+			strictDepBuilds: true,
+		});
+		expect(out).toBe(
+			"packages:\r\n  - pkg/*\r\ncatalogs:\r\n  silk:\r\n    typescript: ^5.9.0\r\nstrictDepBuilds: true\r\n",
+		);
+	});
+
+	it("never leaves a dangling alias when an anchored node changes", () => {
+		const source = "onlyBuiltDependencies: &b\n  - esbuild\nignoredBuiltDependencies: *b\n";
+		const next = { onlyBuiltDependencies: ["esbuild", "sharp"], ignoredBuiltDependencies: ["esbuild"] };
+		expect(parseWorkspace(writeWorkspace(source, next))).toEqual(next);
+	});
+
+	it("does not change an alias's value when a scalar under its anchor is spliced", () => {
+		const source = "catalogs:\n  a:\n    effect: &v ~4.1.0\n  b:\n    effect: *v\n";
+		const next = { catalogs: { a: { effect: "~4.1.1" }, b: { effect: "~4.1.0" } } };
+		expect(parseWorkspace(writeWorkspace(source, next))).toEqual(next);
+	});
+
+	it("never writes a key that collides with an existing non-string key", () => {
+		const out = writeWorkspace("1: a\n", { "1": "b" });
+		expect(parseWorkspace(out)).toEqual({ "1": "b" });
+		expect(out.trim().split("\n")).toHaveLength(1);
 	});
 });

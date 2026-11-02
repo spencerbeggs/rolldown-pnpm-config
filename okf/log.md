@@ -1,5 +1,10 @@
 # Log
 
+## 2026-11-02
+
+* Updated Export writes pnpm-workspace.yaml as edits, not a re-render
+* Updated export and preview commands
+
 ## 2026-11-01
 
 * Updated "lock" pins to the version verbatim

@@ -6,7 +6,7 @@ kind: cli
 resource: ../../package/src/cli/commands/export.ts
 generated:
   by: okfit/claude-code
-  at: 2026-11-01T21:54:22Z
+  at: 2026-11-02T15:23:26Z
 sources:
   - id: export-ts
     resource: ../../package/src/cli/commands/export.ts
@@ -14,7 +14,7 @@ sources:
     resource: ../../package/src/cli/commands/preview.ts
 integrity:
   generated:
-    body: 82a6edff6dcd9c9a
+    body: ae084d6ff2433b47
 ---
 
 # export and preview commands
@@ -30,11 +30,15 @@ stale-entry and key-mismatch warnings to stderr from the patch reconcile
 report.[^export-ts]
 
 An existing `pnpm-workspace.yaml` is edited in place rather than
-re-rendered. Comments, the author's key order, each scalar's quoting and
-every unchanged line are kept. Inserted or replaced content follows the
-file's own indent width, sequence indentation and quote style, and new keys
-append to their mapping. A new or empty file is rendered from scratch with
-sorted keys, 2-space indent, unindented sequences and single quotes. See
+re-rendered. Comments, the author's key order, each scalar's quoting, line
+endings and every unchanged line are kept, and a list gains or loses only
+the items that changed. Inserted content follows the file's own indent width,
+sequence indentation and quote style, including quoting new keys, values or
+list items where their siblings quote by choice; new keys append to their
+mapping. A file whose edits would not parse back to the intended result
+(anchors, merge keys, colliding keys) is re-rendered whole in its own style.
+A new or empty file is rendered from scratch with sorted keys, 2-space
+indent, unindented sequences and single quotes. See
 [the write-path decision](../decisions/workspace-write-path.md).[^export-ts]
 
 ## `export [path] --dry-run [--full]`
