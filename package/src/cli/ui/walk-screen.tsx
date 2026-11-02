@@ -1,6 +1,6 @@
-import { Fmt } from "@effected/cli";
-import type { Screen } from "@effected/cli/ui";
-import { KeyHelp, KeyTable, Styled, useKeys, useTerminalSize } from "@effected/cli/ui";
+import { Fmt } from "@effected/cli-kit";
+import type { Screen } from "@effected/cli-kit/ui";
+import { KeyHelp, KeyTable, Styled, useKeys, useTerminalSize } from "@effected/cli-kit/ui";
 import { Box, Text } from "ink";
 import type { ReactElement } from "react";
 import { useRef, useState } from "react";

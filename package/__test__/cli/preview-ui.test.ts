@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@effect/vitest";
-import type { Inline } from "@effected/cli";
-import { Doc } from "@effected/cli";
-import { CliUiTest } from "@effected/cli/ui/testing";
+import type { Inline } from "@effected/cli-kit";
+import { Doc } from "@effected/cli-kit";
+import { CliUiTest } from "@effected/cli-kit/ui/testing";
 import { Effect, Option } from "effect";
 import type { PreviewViews } from "../../src/cli/preview-views.js";
 import { row, tone } from "../../src/cli/render/tone.js";

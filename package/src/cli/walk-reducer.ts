@@ -1,4 +1,4 @@
-import { Fmt } from "@effected/cli";
+import { Fmt } from "@effected/cli-kit";
 import type { Candidate } from "./types.js";
 import type { Decision, WalkItem } from "./walk-types.js";
 

@@ -1,7 +1,7 @@
 import { dirname } from "node:path";
-import type { Document } from "@effected/cli";
-import { CliDoc, CliExit, CliFormat, CliInteractive, CliMessage, Doc, Fmt } from "@effected/cli";
-import { CliUi } from "@effected/cli/ui";
+import type { Document } from "@effected/cli-kit";
+import { CliDoc, CliExit, CliFormat, CliInteractive, CliMessage, Doc, Fmt } from "@effected/cli-kit";
+import { CliUi } from "@effected/cli-kit/ui";
 import type { PartialReleaseAgeGate } from "@effected/npm";
 import { ReleaseAgeGate } from "@effected/npm";
 import { Clock, Data, Effect, FileSystem, Option, Result } from "effect";

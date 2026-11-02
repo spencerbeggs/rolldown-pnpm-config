@@ -1,6 +1,6 @@
-import type { CliTheme } from "@effected/cli";
-import type { LiveOptions, Screen } from "@effected/cli/ui";
-import { CliUi } from "@effected/cli/ui";
+import type { CliTheme } from "@effected/cli-kit";
+import type { LiveOptions, Screen } from "@effected/cli-kit/ui";
+import { CliUi } from "@effected/cli-kit/ui";
 import { Effect, PubSub } from "effect";
 import type { PreviewViews } from "../preview-views.js";
 import type { Decision } from "../walk-types.js";

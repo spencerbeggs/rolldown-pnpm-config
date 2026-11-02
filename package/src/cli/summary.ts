@@ -1,5 +1,5 @@
-import type { Block, Document, Inline } from "@effected/cli";
-import { Doc, Fmt } from "@effected/cli";
+import type { Block, Document, Inline } from "@effected/cli-kit";
+import { Doc, Fmt } from "@effected/cli-kit";
 import { row, tone } from "./render/tone.js";
 import type { RejectedEdit } from "./validate.js";
 import { cellTone, displayCandidates, peerFor, tableLayout } from "./walk-reducer.js";

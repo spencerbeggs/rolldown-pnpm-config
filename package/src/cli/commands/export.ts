@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { dirname, relative } from "node:path";
-import type { BlockOf, Document } from "@effected/cli";
-import { CliDoc, CliMessage } from "@effected/cli";
+import type { BlockOf, Document } from "@effected/cli-kit";
+import { CliDoc, CliMessage } from "@effected/cli-kit";
 import { Data, Effect, FileSystem, Option, Predicate } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
 import type { PluginConfig } from "../../define-plugin.js";

@@ -6,7 +6,7 @@ resource: ../../package/src/cli
 kind: package
 generated:
   by: okfit/claude-code
-  at: 2026-10-08T03:36:55Z
+  at: 2026-11-02T19:10:49Z
 sources:
   - id: bin
     resource: package/src/cli/bin.ts
@@ -24,7 +24,7 @@ sources:
     resource: package/src/cli/effective.ts
 integrity:
   generated:
-    body: 95850fc431c10ebe
+    body: 135209f5279b9d0a
 ---
 
 # CLI
@@ -35,7 +35,7 @@ integrity:
 and holds three subcommands registered on the root command in `root.ts` —
 `upgrade`, `export` and `preview` (`commands/upgrade.ts`,
 `commands/export.ts`, `commands/preview.ts`).[^bin] `bin.ts` only calls
-`main()`; `main.ts` runs the tree through `@effected/cli`'s
+`main()`; `main.ts` runs the tree through `@effected/cli-kit`'s
 `CliRuntime.main`, which decides the audience, colour and interactivity,
 reports failures, and maps exit codes (see [CLI
 output](../interfaces/cli-output.md)).[^main] It is a developer-facing
@@ -71,7 +71,7 @@ pipeline.
 
 `render/`, `diff/` and `ui/` are the presentation layer. `render/tone.ts`
 maps a `Tone` (added, removed, unmanaged, merge, …) to a theme token and
-builds diff-shaped rows of `@effected/cli` `Doc` inlines; the producers —
+builds diff-shaped rows of `@effected/cli-kit` `Doc` inlines; the producers —
 `diff/render.ts` (`renderExportDiff`), `simulated-view.ts`, `summary.ts`
 and `render/legend.ts` — emit `Doc` blocks directly, and the renderer the
 audience picks decides whether they become colour.[^tone] Rows reach stdout

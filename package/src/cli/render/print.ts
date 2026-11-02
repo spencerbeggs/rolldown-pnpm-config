@@ -1,5 +1,5 @@
-import type { Block, BlockOf, CliLinks } from "@effected/cli";
-import { CliTheme, Doc } from "@effected/cli";
+import type { Block, BlockOf, CliLinks } from "@effected/cli-kit";
+import { CliTheme, Doc } from "@effected/cli-kit";
 import type { TerminalEnv } from "@effected/env";
 import { Audience } from "@effected/env";
 import { Effect } from "effect";

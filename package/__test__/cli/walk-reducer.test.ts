@@ -1,4 +1,4 @@
-import { Fmt } from "@effected/cli";
+import { Fmt } from "@effected/cli-kit";
 import { describe, expect, it } from "vitest";
 import type { Candidate, CatalogEntry } from "../../src/cli/types.js";
 import {

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "@effect/vitest";
-import { CliDoc } from "@effected/cli";
+import { CliDoc } from "@effected/cli-kit";
 import { Effect, Runtime } from "effect";
 import { CheckFailedError, checkOutcome, runUpgrade } from "../../src/cli/commands/upgrade.js";
 import { makeWorkspaceResolver } from "../../src/cli/workspace-resolve.js";

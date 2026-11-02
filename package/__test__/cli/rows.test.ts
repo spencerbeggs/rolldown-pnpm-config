@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@effect/vitest";
-import { CliEnv, CliLinks, Doc, Render } from "@effected/cli";
+import { CliEnv, CliLinks, Doc, Render } from "@effected/cli-kit";
 import { Effect, Layer } from "effect";
 import { TestConsole } from "effect/testing";
 import { printView } from "../../src/cli/render/print.js";

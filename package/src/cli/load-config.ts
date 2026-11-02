@@ -1,4 +1,4 @@
-import { Fmt } from "@effected/cli";
+import { Fmt } from "@effected/cli-kit";
 import { Effect, FileSystem, Predicate } from "effect";
 import { evaluatePluginConfig } from "./evaluate.js";
 import { parseWorkspace } from "./workspace-file.js";

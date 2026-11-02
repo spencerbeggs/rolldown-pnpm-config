@@ -1,5 +1,5 @@
-import { Status } from "@effected/cli";
-import { Styled, useGlyphs, useTheme } from "@effected/cli/ui";
+import { Status } from "@effected/cli-kit";
+import { Styled, useGlyphs, useTheme } from "@effected/cli-kit/ui";
 import { Text } from "ink";
 import type { ReactElement } from "react";
 import type { ProgressState } from "./progress.js";

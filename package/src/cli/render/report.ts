@@ -1,5 +1,5 @@
-import type { Block, Document } from "@effected/cli";
-import { Doc, Status } from "@effected/cli";
+import type { Block, Document } from "@effected/cli-kit";
+import { Doc, Status } from "@effected/cli-kit";
 
 function statusDoc(status: "failure" | "warning", message: string): Document {
 	const [first = "", ...rest] = message.split("\n");
