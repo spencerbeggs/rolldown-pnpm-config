@@ -2,7 +2,7 @@
 type: Decision
 title: Vendored v4 source as the API authority
 description: Effect v4 source is vendored read-only under .repos/, pinned to the effect version catalog:effected resolves, and consulted instead of the lagging published docs.
-status: draft
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-10-31T20:42:34Z
@@ -18,6 +18,13 @@ tags:
 integrity:
   generated:
     body: 6b6d2eb0f6e38cae
+  verified:
+    by: human:spencer
+    at: 2026-11-01T21:52:55Z
+    content: 8f1eff4fe016ea9a
+verified:
+  - by: human:spencer
+    at: 2026-11-01T21:52:55Z
 ---
 
 # Vendored v4 source as the API authority

@@ -7,7 +7,6 @@ kind: api
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
-  body_sha256: be9acbcaafe6f2f94a5dfa9652c9a06d326689b2834ddda0e2e1ea91de17a9a6
 sources:
   - id: runtime-index
     resource: package/src/runtime/index.ts
@@ -17,6 +16,9 @@ sources:
     resource: package/src/runtime/warnings.ts
 tags:
   - architecture
+integrity:
+  generated:
+    body: be9acbcaafe6f2f9
 ---
 
 # { base, manifest, name } contract

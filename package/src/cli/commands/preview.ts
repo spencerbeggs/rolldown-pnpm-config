@@ -1,7 +1,7 @@
 import { dirname } from "node:path";
-import type { Document } from "@effected/cli";
-import { CliDoc, CliInteractive } from "@effected/cli";
-import { CliUi } from "@effected/cli/ui";
+import type { Document } from "@effected/cli-kit";
+import { CliDoc, CliInteractive } from "@effected/cli-kit";
+import { CliUi } from "@effected/cli-kit/ui";
 import { Data, Effect, Option } from "effect";
 import { Argument, Command } from "effect/cli";
 import { freeze } from "../../plugin/freeze.js";

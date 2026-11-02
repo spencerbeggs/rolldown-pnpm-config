@@ -7,7 +7,6 @@ resource: ../../package/src/patches
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
-  body_sha256: 82402dce9ed8ab4ddee71abcce1cb0e1177559db2cfab5390a5cde39d02a5cee
 sources:
   - id: discover-ts
     resource: ../../package/src/patches/discover.ts
@@ -17,6 +16,9 @@ sources:
     resource: ../../package/src/define-plugin.ts
   - id: maps-ts
     resource: ../../package/src/runtime/strategies/maps.ts
+integrity:
+  generated:
+    body: 82402dce9ed8ab4d
 ---
 
 # patch distribution

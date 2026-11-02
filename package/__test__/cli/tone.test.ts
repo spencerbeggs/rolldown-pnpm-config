@@ -1,4 +1,4 @@
-import { Doc, Render } from "@effected/cli";
+import { Doc, Render } from "@effected/cli-kit";
 import { describe, expect, it } from "vitest";
 import { row, tone } from "../../src/cli/render/tone.js";
 import { plainText } from "./utils/doc.js";

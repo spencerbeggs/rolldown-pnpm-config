@@ -2,11 +2,10 @@
 type: Decision
 title: Surgical span rewrite, operator preserved
 description: The upgrade CLI rewrites only the version digits inside a range literal, reuses the existing operator, and applies edits right-to-left so byte spans stay valid.
-status: draft
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
-  body_sha256: 9661eb4756eda9a91abd4397fd4a693121c2f139d1408f03d36349d50f2cf1a6
 sources:
   - id: discover
     resource: package/src/cli/discover.ts
@@ -18,6 +17,16 @@ sources:
     resource: package/src/cli/types.ts
 tags:
   - architecture
+verified:
+  - by: human:spencer
+    at: 2026-11-01T21:52:55Z
+integrity:
+  generated:
+    body: 9661eb4756eda9a9
+  verified:
+    by: human:spencer
+    at: 2026-11-01T21:52:55Z
+    content: 819b1d4010a139ee
 ---
 
 # Surgical span rewrite, operator preserved

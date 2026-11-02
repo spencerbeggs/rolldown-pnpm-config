@@ -5,7 +5,7 @@ description: export --preview conflated write-vs-show; the split is a static exp
 status: stable
 generated:
   by: okfit/claude-code
-  at: 2026-10-02T15:35:24Z
+  at: 2026-11-02T19:10:49Z
 sources:
   - id: export-command
     resource: package/src/cli/commands/export.ts
@@ -18,13 +18,15 @@ tags:
 verified:
   - by: human:spencer
     at: 2026-10-27T16:21:39Z
+  - by: human:spencer
+    at: 2026-11-02T19:10:04Z
 integrity:
   generated:
-    body: d963ba0c51306eee
+    body: 8e3095ea39b7e099
   verified:
     by: human:spencer
-    at: 2026-10-27T16:21:39Z
-    content: d4c45aa33efea7c5
+    at: 2026-11-02T19:10:04Z
+    content: 65b7f64e3d5fcfbd
 ---
 
 # `--dry-run` replaces `--preview` on `export`
@@ -50,7 +52,7 @@ changed lines plus context, and the command writes nothing either way
 
 A new standalone `preview [path]` command
 (`package/src/cli/commands/preview.ts`) provides the interactive tabbed
-view (Changes / Full / Simulated) as an `@effected/cli` screen, reusing
+view (Changes / Full / Simulated) as an `@effected/cli-kit` screen, reusing
 `buildDiff`/`renderExportDiff` from the shared render layer. When the run
 cannot prompt (`CliInteractive` is false: a pipe, CI, an agent, `TERM=dumb`),
 `preview` prints the Changes view with `Doc.print` and exits — it never

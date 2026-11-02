@@ -1,5 +1,5 @@
-import type { Block, Document, Inline, Style, TokenName } from "@effected/cli";
-import { Render } from "@effected/cli";
+import type { Block, Document, Inline, Style, TokenName } from "@effected/cli-kit";
+import { Render } from "@effected/cli-kit";
 
 /** A document (or one block) rendered as an agent reads it: plain text, no escapes. */
 export function plainText(doc: Document | Block): string {

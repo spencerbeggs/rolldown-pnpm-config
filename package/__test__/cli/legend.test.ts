@@ -1,4 +1,4 @@
-import type { Block } from "@effected/cli";
+import type { Block } from "@effected/cli-kit";
 import { describe, expect, it } from "vitest";
 import { legend, simulatedLegend } from "../../src/cli/render/legend.js";
 import { TONES } from "../../src/cli/render/tone.js";

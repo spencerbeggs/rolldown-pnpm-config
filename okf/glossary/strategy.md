@@ -5,12 +5,14 @@ description: A pure (base, local, ctx) => { merged, divergences } function that 
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
-  body_sha256: f4da2b5802bb40bd3299014c72946606224d35cbc01c9548a081ef3546579cf6
 sources:
   - id: strategy-table
     resource: ../../package/src/runtime/strategies/table.ts
   - id: catalogs-peer-strategy
     resource: ../../package/src/catalogs.ts
+integrity:
+  generated:
+    body: f4da2b5802bb40bd
 ---
 
 # strategy

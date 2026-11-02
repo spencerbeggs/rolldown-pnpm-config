@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { dirname, relative } from "node:path";
-import type { BlockOf, Document } from "@effected/cli";
-import { CliDoc, CliMessage } from "@effected/cli";
+import type { BlockOf, Document } from "@effected/cli-kit";
+import { CliDoc, CliMessage } from "@effected/cli-kit";
 import { Data, Effect, FileSystem, Option, Predicate } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
 import type { PluginConfig } from "../../define-plugin.js";
@@ -21,7 +21,7 @@ import { legend } from "../render/legend.js";
 import { printView } from "../render/print.js";
 import { failureDoc } from "../render/report.js";
 import { findConfigFiles, pickConfigCandidate } from "../select-file.js";
-import { canonicalize, renderWorkspace } from "../workspace-file.js";
+import { canonicalize, writeWorkspace } from "../workspace-file.js";
 import { overlayWorkspace } from "../workspace-overlay.js";
 
 /**
@@ -67,7 +67,7 @@ export function runExport(opts: {
 	FileSystem.FileSystem
 > {
 	return Effect.gen(function* () {
-		const { config, localCfg, path, parsed } = yield* loadConfigAndWorkspace(
+		const { config, localCfg, path, parsed, source } = yield* loadConfigAndWorkspace(
 			opts,
 			(message) => new ExportError({ message }),
 		);
@@ -115,7 +115,9 @@ export function runExport(opts: {
 			exists: existsSync,
 		});
 		const merged = overlayWorkspace(effective, parsed);
-		const rendered = renderWorkspace(merged);
+		// Edits over the existing source, not a re-render: unchanged lines keep
+		// their bytes and new ones take the file's own style (#280).
+		const rendered = writeWorkspace(source, merged);
 		const localKeys = new Set(Object.keys(localCfg ?? {}));
 		const tree: DiffNode = buildDiff(
 			canonicalize(parsed) as Record<string, unknown>,

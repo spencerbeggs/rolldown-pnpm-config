@@ -1,5 +1,5 @@
-import type { BlockOf, Inline } from "@effected/cli";
-import { Doc } from "@effected/cli";
+import type { BlockOf, Inline } from "@effected/cli-kit";
+import { Doc } from "@effected/cli-kit";
 import type { Gutter, Tag, Tone } from "../render/tone.js";
 import { row, tone } from "../render/tone.js";
 import type { ChangeKind, DiffNode } from "./types.js";

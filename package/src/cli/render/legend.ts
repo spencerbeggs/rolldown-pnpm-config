@@ -1,5 +1,5 @@
-import type { Block } from "@effected/cli";
-import { Doc } from "@effected/cli";
+import type { Block } from "@effected/cli-kit";
+import { Doc } from "@effected/cli-kit";
 import type { Tone } from "./tone.js";
 import { tone } from "./tone.js";
 

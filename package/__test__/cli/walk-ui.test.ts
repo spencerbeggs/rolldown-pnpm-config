@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@effect/vitest";
-import type { Screen } from "@effected/cli/ui";
-import type { CliUiTestOptions } from "@effected/cli/ui/testing";
-import { CliUiTest } from "@effected/cli/ui/testing";
+import type { Screen } from "@effected/cli-kit/ui";
+import type { CliUiTestOptions } from "@effected/cli-kit/ui/testing";
+import { CliUiTest } from "@effected/cli-kit/ui/testing";
 import type { Scope } from "effect";
 import { Effect, Option } from "effect";
 import type { FetchPeer } from "../../src/cli/interop.js";

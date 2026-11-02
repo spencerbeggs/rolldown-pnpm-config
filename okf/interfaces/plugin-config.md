@@ -7,7 +7,6 @@ kind: api
 generated:
   by: okfit/claude-code
   at: 2026-10-11T16:12:12Z
-  body_sha256: 55d8969f3b0955f107d79e92cc4cc849d4db3cdf5aa5197ade84a67eeddb7d82
 sources:
   - id: define-plugin
     resource: package/src/define-plugin.ts
@@ -19,6 +18,9 @@ sources:
     resource: package/__test__/types/plugin-config.test-d.ts
 tags:
   - architecture
+integrity:
+  generated:
+    body: 55d8969f3b0955f1
 ---
 
 # PnpmConfigPlugin authoring surface

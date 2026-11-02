@@ -1,4 +1,4 @@
-import { Fmt } from "@effected/cli";
+import { Fmt } from "@effected/cli-kit";
 import { Context, Data, Effect, Layer, Predicate } from "effect";
 // The unstable/process index re-exports its modules as namespaces, so the
 // ChildProcessSpawner service class lives at ChildProcessSpawner.ChildProcessSpawner

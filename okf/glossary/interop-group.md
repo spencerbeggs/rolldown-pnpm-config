@@ -5,10 +5,12 @@ description: The set of interop-marked packages within one catalog, reconciled a
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
-  body_sha256: 7dffec74cd1a974785f97fbee7dd354cb1f989497bb9a67c1cc817779ae6f800
 sources:
   - id: interop-impl
     resource: ../../package/src/cli/interop.ts
+integrity:
+  generated:
+    body: 7dffec74cd1a9747
 ---
 
 # interop group

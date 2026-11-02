@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { NodeServices } from "@effect/platform-node";
-import { CliTest } from "@effected/cli/testing";
+import { CliTest } from "@effected/cli-kit/testing";
 import { Effect } from "effect";
 
 /** The dev build of the bin (the global setup builds it before any test runs). */

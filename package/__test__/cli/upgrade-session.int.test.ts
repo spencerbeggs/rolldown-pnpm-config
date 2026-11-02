@@ -1,9 +1,9 @@
 import { readFileSync } from "node:fs";
 import { NodeServices } from "@effect/platform-node";
 import { describe, expect, it } from "@effect/vitest";
-import { CliEnv, CliExit, CliLinks } from "@effected/cli";
-import type { CliUiTestSession } from "@effected/cli/ui/testing";
-import { CliUiTest } from "@effected/cli/ui/testing";
+import { CliEnv, CliExit, CliLinks } from "@effected/cli-kit";
+import type { CliUiTestSession } from "@effected/cli-kit/ui/testing";
+import { CliUiTest } from "@effected/cli-kit/ui/testing";
 import { Effect, Exit, Fiber, Layer, Option } from "effect";
 import { Command } from "effect/cli";
 import { upgradeCommand } from "../../src/cli/commands/upgrade.js";

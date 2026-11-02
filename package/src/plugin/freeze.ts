@@ -1,4 +1,4 @@
-import { Fmt } from "@effected/cli";
+import { Fmt } from "@effected/cli-kit";
 import { Data, Effect, Predicate, Schema } from "effect";
 import { normalizeCatalogs } from "../catalogs.js";
 import type { PluginConfig } from "../define-plugin.js";

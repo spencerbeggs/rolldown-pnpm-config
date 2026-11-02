@@ -1,5 +1,47 @@
 # rolldown-pnpm-config
 
+## 2.4.1
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/cli | dependency | removed | ^0.25.0 | — |
+| @effect/platform-node | dependency | updated | ~4.1.1 | ~4.1.2 |
+| @effected/env | dependency | updated | ^0.9.0 | ^0.10.0 |
+| @effected/glob | dependency | updated | ^0.17.0 | ^0.18.0 |
+| @effected/npm | dependency | updated | ^0.29.0 | ^0.30.0 |
+| @effected/semver | dependency | updated | ^0.20.0 | ^0.21.0 |
+| @effected/walker | dependency | updated | ^0.24.0 | ^0.25.0 |
+| @effected/workspaces | dependency | updated | ^0.41.0 | ^0.42.0 |
+| @effected/yaml | dependency | updated | ^0.27.0 | ^0.28.0 |
+| effect | dependency | updated | ~4.1.1 | ~4.1.2 |
+| @effected/cli-kit | dependency | added | — | ^0.26.0 |
+
+[#285][#285]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#285]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/285
+
+## 2.4.0
+
+### Features
+
+- `export` now edits an existing `pnpm-workspace.yaml` in place instead of re-rendering it. Comments, your key order, each value's quoting and every unchanged line are kept, so the diff shows only the entries that actually changed.
+- Adding or removing an entry in a list changes only that entry's line, and Windows (CRLF) line endings are kept.
+- Lines that `export` adds follow the file's own style: indent width, whether lists are indented under their key, and single or double quotes. A new key or list item is quoted when the entries beside it are. In a mixed file the most common style wins.
+- A file that uses YAML anchors or aliases is still written correctly. When editing it in place could break an alias, `export` rewrites the whole file in its own style instead.
+- A new or empty `pnpm-workspace.yaml` is written exactly as before. [#282][#282]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#282]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/282
+
 ## 2.3.0
 
 ### Features

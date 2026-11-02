@@ -1,5 +1,5 @@
 import { NodeRuntime, NodeServices } from "@effect/platform-node";
-import { CliAudience, CliRuntime } from "@effected/cli";
+import { CliAudience, CliRuntime } from "@effected/cli-kit";
 import { Effect } from "effect";
 import { WorkingDirectory } from "./cwd.js";
 import { EXIT_CODES } from "./exit-codes.js";

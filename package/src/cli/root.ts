@@ -1,4 +1,4 @@
-import { CliAudience } from "@effected/cli";
+import { CliAudience } from "@effected/cli-kit";
 import { Command } from "effect/cli";
 import { exportCommand } from "./commands/export.js";
 import { previewCommand } from "./commands/preview.js";

@@ -1,5 +1,5 @@
-import type { Inline, Style, TokenName } from "@effected/cli";
-import { Doc, Token } from "@effected/cli";
+import type { Inline, Style, TokenName } from "@effected/cli-kit";
+import { Doc, Token } from "@effected/cli-kit";
 
 /**
  * The visual category of a run of text in a diff, summary or Simulated view.
