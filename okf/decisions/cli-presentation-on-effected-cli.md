@@ -1,12 +1,12 @@
 ---
 type: Decision
-title: CLI presentation through the @effected/cli kit
-description: The CLI's audience detection, colour, document rendering, failure reporting, exit codes, prompts and Ink screens all come from @effected/cli; the producers emit the kit's Doc IR directly and no module reads process outside the entry files.
+title: CLI presentation through the @effected/cli-kit kit
+description: The CLI's audience detection, colour, document rendering, failure reporting, exit codes, prompts and Ink screens all come from @effected/cli-kit; the producers emit the kit's Doc IR directly and no module reads process outside the entry files.
 status: stable
 supersedes: shared-styled-line-render-layer.md
 generated:
   by: okfit/claude-code
-  at: 2026-10-27T16:27:34Z
+  at: 2026-11-02T19:10:49Z
 sources:
   - id: main
     resource: ../../package/src/cli/main.ts
@@ -30,16 +30,18 @@ verified:
     at: 2026-10-27T16:21:39Z
   - by: human:spencer
     at: 2026-11-01T21:52:55Z
+  - by: human:spencer
+    at: 2026-11-02T19:10:04Z
 integrity:
   generated:
-    body: f6015e4ba328d745
+    body: 004fd4b97bb25869
   verified:
     by: human:spencer
-    at: 2026-11-01T21:52:55Z
-    content: e879efb89107e92c
+    at: 2026-11-02T19:10:04Z
+    content: c03cb2f1cec7fea1
 ---
 
-# CLI presentation through the @effected/cli kit
+# CLI presentation through the @effected/cli-kit kit
 
 ## Context
 
@@ -50,7 +52,7 @@ carriage-return progress counter on stderr, and `runMain`'s default failure
 output. That layer knew nothing about who was reading — an agent and a CI log
 got the same bytes as a person — and every exit was `1`, so a script could
 not tell a usage error or a quit from a resolution failure. The Effect v4
-`@effected` kit ships exactly that missing boundary in `@effected/cli`, built
+`@effected` kit ships exactly that missing boundary in `@effected/cli-kit`, built
 on `effect/cli`, which this CLI already used for parsing.
 
 ## Decision

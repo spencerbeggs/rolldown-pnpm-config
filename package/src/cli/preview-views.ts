@@ -1,4 +1,4 @@
-import type { BlockOf } from "@effected/cli";
+import type { BlockOf } from "@effected/cli-kit";
 import type { Manifest } from "../runtime/types.js";
 import { WORKSPACE_FIELDS } from "./commands/export.js";
 import { buildDiff } from "./diff/build.js";

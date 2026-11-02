@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@effect/vitest";
-import { CliUiTest } from "@effected/cli/ui/testing";
+import { CliUiTest } from "@effected/cli-kit/ui/testing";
 import { Effect } from "effect";
 import { resolveProgress } from "../../src/cli/commands/upgrade.js";
 import type { ProgressEvent } from "../../src/cli/ui/progress.js";

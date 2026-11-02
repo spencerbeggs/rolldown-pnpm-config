@@ -4,6 +4,10 @@
 
 * Updated Export writes pnpm-workspace.yaml as edits, not a re-render
 * Updated export and preview commands
+* Updated --dry-run replaces --preview on export
+* Updated CLI
+* Updated CLI presentation through the @effected/cli-kit kit
+* Updated Shared StyledLine render layer, not per-command ad hoc color
 
 ## 2026-11-01
 

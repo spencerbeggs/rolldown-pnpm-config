@@ -20,13 +20,15 @@ tags:
 verified:
   - by: human:spencer
     at: 2026-11-01T21:52:55Z
+  - by: human:spencer
+    at: 2026-11-02T19:10:04Z
 integrity:
   generated:
     body: 65feedbe74de99ea
   verified:
     by: human:spencer
-    at: 2026-11-01T21:52:55Z
-    content: 6172ef3e6602dd97
+    at: 2026-11-02T19:10:04Z
+    content: f1539fc5c3af173e
 ---
 
 # Export writes pnpm-workspace.yaml as edits, not a re-render

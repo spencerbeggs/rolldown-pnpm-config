@@ -1,5 +1,5 @@
-import { Doc } from "@effected/cli";
-import type { Screen, ViewportRow } from "@effected/cli/ui";
+import { Doc } from "@effected/cli-kit";
+import type { Screen, ViewportRow } from "@effected/cli-kit/ui";
 import {
 	DocView,
 	KeyHelp,
@@ -10,7 +10,7 @@ import {
 	useKeys,
 	useTerminalSize,
 	useTheme,
-} from "@effected/cli/ui";
+} from "@effected/cli-kit/ui";
 import { Box, Text } from "ink";
 import type { ReactElement } from "react";
 import { useEffect, useState } from "react";

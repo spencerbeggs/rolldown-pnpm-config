@@ -1,5 +1,5 @@
-import type { BlockOf, Inline } from "@effected/cli";
-import { Doc } from "@effected/cli";
+import type { BlockOf, Inline } from "@effected/cli-kit";
+import { Doc } from "@effected/cli-kit";
 import { Predicate } from "effect";
 import type { Enforcement, Manifest, ManifestEntry } from "../runtime/types.js";
 import { scalarText } from "./diff/render.js";

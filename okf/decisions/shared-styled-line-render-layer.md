@@ -5,7 +5,7 @@ description: One StyledLine → toAnsi → ANSI path is shared by export --dry-r
 status: deprecated
 generated:
   by: okfit/claude-code
-  at: 2026-10-02T15:35:24Z
+  at: 2026-11-02T19:10:49Z
 sources:
   - id: styled-ts
     resource: package/src/cli/ui/styled.ts
@@ -17,12 +17,12 @@ tags:
   - architecture
 integrity:
   generated:
-    body: b0107395e920f7da
+    body: aa0d95540ccfc67b
 ---
 
 # Shared StyledLine render layer, not per-command ad hoc color
 
-> Superseded by [CLI presentation through the @effected/cli kit](cli-presentation-on-effected-cli.md):
+> Superseded by [CLI presentation through the @effected/cli-kit kit](cli-presentation-on-effected-cli.md):
 > the `StyledLine` IR, `toAnsi` and `std-env` detection were replaced by the
 > kit's `Doc` IR, renderers and audience detection.
 
