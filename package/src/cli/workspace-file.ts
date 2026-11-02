@@ -156,7 +156,6 @@ function sequenceChanges(path: YamlPath, prev: readonly unknown[], next: readonl
 	const changes: Change[] = added.map((v, i) => ({ path: [...path, prev.length + i], value: v }));
 	for (const i of removed.reverse()) changes.push({ path: [...path, i], value: undefined });
 	return changes;
-	return changes;
 }
 
 /**

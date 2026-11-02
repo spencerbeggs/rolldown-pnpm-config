@@ -94,7 +94,7 @@ export function initTable(items: readonly WalkItem[]): TableState {
 	return { cursor: first === -1 ? 0 : first, picks: items.map(() => 0), done: false };
 }
 
-const clamp = (n: number, max: number) => (n < 0 ? 0 : n > max ? max : n);
+const clamp = (n: number, max: number) => (n < 0 ? 0 : Math.min(n, max));
 
 /**
  * Advance the table by a key. up/down move between rows; left/right move the
