@@ -6,12 +6,14 @@ stale_after: 2026-12-08T00:00:00Z
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
-  body_sha256: 80d694e3cec5bc844c4559487a2b1f5249c808e25ff4688561039dbed4ea3502
 sources:
   - id: virtual-dts
     resource: package/src/virtual.d.ts
   - id: runtime-types
     resource: package/src/runtime/types.ts
+integrity:
+  generated:
+    body: 80d694e3cec5bc84
 ---
 
 # Keep virtual.d.ts self-contained

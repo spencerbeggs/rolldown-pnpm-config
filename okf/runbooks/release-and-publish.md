@@ -6,7 +6,6 @@ resource: ../../.github/workflows/release.yml
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
-  body_sha256: be62b5966f71d6a81724a855e5545c90c4bdecd74675320a22cc4c7c172742b4
 sources:
   - id: release-workflow
     resource: ../../.github/workflows/release.yml
@@ -20,6 +19,9 @@ sources:
     resource: ../../CLAUDE.md
 tags:
   - release
+integrity:
+  generated:
+    body: be62b5966f71d6a8
 ---
 
 # Release and publish

@@ -7,7 +7,6 @@ kind: package
 generated:
   by: okfit/claude-code
   at: 2026-10-08T03:36:55Z
-  body_sha256: 95850fc431c10ebe7a8cdc9b461e151025c255ad1ff968051e3e95085b13947d
 sources:
   - id: bin
     resource: package/src/cli/bin.ts
@@ -23,6 +22,9 @@ sources:
     resource: package/src/cli/local-merge.ts
   - id: effective
     resource: package/src/cli/effective.ts
+integrity:
+  generated:
+    body: 95850fc431c10ebe
 ---
 
 # CLI

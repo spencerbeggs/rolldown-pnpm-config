@@ -13,6 +13,8 @@ export interface LoadedConfig {
 	readonly path: string;
 	/** The parsed workspace file, or `{}` when it does not exist yet. */
 	readonly parsed: Record<string, unknown>;
+	/** The workspace file's raw text, or `""` when it does not exist yet. */
+	readonly source: string;
 }
 
 /**
@@ -47,13 +49,9 @@ export function loadConfigAndWorkspace<E>(
 		const path = opts.workspacePath;
 		const cannotRead = (e: unknown) => mkError(`Cannot read or parse ${path}: ${Fmt.errorText(e)}`);
 		const present = yield* fs.exists(path).pipe(Effect.mapError(cannotRead));
-		const parsed = present
-			? yield* fs.readFileString(path).pipe(
-					Effect.mapError(cannotRead),
-					Effect.flatMap((text) => Effect.try({ try: () => parseWorkspace(text), catch: cannotRead })),
-				)
-			: {};
+		const source = present ? yield* fs.readFileString(path).pipe(Effect.mapError(cannotRead)) : "";
+		const parsed = present ? yield* Effect.try({ try: () => parseWorkspace(source), catch: cannotRead }) : {};
 		const localCfg = Predicate.isObject(config.local) ? config.local : undefined;
-		return { config, localCfg, path, parsed };
+		return { config, localCfg, path, parsed, source };
 	});
 }

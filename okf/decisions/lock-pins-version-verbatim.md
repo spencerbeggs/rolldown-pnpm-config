@@ -2,11 +2,10 @@
 type: Decision
 title: '"lock" pins to the version verbatim'
 description: "derivePeerRange's \"lock\" strategy reuses the range's version text verbatim instead of rebuilding it from parsed major.minor.patch, fixing a bug where reconstruction silently dropped prerelease/build identifiers."
-status: draft
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
-  body_sha256: 4300076f6f5de3354548cf81bdf381646a9734a0a96932c191de7188434b5e2d
 sources:
   - id: peer-range
     resource: package/src/cli/peer-range.ts
@@ -15,6 +14,16 @@ sources:
   - id: edits
     resource: package/src/cli/edits.ts
 tags: []
+verified:
+  - by: human:spencer
+    at: 2026-11-01T21:52:55Z
+integrity:
+  generated:
+    body: 4300076f6f5de335
+  verified:
+    by: human:spencer
+    at: 2026-11-01T21:52:55Z
+    content: 8471ec235d4b65e9
 ---
 
 # "lock" pins to the version verbatim
