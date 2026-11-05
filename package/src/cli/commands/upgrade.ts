@@ -2,8 +2,10 @@ import { dirname } from "node:path";
 import type { Document } from "@effected/cli-kit";
 import { CliDoc, CliExit, CliFormat, CliInteractive, CliMessage, Doc, Fmt } from "@effected/cli-kit";
 import { CliUi } from "@effected/cli-kit/ui";
+import { AtomicFile } from "@effected/files";
 import type { PartialReleaseAgeGate } from "@effected/npm";
 import { ReleaseAgeGate } from "@effected/npm";
+import type { Path } from "effect";
 import { Clock, Data, Effect, FileSystem, Option, Result } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
 import type { VersionSource } from "../../catalogs.js";
@@ -137,9 +139,9 @@ interface Resolver {
 }
 
 /** Write the rewritten config source back to `file`. */
-function writeSource(file: string, next: string): Effect.Effect<void, UpgradeError, FileSystem.FileSystem> {
-	return Effect.flatMap(FileSystem.FileSystem, (fs) =>
-		fs.writeFileString(file, next).pipe(Effect.mapError(() => new UpgradeError({ message: `Cannot write ${file}` }))),
+function writeSource(file: string, next: string): Effect.Effect<void, UpgradeError, FileSystem.FileSystem | Path.Path> {
+	return AtomicFile.write(file, next).pipe(
+		Effect.mapError(() => new UpgradeError({ message: `Cannot write ${file}` })),
 	);
 }
 
@@ -327,7 +329,7 @@ export function runUpgrade(opts: {
 	dryRun?: boolean;
 	/** Workspace-backed resolver for entries with `source: "workspace"`. */
 	workspaceResolver?: Resolver;
-}): Effect.Effect<UpgradeRunResult, UpgradeError, FileSystem.FileSystem> {
+}): Effect.Effect<UpgradeRunResult, UpgradeError, FileSystem.FileSystem | Path.Path> {
 	return Effect.gen(function* () {
 		const { source, entries, skipped } = yield* readCatalogSource(opts.file);
 		const gate = yield* computeGate(source, opts.file, opts.resolver);
@@ -508,7 +510,7 @@ export function applyInteropAndDecisions(
 	source: string,
 	nonInteropEdits: readonly Edit[],
 	interopEdits: readonly Edit[],
-): Effect.Effect<void, UpgradeError, FileSystem.FileSystem> {
+): Effect.Effect<void, UpgradeError, FileSystem.FileSystem | Path.Path> {
 	return Effect.gen(function* () {
 		const edits = [...nonInteropEdits, ...interopEdits];
 		if (edits.length === 0) return;

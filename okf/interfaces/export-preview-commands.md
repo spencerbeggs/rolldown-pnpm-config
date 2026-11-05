@@ -6,7 +6,7 @@ kind: cli
 resource: ../../package/src/cli/commands/export.ts
 generated:
   by: okfit/claude-code
-  at: 2026-11-02T15:23:26Z
+  at: 2026-11-05T22:58:21Z
 sources:
   - id: export-ts
     resource: ../../package/src/cli/commands/export.ts
@@ -14,7 +14,7 @@ sources:
     resource: ../../package/src/cli/commands/preview.ts
 integrity:
   generated:
-    body: ae084d6ff2433b47
+    body: c7d671aaf8699a82
 ---
 
 # export and preview commands
@@ -40,6 +40,12 @@ mapping. A file whose edits would not parse back to the intended result
 A new or empty file is rendered from scratch with sorted keys, 2-space
 indent, unindented sequences and single quotes. See
 [the write-path decision](../decisions/workspace-write-path.md).[^export-ts]
+
+The write is atomic: a temp file beside the target, then a rename over it, so a
+crash leaves the old content or the new content, whole. A symlinked target keeps
+its link and a file keeps its mode. The directory must be writable as well as
+the file, and a read-only target is refused rather than overwritten; either
+fails with `Cannot write <path>` and leaves the file untouched.[^export-ts]
 
 ## `export [path] --dry-run [--full]`
 

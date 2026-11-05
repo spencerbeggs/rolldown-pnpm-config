@@ -1,5 +1,11 @@
 # Log
 
+## 2026-11-05
+
+* Updated Export writes pnpm-workspace.yaml as edits, not a re-render
+* Updated export and preview commands
+* Updated upgrade command
+
 ## 2026-11-02
 
 * Updated Export writes pnpm-workspace.yaml as edits, not a re-render

@@ -1,15 +1,7 @@
 import { locateWorkspaceRootSync } from "@effected/workspaces";
 import { nodeSyncOps } from "@effected/workspaces/node-sync";
 import type { YamlNode, YamlPath, YamlScalar } from "@effected/yaml";
-import {
-	Yaml,
-	YamlDocument,
-	YamlEdit,
-	YamlFormat,
-	YamlLint,
-	YamlLintConfig,
-	YamlStringifyOptions,
-} from "@effected/yaml";
+import { Yaml, YamlDocument, YamlFormat, YamlLint, YamlLintConfig, YamlStringifyOptions } from "@effected/yaml";
 import { Option, Order, Predicate, Result } from "effect";
 
 const FILENAME = "pnpm-workspace.yaml";
@@ -329,25 +321,20 @@ function faithful(text: string, next: Record<string, unknown>): boolean {
 }
 
 /**
- * Splice a primitive into an existing scalar's own source span, keeping its
- * quotes and trailing comment. `modify` only splices when given no
- * document-shaping options (any `indent`/`indentSequences` sends it down the
- * whole-document path, which re-styles the replaced node and drops its
- * comment), so the splice is attempted unstyled and accepted only when every
- * edit stays inside the target scalar. `None` means "not a splice" — the
- * caller takes the styled path. Workaround for spencerbeggs/effected#1219.
+ * Whether a change puts a primitive over an existing scalar. `modify` splices
+ * that in place, keeping the scalar's own quotes and trailing comment, so it
+ * must not be re-quoted to match its siblings: the author's spelling of that
+ * one value stands.
  */
-function spliceScalar(text: string, path: YamlPath, value: unknown): Option.Option<string> {
-	if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") return Option.none();
+function replacesScalar(text: string, change: Change): boolean {
+	const { value } = change;
+	if (change.newKey || (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean")) {
+		return false;
+	}
 	const doc = YamlDocument.parseResult(text);
-	if (Result.isFailure(doc) || doc.success.contents === null) return Option.none();
-	const target = doc.success.contents.find(path);
-	if (Option.isNone(target) || target.value._tag !== "YamlScalar") return Option.none();
-	const { offset, length } = target.value;
-	const edits = YamlFormat.modifyResult(text, path, value);
-	if (Result.isFailure(edits)) return Option.none();
-	const inside = edits.success.every((e) => e.offset >= offset && e.offset + e.length <= offset + length);
-	return inside ? Option.some(YamlEdit.applyAll(text, edits.success)) : Option.none();
+	if (Result.isFailure(doc) || doc.success.contents === null) return false;
+	const target = doc.success.contents.find(change.path);
+	return Option.isSome(target) && target.value._tag === "YamlScalar";
 }
 
 /** Apply every change as an edit; `None` when the editor refuses one. */
@@ -357,14 +344,10 @@ function applyChanges(source: string, changes: readonly Change[], style: YamlStr
 	const quoteChar = style.quoteStyle ?? "single";
 	let text = source;
 	for (const change of changes) {
-		const spliced = change.newKey ? Option.none<string>() : spliceScalar(text, change.path, change.value);
-		if (Option.isSome(spliced)) {
-			text = spliced.value;
-			continue;
-		}
+		const keepSpelling = replacesScalar(text, change);
 		const result = YamlFormat.modifyToStringResult(text, change.path, change.value, style);
 		if (Result.isFailure(result)) return Option.none();
-		text = requoteWritten(result.success, change, roles, quoteChar);
+		text = keepSpelling ? result.success : requoteWritten(result.success, change, roles, quoteChar);
 	}
 	return Option.some(text);
 }

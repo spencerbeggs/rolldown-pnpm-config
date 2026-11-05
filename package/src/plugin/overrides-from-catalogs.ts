@@ -1,7 +1,7 @@
-import { Glob, Predicate } from "effect";
+import { VersionSpecifier } from "@effected/semver";
+import { Glob, Predicate, Result } from "effect";
 import type { CatalogDeclaration } from "../catalogs.js";
 import { rangeOf } from "../catalogs.js";
-import { bareVersion } from "../semver-util.js";
 
 /**
  * A directive that derives pnpm `overrides` from a catalog, so every member of
@@ -52,11 +52,8 @@ export interface OverridesFromCatalogs {
 	readonly scope?: "line" | "any";
 }
 
-/** A plain release version: `X.Y.Z`, no prerelease, no build metadata. */
-const PLAIN_VERSION = /^(\d+)\.(\d+)\.(\d+)$/;
-
-/** A simple-operator range: an optional `^`, `~`, `>=` or `=` on one version. */
-const SIMPLE_RANGE = /^(?:\^|~|>=|=)?\s*\d/;
+/** The simple operators that can pin: an optional `^`, `~`, `>=` or `=` on one version. */
+const PINNABLE_OPERATORS: ReadonlySet<string> = new Set(["^", "~", ">=", "=", ""]);
 
 /**
  * The release line a plain version belongs to: `^X.0.0`, or `^0.Y.0` when the
@@ -64,9 +61,9 @@ const SIMPLE_RANGE = /^(?:\^|~|>=|=)?\s*\d/;
  * `0.0.0` itself), so it takes the tilde line `~0.0.0`, which covers every
  * `0.0.Z` request.
  */
-function releaseLine(major: string, minor: string): string {
-	if (major !== "0") return `^${major}.0.0`;
-	return minor === "0" ? "~0.0.0" : `^0.${minor}.0`;
+function releaseLine(major: number, minor: number): string {
+	if (major !== 0) return `^${major}.0.0`;
+	return minor === 0 ? "~0.0.0" : `^0.${minor}.0`;
 }
 
 /**
@@ -107,16 +104,15 @@ function deriveOne(
 	const table: Record<string, string> = {};
 	for (const [name, spec] of Object.entries(decl.packages)) {
 		if (!isIncluded(name) || isExcluded(name)) continue;
-		const range = rangeOf(spec);
-		if (!SIMPLE_RANGE.test(range) || /\s/.test(range.trim())) continue;
-		const version = bareVersion(range);
-		const match = PLAIN_VERSION.exec(version);
+		const parsed = Result.getOrNull(VersionSpecifier.parseResult(rangeOf(spec)));
 		// A caret line cannot name a prerelease, and widening a compound range to
 		// one version would pin more than the author asked for — so both are
 		// skipped, never widened.
-		if (match === null) continue;
-		const selector = scope === "any" ? name : `${name}@${releaseLine(match[1] as string, match[2] as string)}`;
-		table[selector] = version;
+		if (parsed === null || !PINNABLE_OPERATORS.has(parsed.operator)) continue;
+		const { version } = parsed;
+		if (version.prerelease.length > 0 || version.build.length > 0) continue;
+		const selector = scope === "any" ? name : `${name}@${releaseLine(version.major, version.minor)}`;
+		table[selector] = version.toString();
 	}
 	return table;
 }

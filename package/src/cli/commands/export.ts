@@ -2,7 +2,9 @@ import { existsSync } from "node:fs";
 import { dirname, relative } from "node:path";
 import type { BlockOf, Document } from "@effected/cli-kit";
 import { CliDoc, CliMessage } from "@effected/cli-kit";
-import { Data, Effect, FileSystem, Option, Predicate } from "effect";
+import { AtomicFile } from "@effected/files";
+import type { FileSystem, Path } from "effect";
+import { Data, Effect, Option, Predicate } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
 import type { PluginConfig } from "../../define-plugin.js";
 import { DESCRIPTORS } from "../../descriptors/index.js";
@@ -64,7 +66,7 @@ export function runExport(opts: {
 }): Effect.Effect<
 	{ path: string; rendered: string; written: boolean; diff: BlockOf<"Lines">; report: PatchReconcileReport },
 	ExportError,
-	FileSystem.FileSystem
+	FileSystem.FileSystem | Path.Path
 > {
 	return Effect.gen(function* () {
 		const { config, localCfg, path, parsed, source } = yield* loadConfigAndWorkspace(
@@ -127,10 +129,9 @@ export function runExport(opts: {
 		const diff = renderExportDiff(tree, { full: opts.full ?? false });
 
 		if (opts.preview) return { path, rendered, written: false, diff, report };
-		const fs = yield* FileSystem.FileSystem;
-		yield* fs
-			.writeFileString(path, rendered)
-			.pipe(Effect.mapError(() => new ExportError({ message: `Cannot write ${path}` })));
+		yield* AtomicFile.write(path, rendered).pipe(
+			Effect.mapError(() => new ExportError({ message: `Cannot write ${path}` })),
+		);
 		return { path, rendered, written: true, diff, report };
 	});
 }

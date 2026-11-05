@@ -72,6 +72,13 @@ describe("writeWorkspace", () => {
 		},
 	);
 
+	it("keeps a changed plain scalar plain when its siblings quote theirs", () => {
+		const source = "catalog:\n  a: 1.0.0 # plain\n  'b': '2.0.0'\n  'c': '3.0.0'\n  'd': '4.0.0'\n";
+		const ws = parseWorkspace(source) as { catalog: Record<string, string> };
+		ws.catalog.a = "1.1.0";
+		expect(writeWorkspace(source, ws)).toBe(source.replace("1.0.0", "1.1.0"));
+	});
+
 	it("inserts new keys and sequences in the file's own style", () => {
 		const source = fixture("double-indented.yaml");
 		const next = bumpEffect(source) as Record<string, unknown> & { catalogs: { effected: Record<string, string> } };
