@@ -1,4 +1,5 @@
-import { Predicate } from "effect";
+import { VersionSpecifier } from "@effected/semver";
+import { Predicate, Result } from "effect";
 import type { CatalogDeclaration } from "../catalogs.js";
 import { rangeOf } from "../catalogs.js";
 import { bareVersion } from "../semver-util.js";
@@ -29,8 +30,12 @@ export interface AllowedVersionsFromCatalogs {
 	readonly prefix?: string | null;
 }
 
-/** An exact version: no range operator, no wildcard — `X.Y.Z` with an optional prerelease. */
-const EXACT_VERSION = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
+/** An exact version: no range operator, no wildcard, no build metadata — `X.Y.Z` with an optional prerelease. */
+function isExactVersion(range: string): boolean {
+	// Not `SemVer`: it trims its input, and the raw text goes into the rule's key.
+	const spec = Result.getOrNull(VersionSpecifier.parseResult(range));
+	return spec !== null && spec.operator === "" && spec.version.build.length === 0;
+}
 
 /** Apply the `prefix` transform to a peer value: verbatim, re-prefixed, or stripped to exact. */
 function applyPrefix(peerValue: string, prefix: string | null | undefined): string {
@@ -60,7 +65,7 @@ function deriveOne(
 		// The qualifier must be exact to match the specific pinned parent instance;
 		// a range cannot qualify one exactly, and widening would recreate the masking
 		// risk — so non-exact entries are skipped, never widened.
-		if (!EXACT_VERSION.test(range)) continue;
+		if (!isExactVersion(range)) continue;
 		table[`${name}@${range}>${peer}`] = value;
 	}
 	return table;

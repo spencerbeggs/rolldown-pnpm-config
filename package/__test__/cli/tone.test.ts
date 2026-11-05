@@ -1,4 +1,5 @@
 import { Doc, Render } from "@effected/cli-kit";
+import { Sgr } from "@effected/env";
 import { describe, expect, it } from "vitest";
 import { row, tone } from "../../src/cli/render/tone.js";
 import { plainText } from "./utils/doc.js";
@@ -34,8 +35,7 @@ describe("tone", () => {
 		const r = row("+", 0, [tone("a", "added")]);
 		expect(ansi(r)).toContain("\x1b[32m");
 		expect(ansi(r, "none")).toBe("+ a");
-		// biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape codes are the subject
-		expect(ansi(r).replace(/\x1b\[[0-9;]*m/g, "")).toBe(plainText(Doc.line(r)));
+		expect(Sgr.strip(ansi(r))).toBe(plainText(Doc.line(r)));
 	});
 
 	it("never carries an escape for an agent, even through the ANSI renderer", () => {

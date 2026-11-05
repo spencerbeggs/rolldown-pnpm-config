@@ -1,4 +1,14 @@
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import {
+	chmodSync,
+	lstatSync,
+	mkdtempSync,
+	readFileSync,
+	readdirSync,
+	realpathSync,
+	statSync,
+	symlinkSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "@effect/vitest";
@@ -54,6 +64,49 @@ function setup(workspaceContent?: string): { dir: string; configFile: string; wo
 	if (workspaceContent !== undefined) writeFileSync(workspacePath, workspaceContent, "utf8");
 	return { dir, configFile, workspacePath };
 }
+
+describe("runExport atomic write", () => {
+	const BEFORE = "packages:\n  - pkg/*\n";
+	// Root ignores permission bits, so a permission refusal cannot be observed there.
+	const isRoot = process.getuid?.() === 0;
+
+	it.effect("writes through a symlinked target, keeps the link and its mode, and leaves no temp file", () =>
+		Effect.gen(function* () {
+			const { dir, configFile, workspacePath } = setup();
+			const real = join(dir, "real.yaml");
+			writeFileSync(real, BEFORE, "utf8");
+			chmodSync(real, 0o640);
+			symlinkSync(real, workspacePath);
+			yield* runExport({ configFile, workspacePath, preview: false });
+			expect(lstatSync(workspacePath).isSymbolicLink()).toBe(true);
+			expect(realpathSync(workspacePath)).toBe(realpathSync(real));
+			expect(readFileSync(real, "utf8")).toContain("publicHoistPattern");
+			expect(statSync(real).mode & 0o777).toBe(0o640);
+			expect(readdirSync(dir).filter((name) => name.endsWith(".tmp"))).toEqual([]);
+		}).pipe(provideNodeFs),
+	);
+
+	it.effect.skipIf(isRoot)("refuses a read-only target and leaves it untouched", () =>
+		Effect.gen(function* () {
+			const { configFile, workspacePath } = setup(BEFORE);
+			chmodSync(workspacePath, 0o444);
+			const exit = yield* Effect.exit(runExport({ configFile, workspacePath, preview: false }));
+			expect(Exit.isFailure(exit)).toBe(true);
+			expect(readFileSync(workspacePath, "utf8")).toBe(BEFORE);
+		}).pipe(provideNodeFs),
+	);
+
+	it.effect.skipIf(isRoot)("fails in a read-only directory even when the file itself is writable", () =>
+		Effect.gen(function* () {
+			const { dir, configFile, workspacePath } = setup(BEFORE);
+			chmodSync(dir, 0o555);
+			const exit = yield* Effect.exit(runExport({ configFile, workspacePath, preview: false }));
+			chmodSync(dir, 0o755);
+			expect(Exit.isFailure(exit)).toBe(true);
+			expect(readFileSync(workspacePath, "utf8")).toBe(BEFORE);
+		}).pipe(provideNodeFs),
+	);
+});
 
 describe("runExport", () => {
 	it.effect("overlays managed fields, applies local, preserves unknown, drops config-only", () =>

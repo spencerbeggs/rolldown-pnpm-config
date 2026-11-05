@@ -36,6 +36,7 @@
 		"@effect/platform-node": "catalog:effected",
 		"@effected/cli-kit": "catalog:effected",
 		"@effected/env": "catalog:effected",
+		"@effected/files": "catalog:effected",
 		"@effected/glob": "catalog:effected",
 		"@effected/npm": "catalog:effected",
 		"@effected/semver": "catalog:effected",
@@ -49,7 +50,6 @@
 	},
 	"devDependencies": {
 		"@effect/vitest": "catalog:effected",
-		"@effected/config-file": "catalog:effected",
 		"@effected/toml": "catalog:effected",
 		"@savvy-web/bundler": "^2.7.3",
 		"@types/node": "catalog:silk",

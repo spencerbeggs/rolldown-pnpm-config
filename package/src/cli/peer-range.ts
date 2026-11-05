@@ -1,5 +1,5 @@
-import { SemVer } from "@effected/semver";
-import { Data, Effect } from "effect";
+import { VersionSpecifier } from "@effected/semver";
+import { Data, Effect, Result } from "effect";
 import type { PeerStrategy } from "../catalogs.js";
 
 /**
@@ -26,8 +26,8 @@ export interface PeerDerivation {
 	readonly warning: PeerWarning | null;
 }
 
-/** Splits a simple range into its operator prefix and version (e.g. `^6.5.1`). */
-const PREFIX_RE = /^(\^|~|)(\d.*)$/;
+/** The operators a peer range can be derived from; `VersionSpecifier` also admits comparators such as `>=`. */
+const DERIVABLE_OPERATORS: ReadonlySet<string> = new Set(["^", "~", ""]);
 
 /**
  * Recompute a materialized peer range from a package range and a strategy.
@@ -53,14 +53,12 @@ const PREFIX_RE = /^(\^|~|)(\d.*)$/;
  */
 export function derivePeerRange(range: string, strategy: PeerStrategy): Effect.Effect<PeerDerivation, PeerRangeError> {
 	return Effect.gen(function* () {
-		const match = PREFIX_RE.exec(range);
-		if (!match) {
+		const spec = Result.getOrNull(VersionSpecifier.parseResult(range));
+		if (spec === null || !DERIVABLE_OPERATORS.has(spec.operator)) {
 			return yield* Effect.fail(new PeerRangeError({ message: `Cannot derive peer range from "${range}"` }));
 		}
-		const [, prefix, version] = match;
-		const parsed = yield* SemVer.parse(version).pipe(
-			Effect.mapError(() => new PeerRangeError({ message: `Invalid version in range "${range}"` })),
-		);
+		const { operator: prefix, version: parsed } = spec;
+		const version = range.slice(prefix.length);
 		// "lock" reuses `version` verbatim rather than reconstructing from
 		// components, so prerelease and build identifiers survive.
 		if (strategy === "lock") {

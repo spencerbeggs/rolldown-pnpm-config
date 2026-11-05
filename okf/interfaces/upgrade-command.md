@@ -6,7 +6,7 @@ kind: cli
 resource: ../../package/src/cli/commands/upgrade.ts
 generated:
   by: okfit/claude-code
-  at: 2026-10-27T16:27:34Z
+  at: 2026-11-05T22:58:21Z
 sources:
   - id: upgrade-ts
     resource: ../../package/src/cli/commands/upgrade.ts
@@ -14,7 +14,7 @@ sources:
     resource: ../../package/src/cli/bin.ts
 integrity:
   generated:
-    body: 3cb8adadd2ea581c
+    body: 1caab28e5bee913a
 ---
 
 # upgrade command
@@ -62,6 +62,11 @@ Declared at `package/src/cli/commands/upgrade.ts:780-786`:
   `--yes`, or `--dry-run` — never with `--preview` or the bare interactive
   default.[^upgrade-ts] There is no `--json`: it was retired for
   `--format json` and is now an unknown flag (exit `64`).
+
+Whichever flags reach the final write, it is atomic: a temp file beside the
+config, then a rename over it. A symlinked config keeps its link and a file
+keeps its mode. The directory must be writable as well as the file, and a
+read-only config is refused with `Cannot write <file>`.[^upgrade-ts]
 
 ## Interactive default and non-interactive fallback
 

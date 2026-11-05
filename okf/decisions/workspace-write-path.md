@@ -5,7 +5,7 @@ description: export applies path-targeted YamlFormat.modify edits over the exist
 status: stable
 generated:
   by: okfit/claude-code
-  at: 2026-11-02T15:23:26Z
+  at: 2026-11-05T22:58:21Z
 sources:
   - id: workspace-file
     resource: ../../package/src/cli/workspace-file.ts
@@ -22,13 +22,15 @@ verified:
     at: 2026-11-01T21:52:55Z
   - by: human:spencer
     at: 2026-11-02T19:10:04Z
+  - by: human:spencer
+    at: 2026-11-05T22:55:27Z
 integrity:
   generated:
-    body: 65feedbe74de99ea
+    body: 7fdca509b585edf9
   verified:
     by: human:spencer
-    at: 2026-11-02T19:10:04Z
-    content: f1539fc5c3af173e
+    at: 2026-11-05T22:55:27Z
+    content: 8d1be27ce51738f7
 ---
 
 # Export writes pnpm-workspace.yaml as edits, not a re-render
@@ -48,9 +50,10 @@ per changed path over the existing source.[^workspace-file] Each change takes
 one of these routes:
 
 - **Scalar splice.** A primitive replacing an existing scalar is spliced into
-  that scalar's own source span, unstyled, keeping its quote character and
-  trailing comment. The result is accepted only when every edit stays inside
-  the target scalar's span.[^workspace-file]
+  that scalar's own source span by `modify`, keeping its quote character and
+  trailing comment. It skips the re-quoting below, so the author's spelling of
+  that one value stands even when its siblings quote
+  theirs.[^workspace-file][^style-tests]
 - **Per-item list edits.** A list of primitives on both sides loses the items
   the result no longer holds and gains the new ones appended, so every other
   item's line is untouched. Matching is by value, so a reorder is not a
@@ -86,11 +89,15 @@ fallback.[^workspace-file][^style-tests]
 - **Re-render with inferred style only** (the issue's original scope). This
   fixes indentation and quoting but still drops comments and re-sorts the
   author's keys.[^issue-280]
-- **Always pass the style options to `modify`.** Any `indent` or
-  `indentSequences` option disables `modify`'s in-place scalar splice and
-  sends it down the whole-document path, which re-styles the replaced scalar
-  and drops its comment. Hence the unstyled splice attempt first, a
-  workaround for spencerbeggs/effected#1219.[^workspace-file]
+- **An unstyled `modify` attempt before the styled one.** `@effected/yaml`
+  before 0.29.0 turned off the in-place splice whenever `indent` or
+  `indentSequences` was passed, which dropped the replaced scalar's comment and
+  quotes, so a local `spliceScalar` tried an unstyled edit first. 0.29.0 fixed
+  that (spencerbeggs/effected#1219) and the workaround was removed; every
+  change now takes one styled `modify`.[^workspace-file]
+- **Re-quote every written value to match its siblings.** A plain scalar among
+  quoted siblings would gain quotes on a version bump, rewriting a spelling the
+  author chose.[^style-tests]
 - **Replace a changed list whole.** Every item is rewritten, sorted and
   re-quoted, so adding one entry to an all-quoted list rewrites every
   line.[^style-tests]
