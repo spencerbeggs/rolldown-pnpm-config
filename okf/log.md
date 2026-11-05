@@ -5,6 +5,7 @@
 * Updated Export writes pnpm-workspace.yaml as edits, not a re-render
 * Updated export and preview commands
 * Updated upgrade command
+* Updated "lock" pins to the version verbatim
 
 ## 2026-11-02
 

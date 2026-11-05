@@ -21,6 +21,17 @@ const catalogs: Record<string, CatalogDeclaration> = {
 };
 
 describe("deriveAllowedVersions", () => {
+	it.each(["1.2.3 ", " 1.2.3", "\t1.2.3\n", "01.2.3", "1.2.3-beta.01", "1.2.3+build.7", "=1.2.3", "v1.2.3"])(
+		"skips %j, which is not an exact version a qualifier can name",
+		(range) => {
+			const table = deriveAllowedVersions(
+				{ c: { packages: { peer: "^2.0.0", exact: "1.2.3", candidate: range } } },
+				{ catalog: "c", peer: "peer" },
+			);
+			expect(table).toEqual({ "exact@1.2.3>peer": "^2.0.0" });
+		},
+	);
+
 	it("emits a rule per exact entry (any strategy, incl. bare strings), valued at the verbatim peer version", () => {
 		const table = deriveAllowedVersions(catalogs, { catalog: "effect", peer: "effect" });
 		expect(table).toEqual({

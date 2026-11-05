@@ -1,7 +1,8 @@
-import { Predicate } from "effect";
+import { VersionSpecifier } from "@effected/semver";
+import { Predicate, Result } from "effect";
 import type { CatalogDeclaration } from "../catalogs.js";
 import { rangeOf } from "../catalogs.js";
-import { bareVersion, parseVersion } from "../semver-util.js";
+import { bareVersion } from "../semver-util.js";
 
 /**
  * A directive that derives `peerDependencyRules.allowedVersions` rules from a
@@ -31,8 +32,9 @@ export interface AllowedVersionsFromCatalogs {
 
 /** An exact version: no range operator, no wildcard, no build metadata — `X.Y.Z` with an optional prerelease. */
 function isExactVersion(range: string): boolean {
-	const version = parseVersion(range);
-	return version !== null && version.build.length === 0;
+	// Not `SemVer`: it trims its input, and the raw text goes into the rule's key.
+	const spec = Result.getOrNull(VersionSpecifier.parseResult(range));
+	return spec !== null && spec.operator === "" && spec.version.build.length === 0;
 }
 
 /** Apply the `prefix` transform to a peer value: verbatim, re-prefixed, or stripped to exact. */

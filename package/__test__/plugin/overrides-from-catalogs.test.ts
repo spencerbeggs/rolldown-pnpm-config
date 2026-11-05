@@ -17,6 +17,14 @@ const catalogs: Record<string, CatalogDeclaration> = {
 };
 
 describe("deriveOverrides", () => {
+	it.each(["1.2.3 ", " 1.2.3", "^ 1.2.3", "01.2.3", "^01.2.3", "1.2.3+build.7", ">1.2.3", "<=1.2.3", "v1.2.3"])(
+		"skips %j, which is not a simple operator on a plain version",
+		(range) => {
+			const table = deriveOverrides({ c: { packages: { plain: "^1.2.3", candidate: range } } }, { catalog: "c" });
+			expect(table).toEqual({ "plain@^1.0.0": "1.2.3" });
+		},
+	);
+
 	it("pins every simple-range member to its exact catalog version, scoped to its caret line", () => {
 		expect(deriveOverrides(catalogs, { catalog: "effect" })).toEqual({
 			"effect@^4.0.0": "4.0.3",

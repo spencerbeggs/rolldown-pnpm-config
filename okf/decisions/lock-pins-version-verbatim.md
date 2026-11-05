@@ -5,7 +5,7 @@ description: "derivePeerRange's \"lock\" strategy reuses the range's version tex
 status: stable
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
+  at: 2026-11-05T23:10:28Z
 sources:
   - id: peer-range
     resource: package/src/cli/peer-range.ts
@@ -19,7 +19,7 @@ verified:
     at: 2026-11-01T21:52:55Z
 integrity:
   generated:
-    body: 4300076f6f5de335
+    body: 9ff8779cca406bdf
   verified:
     by: human:spencer
     at: 2026-11-01T21:52:55Z
@@ -30,7 +30,7 @@ integrity:
 
 ## Context
 
-`derivePeerRange(range, strategy)` (`package/src/cli/peer-range.ts:54-83`)
+`derivePeerRange(range, strategy)` (`package/src/cli/peer-range.ts:54-81`)
 is the single offline primitive that recomputes a catalog entry's
 materialized `peer` literal from its `range` and
 `PeerStrategy`.[^peer-range] An earlier implementation reconstructed the
@@ -51,7 +51,7 @@ reported symptom the fix addresses.[^drift][^edits]
 `"lock"` pins to the version **as given**: `derivePeerRange` reuses the
 range's version text verbatim (operator preserved) rather than rebuilding
 it from parsed components, so prerelease and build identifiers survive
-intact (`peer-range.ts:64-67`).[^peer-range] `"lock-minor"` still floors a
+intact (`peer-range.ts:62-65`).[^peer-range] `"lock-minor"` still floors a
 **stable** version's patch to `.0` and intentionally drops build metadata
 in doing so — build metadata identifies a specific build of the
 un-floored version, and semver ignores it when matching ranges
@@ -60,7 +60,7 @@ meaningful operation — `^3.0.0` excludes `3.0.0-next.8` outright, excluding
 the very version being catalogued — so `"lock-minor"` degrades to
 `"lock"` behavior and returns a `lock-minor-prerelease` warning rather
 than silently emitting a range that can never be satisfied
-(`peer-range.ts:69-80`).[^peer-range] `derivePeerRange` therefore returns
+(`peer-range.ts:67-78`).[^peer-range] `derivePeerRange` therefore returns
 `{ range, warning }` (`PeerDerivation`, `peer-range.ts:24-27`) rather than
 a bare string, so the warning can propagate to every consumer — the
 interactive table row, the summary, export output, and `--yes`'s
@@ -86,7 +86,7 @@ producing garbage.
   pinned to a prerelease track; degrading to `lock` behavior and
   surfacing a warning lets the run proceed while still telling the author
   their strategy choice does not fit the pinned line
-  (`peer-range.ts:69-80`).[^peer-range]
+  (`peer-range.ts:67-78`).[^peer-range]
 - **Keep `derivePeerRange`'s return type as a bare string and encode the
   warning some other way (a side channel, a thrown error).** Rejected: the
   warning has to reach the interactive table row, the summary, and the
