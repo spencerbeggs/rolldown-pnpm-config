@@ -51,7 +51,7 @@
 	"devDependencies": {
 		"@effect/vitest": "catalog:effected",
 		"@effected/toml": "catalog:effected",
-		"@savvy-web/bundler": "^2.7.3",
+		"@savvy-web/bundler": "^2.7.4",
 		"@types/node": "catalog:silk",
 		"@types/react": "catalog:silk",
 		"rolldown": "catalog:build",
