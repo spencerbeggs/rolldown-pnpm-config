@@ -5,7 +5,7 @@ description: "The examples/* workspaces resolve rolldown-pnpm-config to package/
 status: draft
 generated:
   by: okfit/claude-code
-  at: 2026-11-08T20:36:01Z
+  at: 2026-11-08T21:16:18Z
 sources:
   - id: package-package-json
     resource: ../../package/package.json
@@ -24,7 +24,7 @@ tags:
   - dx
 integrity:
   generated:
-    body: 88b01ecb61becf15
+    body: b7aa2627b6697939
 ---
 
 # Workspace consumers link the package's TypeScript source through tsx
@@ -81,8 +81,12 @@ is what the tests exercise; the test global setup builds it with
 - `tsx` is a root-only devDependency and a hard requirement for running the
   examples' scripts; removing `nodeOptions` from `pnpm-workspace.yaml` breaks
   every workspace link.
-- The examples' own `build:dev`/`build:prod` tasks still depend on `^build`,
-  so Turbo builds the package before them even though they load its source.
+- The examples' own `build:dev`/`build:prod` tasks do not depend on `^build`,
+  because they load the package's source, not its build. They list
+  `package/src/**` and `package/package.json` as Turbo inputs, so a source
+  edit still invalidates their cache. A `^build` edge was tried first and
+  broke `pnpm install`: the three example `prepare` hooks run in parallel,
+  and each built the package into the same `dist/prod`.
 
 [^build-command]: `npm:@effected/cli/commands/package/build.js`
 [^package-package-json]: `package/package.json`

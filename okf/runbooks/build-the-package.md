@@ -6,7 +6,7 @@ resource: ../../package/effected.toml
 status: draft
 generated:
   by: okfit/claude-code
-  at: 2026-11-08T20:36:01Z
+  at: 2026-11-08T21:16:18Z
 sources:
   - id: effected-toml
     resource: ../../package/effected.toml
@@ -25,7 +25,7 @@ tags:
   - architecture
 integrity:
   generated:
-    body: b53c5135e35f80fd
+    body: a5b5ebd716f31879
 ---
 
 # Build the package
@@ -53,8 +53,9 @@ There is one build of `package/` and no dev build. Workspace consumers
    emitted declarations, and writes `dist/prod/`.[^package-package-json][^effected-toml]
 3. At the root, `pnpm run build` runs `turbo run build build:dev build:prod`.
    The package answers to `build`; `build:dev` and `build:prod` are the
-   example consumers' own tasks, which depend on `^build` so the package is
-   built before them.[^root-package-json][^turbo-json]
+   example consumers' own tasks. They do not depend on `^build`, since they
+   load the package's source, and they hash `package/src/**` as an input
+   instead.[^root-package-json][^turbo-json]
 
 ## What the emitted manifest transform does
 

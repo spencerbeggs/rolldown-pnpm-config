@@ -122,8 +122,11 @@ verifiable here.
 
 - `types:check` runs first; it depends only on `^types:check`
 - The package's `build` depends on `types:check` and outputs `dist/prod/**`
-- The examples' `build:dev` and `build:prod` depend on `^build`, so the
-  package builds first
+- The examples' `build:dev` and `build:prod` do not depend on `^build`: they
+  load the package's source, and hash `package/src/**` as an input instead.
+  A `^build` edge would make the three example `prepare` hooks, which
+  `pnpm install` runs in parallel, each build the package into the same
+  `dist/prod`, and install fails with `ENOENT`
 - Cache excludes: `*.md`, `.changeset/**`, `.claude/**`, `.github/**`,
   `.husky/**`, `.vscode/**`
 - Environment pass-through: `GITHUB_ACTIONS`, `CI`
