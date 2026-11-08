@@ -1,5 +1,36 @@
 # rolldown-pnpm-config
 
+## 2.4.3
+
+### Bug Fixes
+
+- The release-age gate reads `minimumReleaseAge` and `minimumReleaseAgeExclude` from `pnpm_config_*` variables, `pnpm-workspace.yaml` and pnpm's global `config.yaml`, in pnpm's own precedence. It no longer spawns `pnpm config get`. Registry lookups still go through `pnpm view`, so `.npmrc` registries, tokens, proxies and CA settings apply as before.
+- Pending changeset bumps are read the way changesets reads them. One malformed changeset file now leaves every workspace package at its current version, where before only that file was skipped.
+
+### Build System
+
+- The package is built with `effected package build`. The published files are unchanged. [#294][#294]
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/cli-kit | dependency | updated | ^0.27.0 | ^0.27.1 |
+| @effected/files | dependency | updated | ^0.1.0 | ^0.2.0 |
+| @effected/glob | dependency | updated | ^0.19.0 | ^0.20.0 |
+| @effected/npm | dependency | updated | ^0.30.1 | ^0.31.0 |
+| @effected/walker | dependency | updated | ^0.25.1 | ^0.26.0 |
+| @effected/workspaces | dependency | updated | ^0.43.0 | ^0.44.0 |
+| @effected/changesets | dependency | added | — | ^0.1.0 |
+
+[#294][#294]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#294]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/294
+
 ## 2.4.2
 
 ### Bug Fixes
