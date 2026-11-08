@@ -27,13 +27,12 @@
 		"rolldown-pnpm-config": "./src/cli/bin.ts"
 	},
 	"scripts": {
-		"build:dev": "node savvy.build.ts --target dev",
-		"build:prod": "node savvy.build.ts --target prod",
-		"prepare": "turbo run build:dev",
+		"build": "effected package build",
 		"types:check": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@effect/platform-node": "catalog:effected",
+		"@effected/changesets": "catalog:effected",
 		"@effected/cli-kit": "catalog:effected",
 		"@effected/env": "catalog:effected",
 		"@effected/files": "catalog:effected",
@@ -50,8 +49,8 @@
 	},
 	"devDependencies": {
 		"@effect/vitest": "catalog:effected",
+		"@effected/memfs": "catalog:effected",
 		"@effected/toml": "catalog:effected",
-		"@savvy-web/bundler": "^2.7.4",
 		"@types/node": "catalog:silk",
 		"@types/react": "catalog:silk",
 		"rolldown": "catalog:build",
@@ -70,8 +69,6 @@
 	},
 	"publishConfig": {
 		"access": "public",
-		"directory": "dist/dev/pkg",
-		"linkDirectory": true,
 		"targets": {
 			"npm": true
 		}

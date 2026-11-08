@@ -6,7 +6,7 @@ resource: ../../package/src/cli
 kind: package
 generated:
   by: okfit/claude-code
-  at: 2026-11-02T19:10:49Z
+  at: 2026-11-08T20:36:01Z
 sources:
   - id: bin
     resource: package/src/cli/bin.ts
@@ -24,7 +24,7 @@ sources:
     resource: package/src/cli/effective.ts
 integrity:
   generated:
-    body: 135209f5279b9d0a
+    body: 9aebdc7c8a846d64
 ---
 
 # CLI
@@ -98,9 +98,15 @@ runtime or `base`.[^local-merge] The interactive `upgrade` table
 (`interop-live.ts`), and the release-age gate readers (`release-age.ts`)
 are internal to the `upgrade` pipeline; `resolve.ts`/`workspace-resolve.ts`
 are the two `RegistryResolver` implementations behind one
-`Context.Service` seam. The live one (`RegistryResolverLive`, which spawns
-`pnpm view`) is provided once in `main.ts`, at the edge, so a test drives
-the real command tree against a stub resolver. The release-age gate reads
+`Context.Service` seam. The live one (`RegistryResolverLive`) reads the
+registry through `@effected/npm`'s `NpmRegistry`, routed and authenticated
+by `NpmConfig` (the project `.npmrc` at the workspace root, then the user
+npmrc), and pnpm's release-age settings through `@effected/workspaces`'
+`PnpmSettings`; it spawns no `pnpm`. It is provided once in `main.ts`, at
+the edge, so a test drives the real command tree against a stub resolver.
+Pending changeset bumps are read by `@effected/changesets`'
+`PendingChangesets`, all or nothing: one malformed changeset leaves every
+package at its current version. The release-age gate reads
 the time from Effect's `Clock`, never `Date.now()`.
 
 See [static-config-discovery](../decisions/static-config-discovery.md) and

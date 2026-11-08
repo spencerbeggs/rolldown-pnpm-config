@@ -20,7 +20,7 @@ import type { GroupModel } from "../interop-live.js";
 import { buildGroupModel, computeGroupPeers } from "../interop-live.js";
 import { derivePeerRange } from "../peer-range.js";
 import { defaultPick, planEntry } from "../plan.js";
-import { parsePnpmGate, readConfigReleaseAge } from "../release-age.js";
+import { readConfigReleaseAge } from "../release-age.js";
 import { failureDoc, warningDoc } from "../render/report.js";
 import { RegistryResolver } from "../resolve.js";
 import { applyEdits } from "../rewrite.js";
@@ -134,7 +134,7 @@ export interface UpgradeRunResult {
 interface Resolver {
 	readonly versions: (pkg: string) => Effect.Effect<string[], unknown>;
 	readonly times: (pkg: string) => Effect.Effect<Record<string, string>, unknown>;
-	readonly pnpmConfig: (key: string) => Effect.Effect<string | null, unknown>;
+	readonly pnpmReleaseAge: () => Effect.Effect<PartialReleaseAgeGate | null, unknown>;
 	readonly peerDependencies: (pkg: string, version: string) => Effect.Effect<Record<string, string>, unknown>;
 }
 
@@ -171,15 +171,9 @@ export function computeGate(source: string, file: string, resolver: Resolver): E
 			Effect.orElseSucceed(() => ({ config: null })),
 		);
 		const cfg = readConfigReleaseAge(config);
-		// The two pnpmConfig reads are independent — fetch them concurrently.
-		const [age, exc] = yield* Effect.all(
-			[
-				resolver.pnpmConfig("minimumReleaseAge").pipe(Effect.orElseSucceed(() => null)),
-				resolver.pnpmConfig("minimumReleaseAgeExclude").pipe(Effect.orElseSucceed(() => null)),
-			],
-			{ concurrency: "unbounded" },
-		);
-		const contributions = [cfg, parsePnpmGate(age, exc)].filter((g): g is PartialReleaseAgeGate => g !== null);
+		// pnpm's own settings: an unreadable settings file degrades to no contribution.
+		const pnpm = yield* resolver.pnpmReleaseAge().pipe(Effect.orElseSucceed(() => null));
+		const contributions = [cfg, pnpm].filter((g): g is PartialReleaseAgeGate => g !== null);
 		return ReleaseAgeGate.combine(...contributions);
 	});
 }
@@ -241,7 +235,7 @@ export function resolveGatedVersions(
 					// younger than the gate. The times fetch is skipped entirely when no age
 					// gate is active (filterVersions is the identity at ageMinutes === 0), and
 					// otherwise runs concurrently with the versions fetch — both are
-					// independent `pnpm view` spawns of the same packument.
+					// independent registry reads of the same packument.
 					const needTimes = !fromWorkspace && gate.ageMinutes > 0;
 					const [vr, times] = yield* Effect.all(
 						[

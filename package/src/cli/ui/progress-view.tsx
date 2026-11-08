@@ -1,3 +1,4 @@
+/** @jsxRuntime automatic */
 import { Status } from "@effected/cli-kit";
 import { Styled, useGlyphs, useTheme } from "@effected/cli-kit/ui";
 import { Text } from "ink";

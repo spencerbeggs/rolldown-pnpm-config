@@ -27,7 +27,7 @@ function trackingRegistry() {
 			return Effect.fail(new Error("registry must not be consulted"));
 		},
 		peerDependencies: () => Effect.succeed({}),
-		pnpmConfig: () => Effect.succeed<string | null>(null),
+		pnpmReleaseAge: () => Effect.succeed(null),
 	};
 }
 
@@ -83,7 +83,7 @@ describe("source routing in resolveGatedVersions", () => {
 					versions: () => Effect.succeed(["1.0.0", "1.1.0"]),
 					times: () => Effect.succeed({}),
 					peerDependencies: () => Effect.succeed({}),
-					pnpmConfig: () => Effect.succeed<string | null>(null),
+					pnpmReleaseAge: () => Effect.succeed(null),
 				},
 				ReleaseAgeGate.combine(),
 				Date.now(),
@@ -108,7 +108,7 @@ describe("source routing in resolveGatedVersions", () => {
 					versions: (_pkg: string) => Effect.succeed(["0.1.0", "0.2.5"]),
 					times: (_pkg: string) =>
 						Effect.succeed<Record<string, string>>({ "0.1.0": iso(30 * 86_400_000), "0.2.5": iso(60_000) }),
-					pnpmConfig: () => Effect.succeed<string | null>(null),
+					pnpmReleaseAge: () => Effect.succeed(null),
 					peerDependencies: () => Effect.succeed<Record<string, string>>({}),
 				};
 				const workspaceEntry = entry("@fix/bumped", "^0.2.0", "workspace", "effected");

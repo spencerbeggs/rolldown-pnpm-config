@@ -3,9 +3,34 @@
 	"agentGuidance": false,
 	"globalPassThroughEnv": ["GITHUB_ACTIONS", "CI"],
 	"tasks": {
+		"build": {
+			"cache": true,
+			"dependsOn": ["types:check"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				"$TURBO_ROOT$/package.json",
+				"$TURBO_ROOT$/pnpm-workspace.yaml",
+				"$TURBO_ROOT$/pnpm-lock.yaml",
+				"$TURBO_ROOT$/tsconfig.json",
+				"$TURBO_ROOT$/.changeset/**",
+				"README.md",
+				"LICENSE",
+				"package.json",
+				"tsconfig.json",
+				"*.ts",
+				"*.mts",
+				"*.cts",
+				"public/**/*",
+				"lib/**/*",
+				"src/**/*",
+				"effected.toml"
+			],
+			"outputLogs": "full",
+			"outputs": ["dist/prod/**"]
+		},
 		"build:dev": {
 			"cache": true,
-			"dependsOn": ["^build:dev"],
+			"dependsOn": ["^build"],
 			"inputs": [
 				"$TURBO_DEFAULT$",
 				"$TURBO_ROOT$/package.json",
@@ -28,7 +53,7 @@
 		},
 		"build:prod": {
 			"cache": true,
-			"dependsOn": ["types:check", "build:dev"],
+			"dependsOn": ["types:check", "build:dev", "^build"],
 			"inputs": [
 				"$TURBO_DEFAULT$",
 				"$TURBO_ROOT$/package.json",
@@ -52,7 +77,7 @@
 		},
 		"types:check": {
 			"cache": true,
-			"dependsOn": ["^build:dev"],
+			"dependsOn": ["^types:check"],
 			"inputs": [
 				"$TURBO_DEFAULT$",
 				"*.ts",

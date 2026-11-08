@@ -1,0 +1,6 @@
+[package.build]
+# rolldown is a devDep for type resolution only; externalize it from the dts
+# pass so its types are NOT inlined into index.d.ts (which would create a
+# second identity for rolldown's Plugin type, causing exactOptionalPropertyTypes
+# mismatches when consumers also use rolldown through their own bundler).
+dtsExternals = ["rolldown"]

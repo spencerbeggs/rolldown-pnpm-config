@@ -1,5 +1,12 @@
 # Log
 
+## 2026-11-08
+
+* Added Build the package
+* Updated CLI
+* Updated Never set private to false in the source package.json
+* Added Workspace consumers link the package's TypeScript source through tsx
+
 ## 2026-11-05
 
 * Updated Export writes pnpm-workspace.yaml as edits, not a re-render

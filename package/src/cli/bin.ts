@@ -1,4 +1,16 @@
 #!/usr/bin/env node
-import { main } from "./main.js";
+
+// The example workspaces link this package's source, which needs tsx, and a pnpm script loads it through
+// nodeOptions. A direct run of the linked `.bin/rolldown-pnpm-config` does not, so the bin registers tsx here,
+// before anything resolves the source. A built `.js` bin never takes this branch. tsx is the workspace root's
+// alone, and the specifier is computed because rolldown inlines a literal, or a const it can fold, into the
+// published package.
+if (import.meta.url.endsWith(".ts")) {
+	const tsx = ["tsx", "esm", "api"].join("/");
+	const { register } = (await import(tsx)) as { readonly register: () => void };
+	register();
+}
+
+const { main } = await import("./main.js");
 
 main();
