@@ -1,8 +1,6 @@
 import { NodeRuntime, NodeServices } from "@effect/platform-node";
 import { CliAudience, CliRuntime } from "@effected/cli-kit";
-import { NpmRegistry } from "@effected/npm";
-import { Effect, Layer } from "effect";
-import { FetchHttpClient } from "effect/http";
+import { Effect } from "effect";
 import { WorkingDirectory } from "./cwd.js";
 import { EXIT_CODES } from "./exit-codes.js";
 import { RegistryResolverLive } from "./resolve.js";
@@ -17,10 +15,10 @@ import { CLI_VERSION } from "./version.js";
  * kit reads it from when `env.stderrIsTerminal` is omitted.
  *
  * The registry resolver is provided here, at the edge, so a test drives the
- * same command tree against a stub resolver. It reads the registry over core's
- * fetch-backed `HttpClient` (`NpmRegistry.layer`), its npmrc and pnpm settings
- * from `process.cwd()` / `process.env` / `process.platform`, and the platform's
- * `FileSystem` and `Path` (from `NodeServices.layer`, provided by `main`).
+ * same command tree against a stub resolver. It spawns `pnpm view` through the
+ * platform's `ChildProcessSpawner`, reads pnpm's settings from
+ * `process.cwd()` / `process.env` / `process.platform`, and takes `FileSystem`
+ * and `Path` from `NodeServices.layer`, provided by `main`.
  *
  * `CliRuntime.main` builds the audience, terminal and theme from `env`,
  * decides whether the run may prompt, reports every failure on stderr for the
@@ -31,10 +29,7 @@ import { CLI_VERSION } from "./version.js";
  */
 export function main(): void {
 	const cwd = process.cwd();
-	const resolverLayer = RegistryResolverLive({ cwd, env: process.env, platform: process.platform }).pipe(
-		Layer.provide(NpmRegistry.layer),
-		Layer.provide(FetchHttpClient.layer),
-	);
+	const resolverLayer = RegistryResolverLive({ cwd, env: process.env, platform: process.platform });
 	const program = CliAudience.run(rootCommand, { version: CLI_VERSION }).pipe(
 		Effect.provideService(WorkingDirectory, cwd),
 		Effect.provide(resolverLayer),
