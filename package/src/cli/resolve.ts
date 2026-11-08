@@ -121,6 +121,8 @@ export function RegistryResolverLive(
 			return {
 				versions: (pkg: string) =>
 					read(pkg, (target) => registry.versions(pkg, target)).pipe(
+						// NpmRegistry.versions answers [] for a package not on the registry; read that as "not found"
+						// until spencerbeggs/effected#1305 gives absence a typed form. Tracked locally in #292.
 						Effect.flatMap((versions) =>
 							versions.length === 0
 								? Effect.fail(new ResolveError({ pkg, message: `${pkg} was not found on the registry` }))

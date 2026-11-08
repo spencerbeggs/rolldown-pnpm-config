@@ -71,6 +71,8 @@ export function readManifests(rootDir: string): Map<string, Manifest> {
 function readPendingBumps(rootDir: string): Map<string, BumpType> {
 	const out = new Map<string, BumpType>();
 	const pending = PendingChangesets.readSync(rootDir);
+	// All or nothing until spencerbeggs/effected#1306 ships a tolerant read: one malformed changeset fails the whole
+	// directory, so every package keeps its current version. Tracked locally in #293.
 	if (Result.isFailure(pending)) return out;
 	for (const changeset of pending.success) {
 		for (const [pkg, release] of changeset.releases) {
