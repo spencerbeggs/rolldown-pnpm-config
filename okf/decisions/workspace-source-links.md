@@ -2,7 +2,7 @@
 type: Decision
 title: Workspace consumers link the package's TypeScript source through tsx
 description: "The examples/* workspaces resolve rolldown-pnpm-config to package/src/*.ts, loaded by tsx via pnpm's nodeOptions, instead of to a dev build output."
-status: draft
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-11-08T21:16:18Z
@@ -25,6 +25,13 @@ tags:
 integrity:
   generated:
     body: b7aa2627b6697939
+  verified:
+    by: human:spencer
+    at: 2026-11-08T21:37:34Z
+    content: 29ba262018a05804
+verified:
+  - by: human:spencer
+    at: 2026-11-08T21:37:34Z
 ---
 
 # Workspace consumers link the package's TypeScript source through tsx
