@@ -1,19 +1,15 @@
 /**
- * Concurrency unit tests for resolveGatedVersions and computeGate.
+ * Concurrency unit tests for resolveGatedVersions and runInterop.
  *
  * resolveGatedVersions tests MUST fail against the sequential for...of implementation
  * (max in-flight === 1) and pass after the Effect.forEach + bounded-concurrency
  * refactor (max in-flight > 1, <= RESOLVE_CONCURRENCY).
- *
- * computeGate tests MUST fail against the sequential yield* + yield* pattern
- * (max in-flight === 1) and pass after Effect.all parallelization
- * (max in-flight === 2).
  */
 
 import { describe, expect, it } from "@effect/vitest";
 import { ReleaseAgeGate } from "@effected/npm";
 import { Effect } from "effect";
-import { computeGate, resolveGatedVersions } from "../../src/cli/commands/upgrade.js";
+import { resolveGatedVersions } from "../../src/cli/commands/upgrade.js";
 import type { CatalogEntry } from "../../src/cli/types.js";
 
 /** The concurrency limit the production code exports / uses. Must match the constant in upgrade.ts. */
@@ -72,7 +68,7 @@ describe("resolveGatedVersions (concurrency)", () => {
 					});
 				},
 				times: (_pkg: string) => Effect.succeed<Record<string, string>>({}),
-				pnpmConfig: (_key: string) => Effect.succeed<string | null>(null),
+				pnpmReleaseAge: () => Effect.succeed(null),
 				peerDependencies: (_pkg: string, _version: string) => Effect.succeed<Record<string, string>>({}),
 			};
 
@@ -110,7 +106,7 @@ describe("resolveGatedVersions (fail-closed semantics)", () => {
 				versions: (pkg: string) =>
 					pkg === "bad-pkg" ? Effect.fail(new Error("registry down")) : Effect.succeed(["1.0.0"]),
 				times: (_pkg: string) => Effect.succeed<Record<string, string>>({}),
-				pnpmConfig: (_key: string) => Effect.succeed<string | null>(null),
+				pnpmReleaseAge: () => Effect.succeed(null),
 				peerDependencies: (_pkg: string, _version: string) => Effect.succeed<Record<string, string>>({}),
 			};
 			const gate = ReleaseAgeGate.combine({ ageMinutes: 0 });
@@ -151,7 +147,7 @@ describe("resolveGatedVersions (fail-closed semantics)", () => {
 				versions: (_pkg: string) => Effect.succeed(["1.0.0", "2.0.0"]),
 				times: (_pkg: string) =>
 					Effect.succeed<Record<string, string>>({ "1.0.0": iso(30 * 86_400_000), "2.0.0": iso(60_000) }),
-				pnpmConfig: (_key: string) => Effect.succeed<string | null>(null),
+				pnpmReleaseAge: () => Effect.succeed(null),
 				peerDependencies: (_pkg: string, _version: string) => Effect.succeed<Record<string, string>>({}),
 			};
 			const gate = ReleaseAgeGate.combine({ ageMinutes: 1440 });
@@ -171,7 +167,7 @@ describe("resolveGatedVersions (fail-closed semantics)", () => {
 			const resolver = {
 				versions: (_pkg: string) => Effect.succeed(["1.0.0", "2.0.0"]),
 				times: (_pkg: string) => Effect.fail(new Error("times unavailable")),
-				pnpmConfig: (_key: string) => Effect.succeed<string | null>(null),
+				pnpmReleaseAge: () => Effect.succeed(null),
 				peerDependencies: (_pkg: string, _version: string) => Effect.succeed<Record<string, string>>({}),
 			};
 			// gate.ageMinutes > 0 means times data is required for filtering
@@ -197,51 +193,6 @@ describe("resolveGatedVersions (fail-closed semantics)", () => {
 
 import type { GroupMember } from "../../src/cli/interop.js";
 import { runInterop } from "../../src/cli/interop.js";
-
-// RED: current computeGate issues the two pnpmConfig calls sequentially (max in-flight=1).
-// GREEN target: Effect.all([...], { concurrency: "unbounded" }) makes them overlap (max=2).
-describe("computeGate (pnpmConfig concurrency)", () => {
-	it.effect("should issue both pnpmConfig calls concurrently", () =>
-		Effect.gen(function* () {
-			// Given: a deferred pnpmConfig resolver that records in-flight call count.
-			// The two calls (minimumReleaseAge + minimumReleaseAgeExclude) are independent.
-			// With sequential yield* + yield* each waits for the other to finish → max in-flight=1.
-			// After Effect.all parallelization both run simultaneously → max in-flight=2.
-			const tracker = makeConcurrencyTracker();
-
-			// A minimal source that evaluates to a valid (but empty) PnpmConfigPlugin call.
-			// computeGate calls evaluatePluginConfig on this; returning no releaseAge from the
-			// config is fine — we're only testing the pnpmConfig concurrency path.
-			const source = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
-export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: {} });`;
-
-			const resolver = {
-				versions: (_pkg: string) => Effect.succeed<string[]>([]),
-				times: (_pkg: string) => Effect.succeed<Record<string, string>>({}),
-				peerDependencies: (_pkg: string, _version: string) => Effect.succeed<Record<string, string>>({}),
-				pnpmConfig: (_key: string) => {
-					tracker.enter();
-					return Effect.callback<string | null, never>((resume) => {
-						setImmediate(() => {
-							tracker.exit();
-							resume(Effect.succeed(null));
-						});
-					});
-				},
-			};
-
-			// When
-			yield* computeGate(source, "test.ts", resolver);
-
-			// Then: both pnpmConfig calls ran concurrently (max in-flight === 2)
-			// (fails when the calls are sequential — max in-flight would be 1)
-			expect(
-				tracker.max,
-				`expected both pnpmConfig calls to overlap but max in-flight was ${tracker.max}`,
-			).toBeGreaterThan(1);
-		}),
-	);
-});
 
 describe("runInterop (peerDependencies concurrency)", () => {
 	it.effect("should fetch peerDependencies concurrently and deduplicate via cache", () =>

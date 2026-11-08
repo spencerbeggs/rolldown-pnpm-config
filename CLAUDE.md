@@ -26,13 +26,14 @@ task touches the area it covers; do not load the bundle by default.
   `descriptors.md` (the 121-field descriptor table), `cli.md` (`upgrade`,
   `export`, `preview`), `patches.md` (patch discovery and path rewrite). Load
   the matching module before editing `package/src/**` under that area.
-- `okf/decisions/` (19) — a choice made, the alternatives rejected, and why.
+- `okf/decisions/` (21) — a choice made, the alternatives rejected, and why.
   Load before changing something that looks arbitrary — e.g. why builds never
   write (`builds-never-write.md`), why Effect is fenced to build time
   (`effect-at-build-time-only.md`), why the descriptor table is the single
-  source of truth (`descriptor-table-as-source-of-truth.md`), or why major
-  bumps are interactive-only (`major-bumps-interactive-only.md`) — before
-  reversing it.
+  source of truth (`descriptor-table-as-source-of-truth.md`), why major
+  bumps are interactive-only (`major-bumps-interactive-only.md`), or why the
+  examples link the package's TypeScript source through tsx
+  (`workspace-source-links.md`) — before reversing it.
 - `okf/interfaces/` (10) — contracts consumers depend on: the authoring
   surface (`plugin-config.md`), the `{ base, manifest, name }` runtime payload
   (`base-manifest-name.md`), virtual module specifiers (`virtual-modules.md`),
@@ -45,8 +46,8 @@ task touches the area it covers; do not load the bundle by default.
   field only through the descriptor table, never unsetting `private` in
   source, keeping `virtual.d.ts` self-contained, keeping the managed-fields
   interface in step with the descriptor table.
-- `okf/runbooks/` (3) — ordered operational procedures: building the dual
-  outputs, recovering from a stale config-dependency lockfile, and the
+- `okf/runbooks/` (3) — ordered operational procedures: building the package
+  (`build-the-package.md`), recovering from a stale config-dependency lockfile, and the
   release/publish flow. Load before running a build or a release, not after
   something breaks.
 - `okf/glossary/` (8) — terms this project uses in a specific sense (`base`,
@@ -74,27 +75,35 @@ runs `okfit verify` on it; agents never author the `verified` field, and
 
 ## Build Pipeline
 
-Each package builds via `savvy.build.ts` (e.g. `package/savvy.build.ts`),
-which calls `build()` from [@savvy-web/bundler](https://github.com/savvy-web/bundler)
-— not Rslib. `turbo.json` wires `build:dev` and `build:prod` to it:
+`package/` builds with `effected package build` (the `build` script in
+`package/package.json`; the `effected` bin comes from the root devDependency
+`@effected/plugin`), configured by `package/effected.toml`, whose
+`[package.build]` table sets `dtsExternals = ["rolldown"]`. There is one
+build and no dev build:
 
 | Output | Directory | Purpose |
 | ------ | --------- | ------- |
-| Development | `dist/dev/pkg/` | Local development with source maps |
 | Production | `dist/prod/npm/pkg/` | Published to npm |
 
-`build:prod` writes into `dist/prod/**` generally (a `declarations/` and
-`meta/` directory sit alongside `npm/`); there is no top-level `dist/npm/`.
+`dist/prod/` also holds `targets.json` and `issues.json`; there is no
+`dist/dev/` and no top-level `dist/npm/`. See
+`okf/runbooks/build-the-package.md`.
+
+The example workspaces do not consume a build: they link `package/`'s
+TypeScript source (`exports` and `bin` point at `src/*.ts`), loaded by tsx
+through `nodeOptions: --import=tsx` in `pnpm-workspace.yaml` — see
+`okf/decisions/workspace-source-links.md`. The examples keep their own
+`build:dev`/`build:prod` tasks, because they stand in for consumers building
+under rolldown, tsdown and `@savvy-web/bundler`.
 
 ### How `private: true` Works
 
 The source `package.json` is marked `"private": true` — **this is intentional
-and correct**. `package/savvy.build.ts` calls `build({ dtsExternals:
-["rolldown"] })`; there is no `transform()` callback in this repo — the
-`package.json` transform (flipping `private` to `false` based on
-`publishConfig.access`, rewriting `exports`, stripping
-`devDependencies`/`scripts`/`publishConfig`/`devEngines`) is a built-in
-default of `@savvy-web/bundler`. Never manually set `"private": false` in the
+and correct**. There is no `transform()` callback in this repo: the
+`package.json` transform (setting `private` from `publishConfig.access`,
+rewriting `exports` and `bin`, stripping
+`devDependencies`/`scripts`/`publishConfig`/`devEngines`) is the default of
+`effected package build`. Never manually set `"private": false` in the
 source `package.json` — see `okf/conventions/never-unset-private-in-source.md`.
 
 ### Publish Targets
@@ -111,8 +120,13 @@ verifiable here.
 
 [Turbo](https://turbo.build/) manages build task dependencies and caching:
 
-- `types:check` runs first (no dependencies)
-- `build:dev` and `build:prod` both depend on `types:check`
+- `types:check` runs first; it depends only on `^types:check`
+- The package's `build` depends on `types:check` and outputs `dist/prod/**`
+- The examples' `build:dev` and `build:prod` do not depend on `^build`: they
+  load the package's source, and hash `package/src/**` as an input instead.
+  A `^build` edge would make the three example `prepare` hooks, which
+  `pnpm install` runs in parallel, each build the package into the same
+  `dist/prod`, and install fails with `ENOENT`
 - Cache excludes: `*.md`, `.changeset/**`, `.claude/**`, `.github/**`,
   `.husky/**`, `.vscode/**`
 - Environment pass-through: `GITHUB_ACTIONS`, `CI`
@@ -125,12 +139,12 @@ installed source.
 
 | Package | Purpose | GitHub | Local Source |
 | ------- | ------- | ------ | ------------ |
-| bundler | Build pipeline, dual output, package.json transform | [savvy-web/bundler](https://github.com/savvy-web/bundler) | `node_modules/@savvy-web/bundler/` |
+| bundler | Consumer bundler exercised by `examples/savvy` (not this repo's build) | [savvy-web/bundler](https://github.com/savvy-web/bundler) | `examples/savvy/node_modules/@savvy-web/bundler/` |
 | commitlint | Conventional commit + DCO enforcement | [savvy-web/commitlint](https://github.com/savvy-web/commitlint) | `node_modules/@savvy-web/commitlint/` |
 | changesets | Versioning, changelogs, release management | [savvy-web/changesets](https://github.com/savvy-web/changesets) | `node_modules/@savvy-web/changesets/` |
 | lint-staged | Pre-commit file linting via Biome | [savvy-web/lint-staged](https://github.com/savvy-web/lint-staged) | `node_modules/@savvy-web/lint-staged/` |
 
-`package/tsconfig.json` extends `@savvy-web/bundler/tsconfig/ecma.json`.
+`package/tsconfig.json` extends `@effected/plugin/tsconfig/ecma.json`.
 
 ## Commands
 
@@ -151,10 +165,8 @@ pnpm run test:coverage     # Run tests with v8 coverage report
 ### Building
 
 ```bash
-pnpm run build             # Build dev + prod outputs via Turbo
-pnpm run build:dev         # Build development output only
-pnpm run build:prod        # Build production/npm output only
-pnpm run build:inspect     # Inspect production build config (verbose)
+pnpm run build             # Build the package and the examples via Turbo
+pnpm run ci:build          # Same, with CI=true and full logs
 ```
 
 ### Running a Specific Test

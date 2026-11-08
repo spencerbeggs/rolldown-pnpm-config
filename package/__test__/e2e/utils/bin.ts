@@ -6,8 +6,8 @@ import { NodeServices } from "@effect/platform-node";
 import { CliTest } from "@effected/cli-kit/testing";
 import { Effect } from "effect";
 
-/** The dev build of the bin (the global setup builds it before any test runs). */
-export const BIN = fileURLToPath(new URL("../../../dist/dev/pkg/bin/rolldown-pnpm-config.js", import.meta.url));
+/** The prod build of the bin (the global setup builds it before any test runs). */
+export const BIN = fileURLToPath(new URL("../../../dist/prod/npm/pkg/bin/rolldown-pnpm-config.js", import.meta.url));
 
 /** The package's own version, which the built bin's `--version` must report. */
 export const VERSION: string = (

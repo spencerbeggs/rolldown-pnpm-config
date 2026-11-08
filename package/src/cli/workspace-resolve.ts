@@ -1,8 +1,6 @@
-import { readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
-import { GlobPattern, GlobPatternOptions } from "@effected/glob";
-import { descendSync } from "@effected/walker";
-import { nodeWalkerSyncOps } from "@effected/walker/node-sync";
+import { resolve } from "node:path";
+import type { BumpType } from "@effected/changesets";
+import { PendingChangesets } from "@effected/changesets";
 import { findWorkspaceRootSync, getWorkspacePackagesSync } from "@effected/workspaces";
 import { nodeSyncOps } from "@effected/workspaces/node-sync";
 import { Effect, Layer, Result } from "effect";
@@ -19,16 +17,8 @@ interface Manifest {
 	readonly peerDependencies?: Readonly<Record<string, string>>;
 }
 
-/** A changeset bump level, ordered weakest to strongest. */
-type Bump = "patch" | "minor" | "major";
-
-const BUMP_ORDER: Record<Bump, number> = { patch: 0, minor: 1, major: 2 };
-
-/** The changeset files of `.changeset/`: top-level `.md` FILES, no dotfiles, sorted. */
-const CHANGESET_FILES = Result.getOrThrow(GlobPattern.compileResult("*.md", GlobPatternOptions.make({ dot: false })));
-
-/** Matches one changeset frontmatter line: `"@scope/name": minor` (quotes optional). */
-const FRONTMATTER_LINE_RE = /^\s*["']?([^"':\s]+)["']?\s*:\s*(major|minor|patch)\s*$/;
+/** Bump strength, weakest to strongest, for strongest-bump-per-package. */
+const BUMP_ORDER: Record<BumpType, number> = { patch: 0, minor: 1, major: 2 };
 
 /**
  * Read every workspace package manifest under `rootDir` with a usable name and
@@ -70,38 +60,25 @@ export function readManifests(rootDir: string): Map<string, Manifest> {
 }
 
 /**
- * Read the pending changeset bumps from `<rootDir>/.changeset/*.md` (skipping
- * README.md): each file's YAML frontmatter (between the first two `---` lines)
- * maps package name → bump level; the strongest bump per package wins.
- * An absent or unreadable `.changeset/` yields an empty map.
+ * Read the pending changeset bumps under `<rootDir>/.changeset/` through
+ * `@effected/changesets`' `PendingChangesets.readSync` (which skips readmes,
+ * agent context files, dotfiles and non-`.md` files, and also reads the
+ * `pre/` changesets a pre-release keeps): package name → strongest bump.
+ * A `none` release is no bump. Total: an absent `.changeset/` lists nothing,
+ * and an unreadable directory or any malformed changeset degrades to an
+ * empty map (current versions), never a failure.
  */
-function readPendingBumps(rootDir: string): Map<string, Bump> {
-	const out = new Map<string, Bump>();
-	const dir = join(rootDir, ".changeset");
-	// An absent directory lists nothing; an unreadable one degrades the same way.
-	const names = Result.getOrElse(descendSync(CHANGESET_FILES, { cwd: dir, ...nodeWalkerSyncOps }), () => []).filter(
-		(n) => n !== "README.md",
-	);
-	for (const name of names) {
-		let text: string;
-		try {
-			text = readFileSync(join(dir, name), "utf8");
-		} catch {
-			continue;
-		}
-		const lines = text.split("\n");
-		const fences: number[] = [];
-		for (let i = 0; i < lines.length && fences.length < 2; i++) {
-			if (lines[i]?.trim() === "---") fences.push(i);
-		}
-		const [open, close] = fences;
-		if (open === undefined || close === undefined) continue;
-		for (const line of lines.slice(open + 1, close)) {
-			const m = FRONTMATTER_LINE_RE.exec(line);
-			if (!m) continue;
-			const [, pkg, bump] = m as unknown as [string, string, Bump];
+function readPendingBumps(rootDir: string): Map<string, BumpType> {
+	const out = new Map<string, BumpType>();
+	const pending = PendingChangesets.readSync(rootDir);
+	// All or nothing until spencerbeggs/effected#1306 ships a tolerant read: one malformed changeset fails the whole
+	// directory, so every package keeps its current version. Tracked locally in #293.
+	if (Result.isFailure(pending)) return out;
+	for (const changeset of pending.success) {
+		for (const [pkg, release] of changeset.releases) {
+			if (release === "none") continue;
 			const prev = out.get(pkg);
-			if (prev === undefined || BUMP_ORDER[bump] > BUMP_ORDER[prev]) out.set(pkg, bump);
+			if (prev === undefined || BUMP_ORDER[release] > BUMP_ORDER[prev]) out.set(pkg, release);
 		}
 	}
 	return out;
@@ -141,10 +118,11 @@ export function readWorkspaceVersions(rootDir: string, manifests = readManifests
  * registry: `versions` yields a single-element list holding the package's next
  * release version, `times` is empty (an unpublished version has no publish
  * date — the release-age gate must exempt workspace-sourced entries),
- * `peerDependencies` reads the local manifest, and `pnpmConfig` is null.
+ * `peerDependencies` reads the local manifest, and `pnpmReleaseAge` is null.
  *
  * `Layer.sync`, not `Layer.effect`: the reads are synchronous and the layer
- * has no service dependencies (unlike `RegistryResolverLive`, which spawns).
+ * has no service dependencies (unlike `RegistryResolverLive`, which reads the
+ * registry over HTTP).
  *
  * @internal
  */
@@ -177,7 +155,7 @@ export function makeWorkspaceResolver(rootDir: string): ResolverShape {
 		},
 		times: () => Effect.succeed({}),
 		peerDependencies: (pkg: string) => Effect.succeed(load().manifests.get(pkg)?.peerDependencies ?? {}),
-		pnpmConfig: () => Effect.succeed<string | null>(null),
+		pnpmReleaseAge: () => Effect.succeed(null),
 	};
 }
 

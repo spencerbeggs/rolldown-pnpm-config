@@ -1,3 +1,4 @@
+/** @jsxRuntime automatic */
 import { Doc } from "@effected/cli-kit";
 import type { Screen, ViewportRow } from "@effected/cli-kit/ui";
 import {

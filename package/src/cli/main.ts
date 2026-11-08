@@ -14,9 +14,11 @@ import { CLI_VERSION } from "./version.js";
  * platform's `Stdio` (in `NodeServices.layer`) answers it, which is where the
  * kit reads it from when `env.stderrIsTerminal` is omitted.
  *
- * The registry resolver (`pnpm view`, spawned through the platform) is
- * provided here, at the edge, so a test drives the same command tree against
- * a stub resolver.
+ * The registry resolver is provided here, at the edge, so a test drives the
+ * same command tree against a stub resolver. It spawns `pnpm view` through the
+ * platform's `ChildProcessSpawner`, reads pnpm's settings from
+ * `process.cwd()` / `process.env` / `process.platform`, and takes `FileSystem`
+ * and `Path` from `NodeServices.layer`, provided by `main`.
  *
  * `CliRuntime.main` builds the audience, terminal and theme from `env`,
  * decides whether the run may prompt, reports every failure on stderr for the
@@ -26,9 +28,11 @@ import { CLI_VERSION } from "./version.js";
  * @internal
  */
 export function main(): void {
+	const cwd = process.cwd();
+	const resolverLayer = RegistryResolverLive({ cwd, env: process.env, platform: process.platform });
 	const program = CliAudience.run(rootCommand, { version: CLI_VERSION }).pipe(
-		Effect.provideService(WorkingDirectory, process.cwd()),
-		Effect.provide(RegistryResolverLive),
+		Effect.provideService(WorkingDirectory, cwd),
+		Effect.provide(resolverLayer),
 	);
 	NodeRuntime.runMain(
 		CliRuntime.main(program, {

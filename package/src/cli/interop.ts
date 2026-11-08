@@ -217,7 +217,7 @@ export interface InteropResult {
  * peerDeps (the member resolves at its ceiling).
  *
  * Phase 1 now prefetches only the ceiling version of each member (one
- * `pnpm view` call per member) instead of every candidate version ≤ ceiling.
+ * registry read per member) instead of every candidate version ≤ ceiling.
  * `resolveGroup` / `violations` fetch lower versions on-demand via the shared
  * `fetchPeer` Effectful memoized lookup — they are only consulted when a
  * downgrade search probes them, which for real-world interop groups (where most

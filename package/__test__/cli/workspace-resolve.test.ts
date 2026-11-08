@@ -6,6 +6,8 @@ import { WorkspaceResolverLive, readWorkspaceVersions } from "../../src/cli/work
 
 const FIXTURE = fileURLToPath(new URL("./fixtures/workspace-next/", import.meta.url));
 const GLOB_FIXTURE = fileURLToPath(new URL("./fixtures/workspace-globs/", import.meta.url));
+const BUMPS_FIXTURE = fileURLToPath(new URL("./fixtures/workspace-bumps/", import.meta.url));
+const BAD_CHANGESET_FIXTURE = fileURLToPath(new URL("./fixtures/workspace-bad-changeset/", import.meta.url));
 
 const useAt = <A, E>(root: string, f: (r: (typeof RegistryResolver)["Service"]) => Effect.Effect<A, E>) =>
 	Effect.gen(function* () {
@@ -58,9 +60,9 @@ describe("WorkspaceResolverLive", () => {
 		}),
 	);
 
-	it.effect("returns null for any pnpm config key", () =>
+	it.effect("contributes no pnpm release-age gate", () =>
 		Effect.gen(function* () {
-			const value = yield* use((r) => r.pnpmConfig("minimumReleaseAge"));
+			const value = yield* use((r) => r.pnpmReleaseAge());
 			expect(value).toBeNull();
 		}),
 	);
@@ -80,6 +82,35 @@ describe("readWorkspaceVersions", () => {
 
 	it("returns an empty map when the root has no packages directory", () => {
 		expect(readWorkspaceVersions("/nonexistent/nowhere")).toEqual(new Map());
+	});
+});
+
+describe("pending changeset bumps", () => {
+	it("applies the strongest bump per package across changesets, in either file order", () => {
+		const map = readWorkspaceVersions(BUMPS_FIXTURE);
+		// alpha: patch (one.md) then major (two.md) → major; beta: minor (one.md) then
+		// patch (three.md) → minor — a weaker later bump never downgrades a stronger one.
+		expect(map.get("@bump/alpha")).toBe("2.0.0");
+		expect(map.get("@bump/beta")).toBe("1.1.0");
+	});
+
+	it("treats a none release as no bump, and skips the README", () => {
+		// gamma: `none` in two.md, `major` only in README.md — which is not a changeset.
+		expect(readWorkspaceVersions(BUMPS_FIXTURE).get("@bump/gamma")).toBe("1.0.0");
+	});
+
+	it("never introduces an entry for a package outside the workspace", () => {
+		expect(readWorkspaceVersions(BUMPS_FIXTURE).has("@bump/outside")).toBe(false);
+	});
+
+	it("degrades to current versions when any changeset is malformed", () => {
+		expect(readWorkspaceVersions(BAD_CHANGESET_FIXTURE)).toEqual(
+			new Map([
+				["@bump/alpha", "1.0.0"],
+				["@bump/beta", "1.0.0"],
+				["@bump/gamma", "1.0.0"],
+			]),
+		);
 	});
 });
 

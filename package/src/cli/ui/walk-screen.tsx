@@ -1,3 +1,4 @@
+/** @jsxRuntime automatic */
 import { Fmt } from "@effected/cli-kit";
 import type { Screen } from "@effected/cli-kit/ui";
 import { KeyHelp, KeyTable, Styled, useKeys, useTerminalSize } from "@effected/cli-kit/ui";

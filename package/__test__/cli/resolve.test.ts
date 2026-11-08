@@ -8,12 +8,13 @@ import {
 	parseVersions,
 	stripPnpmNotices,
 } from "../../src/cli/resolve.js";
+import { WORKSPACE_FILES, liveResolverWorld } from "./utils/registry-world.js";
 
 const StubOk = Layer.succeed(RegistryResolver, {
 	versions: (pkg) => Effect.succeed(pkg === "typescript" ? ["5.9.0", "5.9.3"] : []),
 	times: () => Effect.succeed({}),
 	peerDependencies: () => Effect.succeed({}),
-	pnpmConfig: () => Effect.succeed(null),
+	pnpmReleaseAge: () => Effect.succeed(null),
 });
 
 describe("RegistryResolver (contract)", () => {
@@ -118,6 +119,50 @@ describe("parsePeerDeps", () => {
 		Effect.gen(function* () {
 			expect(yield* parsePeerDeps("p", "")).toEqual({});
 			expect(yield* parsePeerDeps("p", "\n")).toEqual({});
+		}),
+	);
+});
+
+/** Run `f` against one Live resolver built over the in-memory world. */
+const withResolver = <A, E>(
+	f: (r: (typeof RegistryResolver)["Service"]) => Effect.Effect<A, E>,
+	world = liveResolverWorld(),
+) => Effect.flatMap(RegistryResolver, f).pipe(Effect.provide(world));
+
+describe("RegistryResolverLive release-age gate (PnpmSettings)", () => {
+	it.effect("reads pnpm's release-age gate from the workspace pnpm-workspace.yaml", () =>
+		Effect.gen(function* () {
+			const gate = yield* withResolver((r) => r.pnpmReleaseAge());
+			expect(gate).toEqual({ ageMinutes: 720, exclude: ["@acme/*"] });
+		}),
+	);
+
+	it.effect("lets a pnpm_config_* environment variable override the workspace file", () =>
+		Effect.gen(function* () {
+			const world = liveResolverWorld(WORKSPACE_FILES, {
+				env: { HOME: "/home/tester", pnpm_config_minimum_release_age: "60" },
+			});
+			const gate = yield* withResolver((r) => r.pnpmReleaseAge(), world);
+			expect(gate?.ageMinutes).toBe(60);
+		}),
+	);
+
+	it.effect("contributes no gate when pnpm sets neither setting (unset age is absent, not 0)", () =>
+		Effect.gen(function* () {
+			const world = liveResolverWorld({
+				...WORKSPACE_FILES,
+				"/repo/pnpm-workspace.yaml": "packages:\n  - packages/*\n",
+			});
+			const gate = yield* withResolver((r) => r.pnpmReleaseAge(), world);
+			expect(gate).toBeNull();
+		}),
+	);
+
+	it.effect("fails pnpmReleaseAge typed (not a defect) on a malformed pnpm-workspace.yaml", () =>
+		Effect.gen(function* () {
+			const world = liveResolverWorld({ ...WORKSPACE_FILES, "/repo/pnpm-workspace.yaml": "- just\n- a list\n" });
+			const err = yield* withResolver((r) => Effect.flip(r.pnpmReleaseAge()), world);
+			expect(err._tag).toBe("ResolveError");
 		}),
 	);
 });

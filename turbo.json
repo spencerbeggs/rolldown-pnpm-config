@@ -3,9 +3,34 @@
 	"agentGuidance": false,
 	"globalPassThroughEnv": ["GITHUB_ACTIONS", "CI"],
 	"tasks": {
+		"build": {
+			"cache": true,
+			"dependsOn": ["types:check"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				"$TURBO_ROOT$/package.json",
+				"$TURBO_ROOT$/pnpm-workspace.yaml",
+				"$TURBO_ROOT$/pnpm-lock.yaml",
+				"$TURBO_ROOT$/tsconfig.json",
+				"$TURBO_ROOT$/.changeset/**",
+				"README.md",
+				"LICENSE",
+				"package.json",
+				"tsconfig.json",
+				"*.ts",
+				"*.mts",
+				"*.cts",
+				"public/**/*",
+				"lib/**/*",
+				"src/**/*",
+				"effected.toml"
+			],
+			"outputLogs": "full",
+			"outputs": ["dist/prod/**"]
+		},
 		"build:dev": {
 			"cache": true,
-			"dependsOn": ["^build:dev"],
+			"dependsOn": [],
 			"inputs": [
 				"$TURBO_DEFAULT$",
 				"$TURBO_ROOT$/package.json",
@@ -21,7 +46,9 @@
 				"*.cts",
 				"public/**/*",
 				"lib/**/*",
-				"src/**/*"
+				"src/**/*",
+				"$TURBO_ROOT$/package/package.json",
+				"$TURBO_ROOT$/package/src/**"
 			],
 			"outputLogs": "errors-only",
 			"outputs": ["dist/dev/**"]
@@ -45,14 +72,16 @@
 				"*.cts",
 				"public/**/*",
 				"lib/**/*",
-				"src/**/*"
+				"src/**/*",
+				"$TURBO_ROOT$/package/package.json",
+				"$TURBO_ROOT$/package/src/**"
 			],
 			"outputLogs": "full",
 			"outputs": ["dist/prod/**"]
 		},
 		"types:check": {
 			"cache": true,
-			"dependsOn": ["^build:dev"],
+			"dependsOn": ["^types:check"],
 			"inputs": [
 				"$TURBO_DEFAULT$",
 				"*.ts",

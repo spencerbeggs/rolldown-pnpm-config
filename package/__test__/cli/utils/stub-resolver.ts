@@ -1,3 +1,4 @@
+import type { PartialReleaseAgeGate } from "@effected/npm";
 import { Effect, Layer } from "effect";
 import { RegistryResolver, ResolveError } from "../../../src/cli/resolve.js";
 
@@ -5,7 +6,8 @@ export interface StubSpec {
 	readonly versions?: Record<string, string[]>;
 	readonly times?: Record<string, Record<string, string>>;
 	readonly peerDependencies?: Record<string, Record<string, Record<string, string>>>; // pkg -> version -> peerDeps
-	readonly pnpmConfig?: Record<string, string | null>;
+	/** The release-age gate pnpm's own settings contribute (default: none). */
+	readonly pnpmReleaseAge?: PartialReleaseAgeGate | null;
 	/** Packages whose versions fetch FAILS outright (registry error / no such package). */
 	readonly failVersions?: readonly string[];
 }
@@ -19,7 +21,7 @@ export function makeStubResolver(spec: StubSpec) {
 				: Effect.succeed(spec.versions?.[pkg] ?? []),
 		times: (pkg: string) => Effect.succeed(spec.times?.[pkg] ?? {}),
 		peerDependencies: (pkg: string, version: string) => Effect.succeed(spec.peerDependencies?.[pkg]?.[version] ?? {}),
-		pnpmConfig: (key: string) => Effect.succeed(spec.pnpmConfig?.[key] ?? null),
+		pnpmReleaseAge: () => Effect.succeed(spec.pnpmReleaseAge ?? null),
 	};
 }
 
