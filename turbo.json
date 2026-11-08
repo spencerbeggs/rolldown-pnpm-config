@@ -30,7 +30,7 @@
 		},
 		"build:dev": {
 			"cache": true,
-			"dependsOn": ["^build"],
+			"dependsOn": [],
 			"inputs": [
 				"$TURBO_DEFAULT$",
 				"$TURBO_ROOT$/package.json",
@@ -46,14 +46,16 @@
 				"*.cts",
 				"public/**/*",
 				"lib/**/*",
-				"src/**/*"
+				"src/**/*",
+				"$TURBO_ROOT$/package/package.json",
+				"$TURBO_ROOT$/package/src/**"
 			],
 			"outputLogs": "errors-only",
 			"outputs": ["dist/dev/**"]
 		},
 		"build:prod": {
 			"cache": true,
-			"dependsOn": ["types:check", "build:dev", "^build"],
+			"dependsOn": ["types:check", "build:dev"],
 			"inputs": [
 				"$TURBO_DEFAULT$",
 				"$TURBO_ROOT$/package.json",
@@ -70,7 +72,9 @@
 				"*.cts",
 				"public/**/*",
 				"lib/**/*",
-				"src/**/*"
+				"src/**/*",
+				"$TURBO_ROOT$/package/package.json",
+				"$TURBO_ROOT$/package/src/**"
 			],
 			"outputLogs": "full",
 			"outputs": ["dist/prod/**"]
