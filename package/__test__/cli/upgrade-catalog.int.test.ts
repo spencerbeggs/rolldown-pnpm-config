@@ -23,6 +23,19 @@ export const plugin = PnpmConfigPlugin({
 const BOTH_DRIFTED = config("^5.9.0", "^4.0.0");
 const ONLY_BETA_DRIFTED = config("^5.9.3", "^4.0.0");
 
+// A catalog whose name is a dotted extension of another, each holding one
+// entry discovery skips (a non-literal range).
+const DOTTED = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
+const range = ">=1";
+export const plugin = PnpmConfigPlugin({
+ name: "@test/cfg",
+ catalogs: {
+  effect: { packages: { a: range } },
+  "effect.next": { packages: { b: range } },
+ },
+});
+`;
+
 const resolver = stubResolverLayer({ versions: { typescript: ["5.9.0", "5.9.3"], vitest: ["4.0.0", "4.1.0"] } });
 
 const session = CliUiTest.session({ color: "none", interactive: false });
@@ -98,6 +111,16 @@ describe("upgrade --catalog scopes every mode", () => {
 			const stdout = yield* s.stdout;
 			expect(stdout).toContain("typescript");
 			expect(stdout).not.toContain("vitest");
+		}),
+	);
+
+	it.effect("scopes skipped names by catalog identity, not by a dotted-name prefix", () =>
+		Effect.gen(function* () {
+			// `effect.next` starts with `effect.`; a prefix filter would leak its skip.
+			const file = writeTmpConfig(DOTTED);
+			const s = yield* session;
+			yield* run(s, ["--dry-run", "--catalog", "effect", "--format", "json", file]);
+			expect(jsonOf(yield* s.stdout).skipped).toEqual(["effect.a"]);
 		}),
 	);
 

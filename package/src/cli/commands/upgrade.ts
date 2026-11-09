@@ -167,7 +167,7 @@ export function readCatalogSource(
 		const source = yield* fs
 			.readFileString(file)
 			.pipe(Effect.mapError(() => new UpgradeError({ message: `Cannot read ${file}` })));
-		const { entries, skipped, catalogs } = yield* Effect.try({
+		const { entries, skipped, skippedRefs, catalogs } = yield* Effect.try({
 			try: () => discoverCatalogEntries(source, file),
 			catch: (e) => new UpgradeError({ message: Fmt.describe(e) }),
 		});
@@ -180,7 +180,9 @@ export function readCatalogSource(
 		return {
 			source,
 			entries: filterEntriesByCatalog(entries, catalog),
-			skipped: skipped.filter((name) => name.startsWith(`${catalog}.`)),
+			// By catalog identity, not a `${catalog}.` prefix: a catalog named
+			// `a.b` would otherwise leak its skips into a `--catalog a` run.
+			skipped: skippedRefs.filter((r) => r.catalog === catalog).map((r) => `${r.catalog}.${r.pkg}`),
 		};
 	});
 }
