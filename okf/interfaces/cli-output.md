@@ -7,7 +7,7 @@ resource: ../../package/src/cli/main.ts
 status: draft
 generated:
   by: okfit/claude-code
-  at: 2026-10-28T21:49:02Z
+  at: 2026-11-09T18:10:01Z
 sources:
   - id: main
     resource: ../../package/src/cli/main.ts
@@ -27,7 +27,7 @@ tags:
   - dx
 integrity:
   generated:
-    body: 85f8671606c1af7a
+    body: 35c08b536ef673df
 ---
 
 # CLI output, audience and exit codes
@@ -55,7 +55,8 @@ that is not a terminal gets none.
 - **stdout** carries the product: diffs, summaries, `--check`'s drift
   report, and under `--format json` exactly one single-line JSON document and
   nothing else.[^upgrade]
-- **stderr** carries warnings (unresolvable packages, interop conflicts,
+- **stderr** carries warnings (unresolvable packages, malformed pending
+  changesets, interop conflicts,
   stale patch entries), every failure report, and the help that
   accompanies a usage error.[^bin-e2e] A failure that wraps a foreign
   error (a YAML parse, a spawn, a schema decode) quotes that error's

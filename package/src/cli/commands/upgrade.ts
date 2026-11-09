@@ -34,6 +34,7 @@ import { validateEdits } from "../validate.js";
 import { versionKeyOf } from "../version-key.js";
 import { buildWalkItems } from "../walk-plan.js";
 import type { Decision, WalkItem } from "../walk-types.js";
+import type { SkippedChangeset, WorkspaceResolver } from "../workspace-resolve.js";
 import { findWorkspaceRoot, makeWorkspaceResolver } from "../workspace-resolve.js";
 
 /**
@@ -45,10 +46,12 @@ export class UpgradeError extends Data.TaggedError("UpgradeError")<{
 	readonly message: string;
 	/**
 	 * Failure family for machine consumers: `"peer-strategy"` for a refusal to
-	 * apply with an incompatible peer strategy, absent (→ `"resolution"` in the
-	 * JSON documents) for everything else.
+	 * apply with an incompatible peer strategy, `"changeset"` for a
+	 * non-interactive run refusing to go on past a malformed pending changeset
+	 * (its workspace versions may be stale), absent (→ `"resolution"` in the JSON documents) for everything
+	 * else.
 	 */
-	readonly kind?: "peer-strategy";
+	readonly kind?: "peer-strategy" | "changeset";
 }> {
 	/** The failure report `CliRuntime.main` prints: the message, without the class name. */
 	[CliDoc](): Document {
@@ -91,7 +94,7 @@ function indent(message: string): string {
  */
 export class CheckFailedError extends Data.TaggedError("CheckFailedError")<{
 	readonly message: string;
-	readonly kind?: "peer-strategy";
+	readonly kind?: "peer-strategy" | "changeset";
 }> {
 	/** The failure report: the family label, then the underlying message indented. */
 	[CliDoc](): Document {
@@ -307,8 +310,9 @@ export function resolveProgress(
  * materialize its managed peer offline from the current range.
  *
  * This path runs UNATTENDED (`--yes`, i.e. CI), so it fails hard rather than
- * degrading: any peer-strategy warning, or any planned edit no published
- * version satisfies, aborts the run and writes NOTHING. A warning that scrolls
+ * degrading: any peer-strategy warning, any planned edit no published
+ * version satisfies, or a malformed pending changeset read while resolving a
+ * workspace-sourced entry, aborts the run and writes NOTHING. A warning that scrolls
  * past unread in a CI log is a bad range in a published artifact. The
  * interactive path is deliberately more forgiving (see `upgradeCommand`).
  *
@@ -322,7 +326,7 @@ export function runUpgrade(opts: {
 	/** Compute everything, report it, but skip the write. Honors `--yes --dry-run`. */
 	dryRun?: boolean;
 	/** Workspace-backed resolver for entries with `source: "workspace"`. */
-	workspaceResolver?: Resolver;
+	workspaceResolver?: WorkspaceResolver;
 }): Effect.Effect<UpgradeRunResult, UpgradeError, FileSystem.FileSystem | Path.Path> {
 	return Effect.gen(function* () {
 		const { source, entries, skipped } = yield* readCatalogSource(opts.file);
@@ -341,6 +345,17 @@ export function runUpgrade(opts: {
 		// leave a name that will never resolve sitting in the catalog forever. Fail.
 		if (versionsByPkg.unresolved.length > 0) {
 			return yield* Effect.fail(new UpgradeError({ message: unresolvedMessage(versionsByPkg.unresolved) }));
+		}
+
+		// A malformed pending changeset dropped its bumps, so a workspace-sourced
+		// entry may have resolved to its current version instead of its next.
+		// Unattended, that writes a range one release behind (and lets --check
+		// vouch for one). Fail before any write; interactive runs only warn.
+		const skippedChangesets = opts.workspaceResolver?.skippedChangesets() ?? [];
+		if (skippedChangesets.length > 0) {
+			return yield* Effect.fail(
+				new UpgradeError({ message: skippedChangesetsMessage(skippedChangesets), kind: "changeset" }),
+			);
 		}
 
 		const edits: PlannedEdit[] = [];
@@ -677,7 +692,8 @@ export function checkJsonOutcome(result: Result.Result<UpgradeRunResult, Upgrade
  * real apply; `changed` uses the same row object as check's `drift`. A failure
  * emits an error document on stdout and is returned as `failure`, which the
  * command fails with (non-zero exit, human message on stderr); `error.kind` is
- * `"peer-strategy"` for a peer-strategy refusal and `"resolution"` otherwise.
+ * `"peer-strategy"` for a peer-strategy refusal, `"changeset"` for a run that
+ * resolved past a malformed pending changeset, and `"resolution"` otherwise.
  *
  * @internal
  */
@@ -752,6 +768,57 @@ export function resolveTargetFile(
 		if (!picked.ok) return yield* Effect.fail(new UpgradeError({ message: picked.message }));
 		return picked.file;
 	});
+}
+
+/**
+ * The report for pending changesets the workspace resolver skipped: one line
+ * per file with why it would not parse. A skipped file's bumps are dropped,
+ * so the workspace packages it names resolve to their current version.
+ *
+ * @internal
+ */
+export function skippedChangesetsMessage(skipped: ReadonlyArray<SkippedChangeset>): string {
+	const head =
+		skipped.length === 1
+			? "Skipped 1 malformed changeset; the workspace packages it names resolve to their current version, not their next:"
+			: `Skipped ${skipped.length} malformed changesets; the workspace packages they name resolve to their current version, not their next:`;
+	return [head, ...skipped.map((s) => `  ${s.file}: ${s.message}`)].join("\n");
+}
+
+/**
+ * Collects the workspace resolvers one upgrade run builds, so the run reports
+ * every pending changeset they skipped exactly once, whichever path it took.
+ * `report` is the run's finalizer: a warning on stderr, unless `silence` was
+ * called because the run already failed with that list (`runUpgrade`).
+ */
+function skippedChangesetsTracker() {
+	const resolvers: WorkspaceResolver[] = [];
+	let silenced = false;
+	const collect = (): SkippedChangeset[] => {
+		const byFile = new Map<string, SkippedChangeset>();
+		for (const r of resolvers) for (const s of r.skippedChangesets()) byFile.set(s.file, s);
+		return [...byFile.values()];
+	};
+	return {
+		track: (resolver: WorkspaceResolver): WorkspaceResolver => {
+			resolvers.push(resolver);
+			return resolver;
+		},
+		silence: (): void => {
+			silenced = true;
+		},
+		report: Effect.suspend(() => {
+			const skipped = silenced ? [] : collect();
+			return skipped.length > 0
+				? Doc.print(warningDoc(skippedChangesetsMessage(skipped)), { stream: "stderr" })
+				: Effect.void;
+		}),
+	};
+}
+
+/** Whether a run failed on a malformed pending changeset, which its failure report already lists. */
+function isChangesetFailure(error: unknown): boolean {
+	return (error instanceof UpgradeError || error instanceof CheckFailedError) && error.kind === "changeset";
 }
 
 /** Print the unresolved-packages warning to stderr, when there is one. */
@@ -878,8 +945,13 @@ export const upgradeCommand = Command.make(
 		check: checkFlag,
 		format: formatFlag,
 	},
-	({ file: fileOpt, yes, dryRun, catalog, preview, full, check, format }) =>
-		Effect.gen(function* () {
+	({ file: fileOpt, yes, dryRun, catalog, preview, full, check, format }) => {
+		// A malformed pending changeset is reported once, on stderr, at the end of
+		// whichever path runs, unless the run already failed with it: every
+		// non-interactive path (`--check`, `--yes`, `--format json`) goes through
+		// `runUpgrade`, which fails on it.
+		const skippedChangesets = skippedChangesetsTracker();
+		return Effect.gen(function* () {
 			// JSON mode is for non-interactive consumers only — reject before touching
 			// the filesystem so the usage error is fast and unambiguous.
 			const jsonRejection = validateFormatMode({ format, check, yes, dryRun, preview });
@@ -890,7 +962,8 @@ export const upgradeCommand = Command.make(
 			// Entries with `source: "workspace"` resolve from the workspace containing
 			// the config file. Construction is lazy — a config with no workspace-sourced
 			// entries never touches the filesystem through this resolver.
-			const workspaceOf = (file: string) => makeWorkspaceResolver(findWorkspaceRoot(dirname(file)));
+			const workspaceOf = (file: string) =>
+				skippedChangesets.track(makeWorkspaceResolver(findWorkspaceRoot(dirname(file))));
 			// The non-interactive core, target discovery included, so that under --format json
 			// even "no config file found" lands in the result and still yields a document.
 			const nonInteractive = (forceDryRun: boolean) =>
@@ -1076,5 +1149,9 @@ export const upgradeCommand = Command.make(
 			// Repeat the unresolved warning after the run: the in-table banner is gone
 			// once the screen unmounts, and this is the last thing the author reads.
 			yield* warnUnresolved(versions.unresolved);
-		}),
+		}).pipe(
+			Effect.tapError((error) => (isChangesetFailure(error) ? Effect.sync(skippedChangesets.silence) : Effect.void)),
+			Effect.ensuring(skippedChangesets.report),
+		);
+	},
 ).pipe(Command.withDescription("Upgrade catalog versions in a config file"));

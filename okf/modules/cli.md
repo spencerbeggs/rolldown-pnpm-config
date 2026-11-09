@@ -6,7 +6,7 @@ resource: ../../package/src/cli
 kind: package
 generated:
   by: okfit/claude-code
-  at: 2026-11-08T21:23:21Z
+  at: 2026-11-09T18:10:01Z
 sources:
   - id: bin
     resource: package/src/cli/bin.ts
@@ -24,7 +24,7 @@ sources:
     resource: package/src/cli/effective.ts
 integrity:
   generated:
-    body: c240bea3b52d9097
+    body: 40380c2e5fa32fd5
 ---
 
 # CLI
@@ -106,8 +106,13 @@ registry reads stay off `@effected/npm`'s `NpmRegistry` until the kit
 honours npmrc proxy and TLS settings (spencerbeggs/effected#1307). It is provided once in `main.ts`, at
 the edge, so a test drives the real command tree against a stub resolver.
 Pending changeset bumps are read by `@effected/changesets`'
-`PendingChangesets`, all or nothing: one malformed changeset leaves every
-package at its current version. The release-age gate reads
+`PendingChangesets.readSettledSync`: a malformed changeset drops only its
+own bumps, and the valid ones still apply. Only a `.changeset/` directory
+that cannot be listed leaves every package at its current version. The
+workspace resolver hands the skipped files back to `upgrade`: `runUpgrade`
+(`--check`, `--yes`, `--format json`) fails on them with error kind
+`changeset` before writing, and every other path warns on stderr once per
+run. The release-age gate reads
 the time from Effect's `Clock`, never `Date.now()`.
 
 See [static-config-discovery](../decisions/static-config-discovery.md) and
