@@ -6,7 +6,7 @@ kind: cli
 resource: ../../package/src/cli/commands/upgrade.ts
 generated:
   by: okfit/claude-code
-  at: 2026-11-09T18:10:01Z
+  at: 2026-11-09T22:52:22Z
 sources:
   - id: upgrade-ts
     resource: ../../package/src/cli/commands/upgrade.ts
@@ -14,7 +14,7 @@ sources:
     resource: ../../package/src/cli/bin.ts
 integrity:
   generated:
-    body: 5b91265f7bcbcffa
+    body: 4344e6a61a6897ce
 ---
 
 # upgrade command
@@ -45,9 +45,16 @@ Declared at `package/src/cli/commands/upgrade.ts:780-786`:
   — discover, resolve, plan, interop reconcile, validate, render the
   summary — and skips only the final file write; it is not a separate
   code path (`upgrade.ts:915-919`, `upgrade.ts:446-451`).[^upgrade-ts]
-- `--catalog <name>` — restricts discovery to entries in one named
-  catalog (`catalogOption`, `upgrade.ts:782`, applied via
-  `filterEntriesByCatalog` at `upgrade.ts:902`).[^upgrade-ts]
+- `--catalog <name>` — scopes every mode alike (the interactive table,
+  `--preview`, `--check`, `--yes`, `--dry-run`, and both JSON documents)
+  to the entries of one named catalog: `--check` reports drift and picks
+  its exit code from that catalog alone, and `--yes` writes only its
+  entries. Every path reads through `readCatalogSource(file, catalog)`, which
+  applies the scope. A name the config does not declare fails in every
+  mode with `UpgradeError` `kind: "catalog"`, which names the declared
+  catalogs; under `--format json` that is `error.kind: "catalog"`.
+  The run never silently matches nothing. A declared catalog with no
+  rewritable entries is not an error.[^upgrade-ts]
 - `--preview` — a non-interactive projection: discover → resolve → plan
   → take the default picks → print a colored summary → exit; no walk, no
   write (`runUpgradePreview`, `upgrade.ts:567-601`).[^upgrade-ts]
@@ -140,7 +147,7 @@ anything else is a usage error (exit `64`, mapped by tag through
 `CliRuntime.main`'s `exitCodes`). stdout then carries exactly one
 single-line JSON document in every case, failure included (`{ "command",
 "inSync" | "applied", ..., "error": { "kind", "message" } }`, where `kind`
-is `"peer-strategy"`, `"changeset"` or `"resolution"`), printed by
+is `"peer-strategy"`, `"changeset"`, `"catalog"` or `"resolution"`), printed by
 `CliFormat.print` with `indent: 0`, and the human failure report goes to
 stderr. Under GitHub Actions a `##[` inside the document is written as the
 JSON escape `#\u0023[`, which decodes to the same text.[^upgrade-ts]

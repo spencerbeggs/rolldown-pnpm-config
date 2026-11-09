@@ -26,13 +26,16 @@ function operatorOf(range: string): "^" | "~" | "" {
  * Each package whose range is a simple-operator string literal yields a
  * CatalogEntry with byte-offset spans; anything else (computed value, complex
  * range) is reported in `skipped` as `<catalog>.<pkg>` and never throws.
+ * `catalogs` names every declared catalog in source order, including one
+ * that yields no entries, so `--catalog` can tell an empty catalog from a
+ * typo.
  *
  * @internal
  */
 export function discoverCatalogEntries(
 	source: string,
 	filename: string,
-): { entries: CatalogEntry[]; skipped: string[] } {
+): { entries: CatalogEntry[]; skipped: string[]; catalogs: string[] } {
 	const result = parseSync(filename, source);
 	if (result.errors.length > 0) {
 		throw new DiscoverError({ message: result.errors.map((e) => e.message).join("; ") });
@@ -40,17 +43,19 @@ export function discoverCatalogEntries(
 	const program = result.program as unknown as Node;
 	const entries: CatalogEntry[] = [];
 	const skipped: string[] = [];
+	const declared: string[] = [];
 
 	const arg = findPluginArg(program);
-	if (!arg) return { entries, skipped };
+	if (!arg) return { entries, skipped, catalogs: declared };
 
 	const catalogs = prop(arg, "catalogs");
-	if (catalogs?.type !== "ObjectExpression") return { entries, skipped };
+	if (catalogs?.type !== "ObjectExpression") return { entries, skipped, catalogs: declared };
 
 	for (const catProp of (catalogs.properties as Node[]) ?? []) {
 		if (catProp.type !== "Property") continue;
 		const catalog = keyName(catProp.key as Node);
 		if (catalog === undefined) continue;
+		declared.push(catalog);
 		const decl = catProp.value as Node;
 		if (decl.type !== "ObjectExpression") continue;
 		const packages = prop(decl, "packages");
@@ -107,5 +112,5 @@ export function discoverCatalogEntries(
 		}
 	}
 
-	return { entries, skipped };
+	return { entries, skipped, catalogs: declared };
 }
