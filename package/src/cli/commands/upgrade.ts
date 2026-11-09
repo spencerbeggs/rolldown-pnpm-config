@@ -692,7 +692,8 @@ export function checkJsonOutcome(result: Result.Result<UpgradeRunResult, Upgrade
  * real apply; `changed` uses the same row object as check's `drift`. A failure
  * emits an error document on stdout and is returned as `failure`, which the
  * command fails with (non-zero exit, human message on stderr); `error.kind` is
- * `"peer-strategy"` for a peer-strategy refusal and `"resolution"` otherwise.
+ * `"peer-strategy"` for a peer-strategy refusal, `"changeset"` for a run that
+ * resolved past a malformed pending changeset, and `"resolution"` otherwise.
  *
  * @internal
  */
