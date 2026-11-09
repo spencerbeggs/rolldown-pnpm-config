@@ -26,31 +26,49 @@ function operatorOf(range: string): "^" | "~" | "" {
  * Each package whose range is a simple-operator string literal yields a
  * CatalogEntry with byte-offset spans; anything else (computed value, complex
  * range) is reported in `skipped` as `<catalog>.<pkg>` and never throws.
+ * `catalogs` names every declared catalog in source order, including one
+ * that yields no entries, so `--catalog` can tell an empty catalog from a
+ * typo. `skippedRefs` carries the same skips as `{ catalog, pkg }` pairs, so
+ * a caller can scope them by catalog identity: the flattened string cannot
+ * tell catalog `a` from a catalog named `a.b`.
  *
  * @internal
  */
 export function discoverCatalogEntries(
 	source: string,
 	filename: string,
-): { entries: CatalogEntry[]; skipped: string[] } {
+): {
+	entries: CatalogEntry[];
+	skipped: string[];
+	skippedRefs: { catalog: string; pkg: string }[];
+	catalogs: string[];
+} {
 	const result = parseSync(filename, source);
 	if (result.errors.length > 0) {
 		throw new DiscoverError({ message: result.errors.map((e) => e.message).join("; ") });
 	}
 	const program = result.program as unknown as Node;
 	const entries: CatalogEntry[] = [];
-	const skipped: string[] = [];
+	const skippedRefs: { catalog: string; pkg: string }[] = [];
+	const declared: string[] = [];
+	const finish = () => ({
+		entries,
+		skipped: skippedRefs.map((r) => `${r.catalog}.${r.pkg}`),
+		skippedRefs,
+		catalogs: declared,
+	});
 
 	const arg = findPluginArg(program);
-	if (!arg) return { entries, skipped };
+	if (!arg) return finish();
 
 	const catalogs = prop(arg, "catalogs");
-	if (catalogs?.type !== "ObjectExpression") return { entries, skipped };
+	if (catalogs?.type !== "ObjectExpression") return finish();
 
 	for (const catProp of (catalogs.properties as Node[]) ?? []) {
 		if (catProp.type !== "Property") continue;
 		const catalog = keyName(catProp.key as Node);
 		if (catalog === undefined) continue;
+		declared.push(catalog);
 		const decl = catProp.value as Node;
 		if (decl.type !== "ObjectExpression") continue;
 		const packages = prop(decl, "packages");
@@ -86,7 +104,7 @@ export function discoverCatalogEntries(
 			}
 
 			if (!rangeNode || !SIMPLE_RANGE_RE.test(rangeNode.value as string)) {
-				skipped.push(`${catalog}.${pkg}`);
+				skippedRefs.push({ catalog, pkg });
 				continue;
 			}
 
@@ -107,5 +125,5 @@ export function discoverCatalogEntries(
 		}
 	}
 
-	return { entries, skipped };
+	return finish();
 }

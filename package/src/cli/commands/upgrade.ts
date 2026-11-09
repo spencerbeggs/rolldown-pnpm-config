@@ -48,10 +48,11 @@ export class UpgradeError extends Data.TaggedError("UpgradeError")<{
 	 * Failure family for machine consumers: `"peer-strategy"` for a refusal to
 	 * apply with an incompatible peer strategy, `"changeset"` for a
 	 * non-interactive run refusing to go on past a malformed pending changeset
-	 * (its workspace versions may be stale), absent (→ `"resolution"` in the JSON documents) for everything
-	 * else.
+	 * (its workspace versions may be stale), `"catalog"` for a `--catalog` that
+	 * names no declared catalog, absent (→ `"resolution"` in the JSON documents)
+	 * for everything else.
 	 */
-	readonly kind?: "peer-strategy" | "changeset";
+	readonly kind?: "peer-strategy" | "changeset" | "catalog";
 }> {
 	/** The failure report `CliRuntime.main` prints: the message, without the class name. */
 	[CliDoc](): Document {
@@ -94,7 +95,7 @@ function indent(message: string): string {
  */
 export class CheckFailedError extends Data.TaggedError("CheckFailedError")<{
 	readonly message: string;
-	readonly kind?: "peer-strategy" | "changeset";
+	readonly kind?: "peer-strategy" | "changeset" | "catalog";
 }> {
 	/** The failure report: the family label, then the underlying message indented. */
 	[CliDoc](): Document {
@@ -148,21 +149,52 @@ function writeSource(file: string, next: string): Effect.Effect<void, UpgradeErr
 	);
 }
 
-/** Read a config file and statically discover its catalog entries. @internal */
+/**
+ * Read a config file and statically discover its catalog entries. With
+ * `catalog`, the entries and skipped names are scoped to that one catalog,
+ * and a name the config does not declare fails (`kind: "catalog"`) rather
+ * than silently matching nothing. Every `upgrade` mode reads through here, so
+ * `--catalog` scopes them all alike.
+ *
+ * @internal
+ */
 export function readCatalogSource(
 	file: string,
+	catalog?: string,
 ): Effect.Effect<{ source: string; entries: CatalogEntry[]; skipped: string[] }, UpgradeError, FileSystem.FileSystem> {
 	return Effect.gen(function* () {
 		const fs = yield* FileSystem.FileSystem;
 		const source = yield* fs
 			.readFileString(file)
 			.pipe(Effect.mapError(() => new UpgradeError({ message: `Cannot read ${file}` })));
-		const { entries, skipped } = yield* Effect.try({
+		const { entries, skipped, skippedRefs, catalogs } = yield* Effect.try({
 			try: () => discoverCatalogEntries(source, file),
 			catch: (e) => new UpgradeError({ message: Fmt.describe(e) }),
 		});
-		return { source, entries, skipped };
+		if (catalog === undefined) return { source, entries, skipped };
+		if (!catalogs.includes(catalog)) {
+			return yield* Effect.fail(
+				new UpgradeError({ message: unknownCatalogMessage(catalog, catalogs), kind: "catalog" }),
+			);
+		}
+		return {
+			source,
+			entries: filterEntriesByCatalog(entries, catalog),
+			// By catalog identity, not a `${catalog}.` prefix: a catalog named
+			// `a.b` would otherwise leak its skips into a `--catalog a` run.
+			skipped: skippedRefs.filter((r) => r.catalog === catalog).map((r) => `${r.catalog}.${r.pkg}`),
+		};
 	});
+}
+
+/**
+ * The message for a `--catalog` that names no catalog the config declares.
+ *
+ * @internal
+ */
+export function unknownCatalogMessage(catalog: string, declared: readonly string[]): string {
+	const list = declared.length === 0 ? "it declares no catalogs" : `declared: ${declared.join(", ")}`;
+	return `No catalog named "${catalog}" in the config (${list})`;
 }
 
 /** Combine the config-declared and pnpm-resolved release-age gates (strictest of both). @internal */
@@ -327,9 +359,11 @@ export function runUpgrade(opts: {
 	dryRun?: boolean;
 	/** Workspace-backed resolver for entries with `source: "workspace"`. */
 	workspaceResolver?: WorkspaceResolver;
+	/** Scope the run to one declared catalog (`--catalog`); see `readCatalogSource`. */
+	catalog?: string;
 }): Effect.Effect<UpgradeRunResult, UpgradeError, FileSystem.FileSystem | Path.Path> {
 	return Effect.gen(function* () {
-		const { source, entries, skipped } = yield* readCatalogSource(opts.file);
+		const { source, entries, skipped } = yield* readCatalogSource(opts.file, opts.catalog);
 		const gate = yield* computeGate(source, opts.file, opts.resolver);
 		const versionsByPkg = yield* resolveGatedVersions(
 			entries,
@@ -592,13 +626,15 @@ export function runUpgradePreview(opts: {
 	full: boolean;
 	/** Workspace-backed resolver for entries with `source: "workspace"`. */
 	workspaceResolver?: Resolver;
+	/** Scope the projection to one declared catalog (`--catalog`); see `readCatalogSource`. */
+	catalog?: string;
 }): Effect.Effect<
 	{ readonly doc: Document; readonly unresolved: readonly string[] },
 	UpgradeError,
 	FileSystem.FileSystem
 > {
 	return Effect.gen(function* () {
-		const { source, entries } = yield* readCatalogSource(opts.file);
+		const { source, entries } = yield* readCatalogSource(opts.file, opts.catalog);
 		const gate = yield* computeGate(source, opts.file, opts.resolver);
 		const versions = yield* resolveGatedVersions(
 			entries,
@@ -951,6 +987,10 @@ export const upgradeCommand = Command.make(
 		// non-interactive path (`--check`, `--yes`, `--format json`) goes through
 		// `runUpgrade`, which fails on it.
 		const skippedChangesets = skippedChangesetsTracker();
+		// `--catalog` scopes every mode alike: each path reads through
+		// `readCatalogSource`, which also fails on a name the config does not declare.
+		const catalogName = Option.getOrUndefined(catalog);
+		const scope = catalogName === undefined ? {} : { catalog: catalogName };
 		return Effect.gen(function* () {
 			// JSON mode is for non-interactive consumers only — reject before touching
 			// the filesystem so the usage error is fast and unambiguous.
@@ -969,7 +1009,13 @@ export const upgradeCommand = Command.make(
 			const nonInteractive = (forceDryRun: boolean) =>
 				resolveTargetFile(fileOpt).pipe(
 					Effect.flatMap((file) =>
-						runUpgrade({ file, resolver, workspaceResolver: workspaceOf(file), dryRun: forceDryRun || dryRun }),
+						runUpgrade({
+							file,
+							resolver,
+							workspaceResolver: workspaceOf(file),
+							dryRun: forceDryRun || dryRun,
+							...scope,
+						}),
 					),
 					Effect.result,
 				);
@@ -1011,7 +1057,7 @@ export const upgradeCommand = Command.make(
 			const file = yield* resolveTargetFile(fileOpt);
 			const workspaceResolver = workspaceOf(file);
 			if (preview) {
-				const { doc, unresolved } = yield* runUpgradePreview({ file, resolver, full, workspaceResolver });
+				const { doc, unresolved } = yield* runUpgradePreview({ file, resolver, full, workspaceResolver, ...scope });
 				yield* Doc.print(doc);
 				// --preview must not hide a typo either: an unresolvable package renders as
 				// up-to-date and would otherwise be invisible in the projection.
@@ -1019,7 +1065,7 @@ export const upgradeCommand = Command.make(
 			}
 			if (yes) {
 				const result = yield* withProgress((report) =>
-					runUpgrade({ file, resolver, dryRun, workspaceResolver, onProgress: resolveProgress(report) }),
+					runUpgrade({ file, resolver, dryRun, workspaceResolver, onProgress: resolveProgress(report), ...scope }),
 				);
 				yield* dryRun
 					? CliMessage.info(
@@ -1034,8 +1080,7 @@ export const upgradeCommand = Command.make(
 				}
 				return;
 			}
-			const { source, entries: discovered } = yield* readCatalogSource(file);
-			const entries = filterEntriesByCatalog(discovered, Option.getOrUndefined(catalog));
+			const { source, entries } = yield* readCatalogSource(file, catalogName);
 			const gate = yield* computeGate(source, file, resolver);
 			// --dry-run is NOT a separate code path: it runs the identical interactive
 			// flow (table → picks → interop reconcile → validate → summary) and skips
