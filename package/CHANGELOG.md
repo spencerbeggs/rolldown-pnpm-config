@@ -1,5 +1,31 @@
 # rolldown-pnpm-config
 
+## 2.4.4
+
+### Bug Fixes
+
+- A malformed changeset no longer hides every other pending bump from the `upgrade` command's workspace resolver. It now drops only that file's bumps, and the valid changesets still set each workspace package's next version.
+
+- When a workspace-sourced catalog entry resolves past a malformed changeset, `upgrade --check` and `upgrade --yes` now fail (exit 1, JSON `error.kind` `"changeset"`) and write nothing, because the workspace versions they read may be stale. The interactive table, the non-interactive summary and `--preview` report the file as a warning on stderr instead, naming it and why it would not parse. [#298][#298]
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/changesets | dependency | updated | ^0.1.0 | ^0.2.0 |
+| @effected/npm | dependency | updated | ^0.31.0 | ^0.32.0 |
+| @effected/workspaces | dependency | updated | ^0.44.0 | ^0.44.1 |
+| oxc-parser | dependency | updated | ^0.157.0 | ^0.158.0 |
+| rolldown | peerDependency | updated | ^1.2.0 | ^1.2.16 |
+
+[#298][#298]
+
+### Thanks
+
+Thanks to [@spencerbeggs](https://github.com/spencerbeggs) for their contributions!
+
+[#298]: https://github.com/spencerbeggs/rolldown-pnpm-config/pull/298
+
 ## 2.4.3
 
 ### Bug Fixes
