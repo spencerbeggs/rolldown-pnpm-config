@@ -44,7 +44,7 @@
 		"@effected/yaml": "catalog:effected",
 		"effect": "catalog:effected",
 		"ink": "catalog:silk",
-		"oxc-parser": "^0.157.0",
+		"oxc-parser": "^0.158.0",
 		"react": "catalog:silk"
 	},
 	"devDependencies": {
@@ -53,11 +53,11 @@
 		"@effected/toml": "catalog:effected",
 		"@types/node": "catalog:silk",
 		"@types/react": "catalog:silk",
-		"rolldown": "catalog:build",
+		"rolldown": "catalog:effected:build",
 		"typescript": "catalog:silk"
 	},
 	"peerDependencies": {
-		"rolldown": "catalog:build:peers"
+		"rolldown": "catalog:effected:build"
 	},
 	"peerDependenciesMeta": {
 		"rolldown": {
