@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import type { BumpType } from "@effected/changesets";
 import { PendingChangesets } from "@effected/changesets";
+import { Fmt } from "@effected/cli-kit";
 import { findWorkspaceRootSync, getWorkspacePackagesSync } from "@effected/workspaces";
 import { nodeSyncOps } from "@effected/workspaces/node-sync";
 import { Effect, Layer, Result } from "effect";
@@ -16,6 +17,29 @@ interface Manifest {
 	readonly version: string;
 	readonly peerDependencies?: Readonly<Record<string, string>>;
 }
+
+/**
+ * A pending changeset file the workspace resolver could not read or parse, so
+ * its bumps were dropped: `file` is relative to the workspace root (for
+ * example `.changeset/bad.md`), `message` is why.
+ *
+ * @internal
+ */
+export interface SkippedChangeset {
+	readonly file: string;
+	readonly message: string;
+}
+
+/**
+ * The workspace resolver, plus the changesets its reads skipped. Reads are
+ * lazy, so `skippedChangesets` answers empty until a workspace-sourced entry
+ * has actually resolved: a skipped file that changed no answer is not reported.
+ *
+ * @internal
+ */
+export type WorkspaceResolver = ResolverShape & {
+	readonly skippedChangesets: () => ReadonlyArray<SkippedChangeset>;
+};
 
 /** Bump strength, weakest to strongest, for strongest-bump-per-package. */
 const BUMP_ORDER: Record<BumpType, number> = { patch: 0, minor: 1, major: 2 };
@@ -61,32 +85,35 @@ export function readManifests(rootDir: string): Map<string, Manifest> {
 
 /**
  * Read the pending changeset bumps under `<rootDir>/.changeset/` through
- * `@effected/changesets`' `PendingChangesets.readSync` (which skips readmes,
- * agent context files, dotfiles and non-`.md` files, and also reads the
- * `pre/` changesets a pre-release keeps): package name → strongest bump.
+ * `@effected/changesets`' `PendingChangesets.readSettledSync` (which skips
+ * readmes, agent context files, dotfiles and non-`.md` files, and also reads
+ * the `pre/` changesets a pre-release keeps): package name → strongest bump.
  * A `none` release is no bump. Total: an absent `.changeset/` lists nothing,
- * and an unreadable directory or any malformed changeset degrades to an
- * empty map (current versions), never a failure.
+ * an unlistable directory degrades to no bumps (current versions), and a
+ * malformed changeset drops only its own bumps and is returned in `skipped`
+ * for the caller to report, never a failure.
  */
-function readPendingBumps(rootDir: string): Map<string, BumpType> {
-	const out = new Map<string, BumpType>();
-	const pending = PendingChangesets.readSync(rootDir);
-	// All or nothing until spencerbeggs/effected#1306 ships a tolerant read: one malformed changeset fails the whole
-	// directory, so every package keeps its current version. Tracked locally in #293.
-	if (Result.isFailure(pending)) return out;
-	for (const changeset of pending.success) {
+function readPendingBumps(rootDir: string): { bumps: Map<string, BumpType>; skipped: SkippedChangeset[] } {
+	const bumps = new Map<string, BumpType>();
+	const pending = PendingChangesets.readSettledSync(rootDir);
+	if (Result.isFailure(pending)) return { bumps, skipped: [] };
+	const skipped = pending.success.failures.map((f) => ({
+		file: `.changeset/${f.file}`,
+		message: Fmt.errorText(f.error),
+	}));
+	for (const changeset of pending.success.changesets) {
 		for (const [pkg, release] of changeset.releases) {
 			if (release === "none") continue;
-			const prev = out.get(pkg);
-			if (prev === undefined || BUMP_ORDER[release] > BUMP_ORDER[prev]) out.set(pkg, release);
+			const prev = bumps.get(pkg);
+			if (prev === undefined || BUMP_ORDER[release] > BUMP_ORDER[prev]) bumps.set(pkg, release);
 		}
 	}
-	return out;
+	return { bumps, skipped };
 }
 
 /** Apply the strongest pending bump for each package already present in `versions`. */
-function applyPendingBumps(rootDir: string, versions: Map<string, string>): void {
-	const bumps = readPendingBumps(rootDir);
+function applyPendingBumps(rootDir: string, versions: Map<string, string>): SkippedChangeset[] {
+	const { bumps, skipped } = readPendingBumps(rootDir);
 	for (const [pkg, bump] of bumps) {
 		const current = versions.get(pkg);
 		// A changeset naming a package outside the workspace must not introduce an entry.
@@ -95,6 +122,7 @@ function applyPendingBumps(rootDir: string, versions: Map<string, string>): void
 		if (parsed === null) continue;
 		versions.set(pkg, parsed.bump[bump]().toString());
 	}
+	return skipped;
 }
 
 /**
@@ -105,12 +133,24 @@ function applyPendingBumps(rootDir: string, versions: Map<string, string>): void
  * @internal
  */
 export function readWorkspaceVersions(rootDir: string, manifests = readManifests(rootDir)): Map<string, string> {
-	const out = new Map<string, string>();
+	return readWorkspaceState(rootDir, manifests).versions;
+}
+
+/**
+ * {@link readWorkspaceVersions}, plus the pending changesets it skipped.
+ *
+ * @internal
+ */
+export function readWorkspaceState(
+	rootDir: string,
+	manifests = readManifests(rootDir),
+): { versions: Map<string, string>; skipped: ReadonlyArray<SkippedChangeset> } {
+	const versions = new Map<string, string>();
 	for (const [name, manifest] of manifests) {
-		out.set(name, manifest.version);
+		versions.set(name, manifest.version);
 	}
-	applyPendingBumps(rootDir, out);
-	return out;
+	const skipped = applyPendingBumps(rootDir, versions);
+	return { versions, skipped };
 }
 
 /**
@@ -138,15 +178,16 @@ export function WorkspaceResolverLive(rootDir: string): Layer.Layer<RegistryReso
  *
  * @internal
  */
-export function makeWorkspaceResolver(rootDir: string): ResolverShape {
+export function makeWorkspaceResolver(rootDir: string): WorkspaceResolver {
 	let manifests: Map<string, Manifest> | undefined;
-	let versions: Map<string, string> | undefined;
+	let state: { versions: Map<string, string>; skipped: ReadonlyArray<SkippedChangeset> } | undefined;
 	const load = (): { manifests: Map<string, Manifest>; versions: Map<string, string> } => {
 		manifests ??= readManifests(rootDir);
-		versions ??= readWorkspaceVersions(rootDir, manifests);
-		return { manifests, versions };
+		state ??= readWorkspaceState(rootDir, manifests);
+		return { manifests, versions: state.versions };
 	};
 	return {
+		skippedChangesets: () => state?.skipped ?? [],
 		versions: (pkg: string) => {
 			const v = load().versions.get(pkg);
 			return v === undefined
