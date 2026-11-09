@@ -6,8 +6,8 @@ importers:
   .:
     configDependencies:
       '@effected/pnpm-plugin-effected':
-        specifier: 0.23.0
-        version: 0.23.0
+        specifier: 0.24.0
+        version: 0.24.0
       '@savvy-web/pnpm-plugin-silk':
         specifier: 0.52.0
         version: 0.52.0
@@ -18,8 +18,8 @@ importers:
 
 packages:
 
-  '@effected/pnpm-plugin-effected@0.23.0':
-    resolution: {integrity: sha512-sZO8MCrs/pvTzZLCL9ByMng1/FOi3GMlfXqMdvUaNTLNxBRciG9h241HwZF/n+jzp0WsRPm0xQTnHI9Y2CJbFg==}
+  '@effected/pnpm-plugin-effected@0.24.0':
+    resolution: {integrity: sha512-XWy5WJ7P+rE7eEjGXmvSIIgvrIBARuuMPaTuB+tYSWZQUvpElMxyyWOCVJUTXkD4yvNKWTZCccUCNp9hQ/5Pow==}
 
   '@pnpm/exe.android-arm64@12.18.0':
     resolution: {integrity: sha512-fOF6IwgvnUKEmVedGqiAsNPfN2Ry8GvaqzSQOiF3RJFbpBfPKO/6YT54s1GjToyYinRxw9preHHPe4y2N3SzhA==}
@@ -108,7 +108,7 @@ packages:
 
 snapshots:
 
-  '@effected/pnpm-plugin-effected@0.23.0': {}
+  '@effected/pnpm-plugin-effected@0.24.0': {}
 
   '@pnpm/exe.android-arm64@12.18.0':
     optional: true
@@ -179,16 +179,6 @@ settings:
   excludeLinksFromLockfile: false
 
 catalogs:
-  build:
-    rolldown:
-      specifier: ^1.2.16
-      version: 1.3.0
-    tsdown:
-      specifier: ^0.23.4
-      version: 0.23.7
-    tsx:
-      specifier: ^4.23.15
-      version: 4.23.15
   effected:
     '@effect/platform-node':
       specifier: ~4.1.2
@@ -197,8 +187,8 @@ catalogs:
       specifier: ~4.1.2
       version: 4.1.2
     '@effected/changesets':
-      specifier: ^0.1.0
-      version: 0.1.0
+      specifier: ^0.2.0
+      version: 0.2.0
     '@effected/cli-kit':
       specifier: ^0.27.1
       version: 0.27.1
@@ -215,11 +205,11 @@ catalogs:
       specifier: ^0.24.0
       version: 0.24.0
     '@effected/npm':
-      specifier: ^0.31.0
-      version: 0.31.0
+      specifier: ^0.32.0
+      version: 0.32.0
     '@effected/plugin':
-      specifier: ^0.3.0
-      version: 0.3.0
+      specifier: ^0.4.0
+      version: 0.4.0
     '@effected/semver':
       specifier: ^0.22.0
       version: 0.22.0
@@ -230,14 +220,24 @@ catalogs:
       specifier: ^0.26.0
       version: 0.26.0
     '@effected/workspaces':
-      specifier: ^0.44.0
-      version: 0.44.0
+      specifier: ^0.44.1
+      version: 0.44.1
     '@effected/yaml':
       specifier: ^0.29.0
       version: 0.29.0
     effect:
       specifier: ~4.1.2
       version: 4.1.2
+  effected:build:
+    rolldown:
+      specifier: ^1.2.16
+      version: 1.3.0
+    tsdown:
+      specifier: ^0.23.4
+      version: 0.23.7
+    tsx:
+      specifier: ^4.23.15
+      version: 4.23.15
   silk:
     '@types/node':
       specifier: ^26.6.6
@@ -288,7 +288,7 @@ overrides:
   '@effect/vitest@^4.0.0': 4.1.2
   effect@^4.0.0: 4.1.2
 
-pnpmfileChecksum: sha256-cJUgesCLK0WvT5+WRhp6HHWGhH92JOwdWYb/XBqK6xU=
+pnpmfileChecksum: sha256-qxvdGn94dgmlyqlbTvrL+usz8EAFoeRyT05OoSm3WHg=
 
 importers:
 
@@ -296,18 +296,18 @@ importers:
     devDependencies:
       '@effected/plugin':
         specifier: catalog:effected
-        version: 0.3.0(@effected/markdown@0.27.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@types/node@26.6.6)(@types/react@19.3.0)(redis@6.3.1)(tsx@4.23.15)(typescript@7.1.0-beta)
+        version: 0.4.0(@effected/markdown@0.28.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@types/node@26.6.6)(@types/react@19.3.0)(redis@6.3.1)(tsx@4.23.15)(typescript@7.1.0-beta)
       '@okfit/plugin':
         specifier: ^0.5.30
-        version: 0.5.30(@effected/memfs@0.24.0(effect@4.1.2))(@types/react@19.3.0)(redis@6.3.1)
+        version: 0.5.31(@effected/memfs@0.24.0(effect@4.1.2))(@types/react@19.3.0)(redis@6.3.1)
       '@savvy-web/silk':
         specifier: ^4.5.7
         version: 4.5.7(@changesets/cli@3.0.3)(@commitlint/cli@21.2.4(conventional-commits-parser@7.1.4)(typescript@7.1.0-beta))(@commitlint/config-conventional@21.2.4)(@types/bun@1.4.4)(@types/node@26.6.6)(@types/react@19.3.0)(@vitest/coverage-istanbul@5.1.0)(@vitest/coverage-v8@5.1.0)(@vitest/expect@5.1.0)(husky@9.1.7)(lint-staged@17.6.0)(markdownlint-cli2-formatter-codequality@0.0.8(markdownlint-cli2@0.24.0(supports-color@8.1.1)))(markdownlint-cli2@0.24.0(supports-color@8.1.1))(redis@6.3.1)(tsx@4.23.15)(turbo@2.11.10)(typescript@7.1.0-beta)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(vitest@5.1.0)
       '@vitest-agent/plugin':
-        specifier: ^6.0.6
-        version: 6.0.6(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(@types/react@19.3.0)(@vitest/coverage-istanbul@5.1.0)(@vitest/coverage-v8@5.1.0)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)(redis@6.3.1)(vitest@5.1.0)
+        specifier: ^6.0.8
+        version: 6.0.8(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(@types/react@19.3.0)(@vitest/coverage-istanbul@5.1.0)(@vitest/coverage-v8@5.1.0)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)(redis@6.3.1)(vitest@5.1.0)
       tsx:
-        specifier: catalog:build
+        specifier: catalog:effected:build
         version: 4.23.15
 
   examples/rolldown:
@@ -316,7 +316,7 @@ importers:
         specifier: catalog:silk
         version: 26.6.6
       rolldown:
-        specifier: catalog:build
+        specifier: catalog:effected:build
         version: 1.3.0
       rolldown-pnpm-config:
         specifier: workspace:*
@@ -350,7 +350,7 @@ importers:
         specifier: workspace:*
         version: link:../../package
       tsdown:
-        specifier: catalog:build
+        specifier: catalog:effected:build
         version: 0.23.7(@tsdown/exe@0.23.7)(tsx@4.23.15)(typescript@7.1.0-beta)
       typescript:
         specifier: catalog:silk
@@ -363,7 +363,7 @@ importers:
         version: 4.1.2(effect@4.1.2)(redis@6.3.1)
       '@effected/changesets':
         specifier: catalog:effected
-        version: 0.1.0(@effected/markdown@0.27.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(effect@4.1.2)
+        version: 0.2.0(@effected/markdown@0.28.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(effect@4.1.2)
       '@effected/cli-kit':
         specifier: catalog:effected
         version: 0.27.1(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.20.0(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@types/react@19.3.0)(effect@4.1.2)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)
@@ -378,7 +378,7 @@ importers:
         version: 0.20.0(effect@4.1.2)
       '@effected/npm':
         specifier: catalog:effected
-        version: 0.31.0(@effected/semver@0.22.0(effect@4.1.2))(effect@4.1.2)
+        version: 0.32.0(@effected/semver@0.22.0(effect@4.1.2))(effect@4.1.2)
       '@effected/semver':
         specifier: catalog:effected
         version: 0.22.0(effect@4.1.2)
@@ -387,7 +387,7 @@ importers:
         version: 0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2)
       '@effected/workspaces':
         specifier: catalog:effected
-        version: 0.44.0(effect@4.1.2)
+        version: 0.44.1(effect@4.1.2)
       '@effected/yaml':
         specifier: catalog:effected
         version: 0.29.0(effect@4.1.2)
@@ -398,8 +398,8 @@ importers:
         specifier: catalog:silk
         version: 8.0.0(@types/react@19.3.0)(react@19.3.1)
       oxc-parser:
-        specifier: ^0.157.0
-        version: 0.157.0
+        specifier: ^0.158.0
+        version: 0.158.0
       react:
         specifier: catalog:silk
         version: 19.3.1
@@ -420,7 +420,7 @@ importers:
         specifier: catalog:silk
         version: 19.3.0
       rolldown:
-        specifier: catalog:build
+        specifier: catalog:effected:build
         version: 1.3.0
       typescript:
         specifier: catalog:silk
@@ -667,8 +667,8 @@ packages:
       '@effected/yaml':
         optional: true
 
-  '@effected/bundler@0.1.0':
-    resolution: {integrity: sha512-xKH9tPA/FVhaq3I4m2rBjA/fIefLJ5OGr9n9deP7Ikoed1uANiF265DowxcCzuksLlVlQZGspJqkYtwX9CSlXQ==}
+  '@effected/bundler@0.2.0':
+    resolution: {integrity: sha512-EKM5T6kaTxZ9srJcKY1T8VsSEKJDeHJmzXMpYl08zD3D6YW/tkdxreKEAbz05xFO4hKc4c78oKvtrUHvK6WXdw==}
     engines: {node: '>=24.11.0'}
     peerDependencies:
       '@resvg/resvg-js': ^2.6.2
@@ -682,12 +682,12 @@ packages:
       satori:
         optional: true
 
-  '@effected/changesets@0.1.0':
-    resolution: {integrity: sha512-SKHplCOtplzDYtrmE3SUz6LyFe8ColOIHrFT4kfjIJwcisruEoQQk4CJRCY70LaDCwwWR0Si3YciE7jiOGzMFw==}
+  '@effected/changesets@0.2.0':
+    resolution: {integrity: sha512-rlJs9WwF1kznLPjCXcqM5hU5GTAY6B48prndeZuiADg3Fxkxt3zBGr/3LarEyc4mmiXLSDjAuF/8oCCkpDFGdA==}
     engines: {node: '>=24.11.0'}
     peerDependencies:
       '@effected/markdown': ^0.28.0
-      '@effected/markdown-lint': ^0.1.0
+      '@effected/markdown-lint': ^0.1.1
       effect: 4.1.2
     peerDependenciesMeta:
       '@effected/markdown':
@@ -714,8 +714,8 @@ packages:
       react:
         optional: true
 
-  '@effected/cli@0.28.0':
-    resolution: {integrity: sha512-tviCoHuREGNbHCCrWohRfBCh0CrTTGjs+8yr+k0bkNWeYZOctRdnhLVKKpdl6+jyzyevVyWYCBYzCWwxy3mlgw==}
+  '@effected/cli@0.29.0':
+    resolution: {integrity: sha512-8tZyVEwx3805ZtqmizT7xl6ZhPj1S9rmlrDUo5kZz7/Wdz3XMi9ZTgD6GIVCREY17WNBHJQs0BEo0hh/i4i/CQ==}
     engines: {node: '>=24.11.0'}
     hasBin: true
     peerDependencies:
@@ -727,24 +727,6 @@ packages:
     engines: {node: '>=24.11.0'}
     peerDependencies:
       effect: 4.1.2
-
-  '@effected/config-file@0.25.0':
-    resolution: {integrity: sha512-0p41eLRY3qwwmN0bsM+Tug8Un3XkAE6M1D1HbQNDxju3EJExwXLgceYeY7PNmtY+86gpoO1+v4ZcBgmmOG8hvQ==}
-    engines: {node: '>=24.11.0'}
-    peerDependencies:
-      '@effected/glob': ^0.19.0
-      '@effected/jsonc': ^0.24.0
-      '@effected/toml': ^0.19.1
-      '@effected/walker': ^0.25.1
-      '@effected/yaml': ^0.29.0
-      effect: 4.1.2
-    peerDependenciesMeta:
-      '@effected/jsonc':
-        optional: true
-      '@effected/toml':
-        optional: true
-      '@effected/yaml':
-        optional: true
 
   '@effected/config-file@0.26.0':
     resolution: {integrity: sha512-fXCbgA8vbb2wcuz93kUggea2DsbZ/MJx0UR6siDoiN54KsDVi9qRIYxVAK0n3S973uKBLSOS+/T+gUuf5DD2CA==}
@@ -776,8 +758,8 @@ packages:
     peerDependencies:
       effect: 4.1.2
 
-  '@effected/engine@0.14.0':
-    resolution: {integrity: sha512-Jy1k6JSCFBPlxDCk78DgLdoEm4M2n3LZkv3TlwEKkx4gTk6w2/48dRUPHexc3oSRYGKZQ+lpA8JFccpDSE7mlg==}
+  '@effected/engine@0.15.0':
+    resolution: {integrity: sha512-P6gVaeNA0Fh6Yg8328fKQ0xP97eAbzDEJslWgBChQ3WpzYFZPBqEPYTiv+DXBdGqHB9a+wcSoc3w89M0HHUvnA==}
     engines: {node: '>=24.11.0'}
 
   '@effected/env@0.11.0':
@@ -860,13 +842,13 @@ packages:
       '@effected/yaml': ^0.29.0
       effect: 4.1.2
 
-  '@effected/lockfiles@0.23.0':
-    resolution: {integrity: sha512-K1dv2ufYG1w01CrbrUvmzwuppskdjySXzm7sQVPe6UK/NRfO56omSWCZb03yevv5zzAMwwxqxn6flr9pUdUoJA==}
+  '@effected/lockfiles@0.23.1':
+    resolution: {integrity: sha512-hYtvfI3vndbqllbuFRcf7UJEcQ/a2eug/jCA3QEQMoYDaGUE7X8wHcsoE2hJ06JiRtRBP4MtLCFB5Q3FT8jNVQ==}
     engines: {node: '>=24.11.0'}
     peerDependencies:
       '@effected/glob': ^0.20.0
       '@effected/jsonc': ^0.24.0
-      '@effected/npm': ^0.31.0
+      '@effected/npm': ^0.32.0
       '@effected/semver': ^0.22.0
       '@effected/yaml': ^0.29.0
       effect: 4.1.2
@@ -877,8 +859,30 @@ packages:
     peerDependencies:
       effect: 4.1.2
 
+  '@effected/manifest@0.1.0':
+    resolution: {integrity: sha512-+0yNzMEC39905OSi9aCqIF0sUD30nLQtjixPWv9k3EkClLXs6+pRuhETFw/5dFl3zTAqL+9VsNa/Oj96xMjrNw==}
+    engines: {node: '>=24.11.0'}
+    peerDependencies:
+      effect: 4.1.2
+
   '@effected/markdown@0.27.0':
     resolution: {integrity: sha512-bPhN6leWzgYpI0E++gIbNeWaz9bhQQS70NJV1r80D9bW5zgryT7l2rORWv7JDUwt+lWgZTniQMeBjtBc0ciVAQ==}
+    engines: {node: '>=24.11.0'}
+    peerDependencies:
+      '@effected/jsonc': ^0.24.0
+      '@effected/toml': ^0.19.1
+      '@effected/yaml': ^0.29.0
+      effect: 4.1.2
+    peerDependenciesMeta:
+      '@effected/jsonc':
+        optional: true
+      '@effected/toml':
+        optional: true
+      '@effected/yaml':
+        optional: true
+
+  '@effected/markdown@0.28.0':
+    resolution: {integrity: sha512-v0IJqhRXqCuiH7HfLsi2kR5g/CWFqmPY9BVYYNg4Yo3SlVMOtySOW4wtT4XsMF5WI65s5PDyX4xEg/slG8Q9dQ==}
     engines: {node: '>=24.11.0'}
     peerDependencies:
       '@effected/jsonc': ^0.24.0
@@ -900,8 +904,8 @@ packages:
       '@effected/kit': ^0.13.0
       effect: 4.1.2
 
-  '@effected/mcp@0.15.0':
-    resolution: {integrity: sha512-wQYhw5aleNzWwpTC0aje/+Rrve5tb9YA7T8KeJCDRrcIIumc18SIQ3Xr84wQRECykGFC87mDVlYCOXS9mxthHw==}
+  '@effected/mcp@0.16.0':
+    resolution: {integrity: sha512-0tc1gtVDNycQwa4iFHae0PX8Orxi4wMg/t2Gztg1zFG0i+XhWb+mtYqzvGcW3uxS3er5Drd0dWVYjmCOfq36wQ==}
     engines: {node: '>=24.11.0'}
     hasBin: true
     peerDependencies:
@@ -921,8 +925,8 @@ packages:
       '@effected/semver': ^0.22.0
       effect: 4.1.2
 
-  '@effected/npm@0.31.0':
-    resolution: {integrity: sha512-3PzbmdP4XVjYC6NggJvhg2v5EgFUzYUtDMrg+qUe2IYePlrMig9T7/oLMnQGVeyPFLc8v2NEskSVwW+jrjFogg==}
+  '@effected/npm@0.32.0':
+    resolution: {integrity: sha512-25KGV7CE4IeGm1cqtORoz1cLXdiNU63H2uiPdlvztPsjxUlk6X9cn/f6mhqNsYRZLOUYCrgxjHhN2S34xLgwjQ==}
     engines: {node: '>=24.11.0'}
     peerDependencies:
       '@effected/semver': ^0.22.0
@@ -934,25 +938,19 @@ packages:
     peerDependencies:
       effect: 4.1.2
 
-  '@effected/package-json@0.31.0':
-    resolution: {integrity: sha512-sTJhY3f7yweVUHbV7kLXTcYm9M8jZAB2/a/tRiyvFtJ5haIcFb+0SCw78K1HYwjkc/bZJU+wwgssT1Hi/pfLGw==}
+  '@effected/package-json@0.31.1':
+    resolution: {integrity: sha512-ndZ5f3G1ViTSdvT5r86l+NRr0DOYGo/oWa/n+OVbgVVaeRZBj5gm39YNb25p25t2/qqKyLAC17HOs3Q7WZM6og==}
     engines: {node: '>=24.11.0'}
     peerDependencies:
       effect: 4.1.2
 
-  '@effected/plugin@0.3.0':
-    resolution: {integrity: sha512-44ermudyQd5jfhdzzzp6GZ5Y4BzJCse+bYGEnRAl7A6TVLt/waajk9VmODXwK7WlK6S+Gfd/qJlFKoOr0GEKig==}
+  '@effected/plugin@0.4.0':
+    resolution: {integrity: sha512-4MZjJdvstUrd7JkrN5BybVbEMk6hVasi3NmW6logt1o1OqUy/+moqPOS3xy7O9xte07R62H1L5QnqX7NAAPujQ==}
     engines: {node: '>=24.11.0'}
     hasBin: true
     peerDependencies:
       '@types/node': ^26.6.0
       typescript: 7.1.0-beta || 7.1.1-rc || >=7.1.0 <8
-
-  '@effected/schemastore@0.30.0':
-    resolution: {integrity: sha512-PXsZRW9Ev2/btksxxDFSWLFH08bGzPsul4yYvjNViVp67ZpUQPGauJIR5QQcTl/GSW66AxreA2lUw5J6ySThWA==}
-    engines: {node: '>=24.11.0'}
-    peerDependencies:
-      effect: 4.1.2
 
   '@effected/schemastore@0.31.0':
     resolution: {integrity: sha512-MFAoOgKmgztnWJutuhn1yjLfZZ3XDAfrsjyg3G1r9/FXacMZmWpZd5pHcQktSqSrp3oEgXNreQH0qMH4pSBdgQ==}
@@ -1023,8 +1021,8 @@ packages:
     peerDependencies:
       effect: 4.1.2
 
-  '@effected/workspaces@0.44.0':
-    resolution: {integrity: sha512-WAhEJDlP5PZb5ATufyeWb+/P3AJ1EXhx9G5KVVpGlzuzMiK9VkeewJscknUxPr/fdpFlP9VrlFdoMyUJXMqerg==}
+  '@effected/workspaces@0.44.1':
+    resolution: {integrity: sha512-YdWOFKJwDscGFTgKAQEImtsLhyKxoMHjVb03ZjfihvNSCl8nHCp10GaesNMjAskgmR8H7pyi6/jqU2hGBnGc0Q==}
     engines: {node: '>=24.11.0'}
     peerDependencies:
       effect: 4.1.2
@@ -1285,176 +1283,176 @@ packages:
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
 
-  '@okfit/cli@0.16.0':
-    resolution: {integrity: sha512-IxSL2Zg0OpSigr2ksrhTS3U23B/5LvLac6YAeE97mOxscphl+aG9REkC024gYjqNk7AVlY3Q8dlM/TPjr99Hzg==}
+  '@okfit/cli@0.16.1':
+    resolution: {integrity: sha512-zRgMeeHeD8cVisC2PZB8BA4UGbcl6cU0WvVEA2PdvjP/EvclJpGX/FtgeAkD4G5wG+vQQ1owaoXWua8ILtRi2A==}
     engines: {node: '>=24.11.0'}
     hasBin: true
 
-  '@okfit/core@0.13.0':
-    resolution: {integrity: sha512-lkaNIJ55kG5RITSofE/HGR8VNLMppsACtdjNjALHG4wmlJ9bnA2cvobmiDyhcp65ghLgbD0MwjV130n6MOjflA==}
+  '@okfit/core@0.13.1':
+    resolution: {integrity: sha512-5aaOBoPj5+jxS0S0CU22QQkBBZPDYigtv7EuwfWsrUnHGe0Y3a62M/1TuZoOdLn7Up9pYm+pe9JLMiCp6VT6mw==}
     engines: {node: '>=24.11.0'}
     peerDependencies:
-      '@effected/config-file': ^0.25.0
-      '@effected/glob': ^0.19.0
+      '@effected/config-file': ^0.26.0
+      '@effected/glob': ^0.20.0
       '@effected/jsonc': ^0.24.0
-      '@effected/markdown': ^0.27.0
-      '@effected/schemastore': ^0.30.0
+      '@effected/markdown': ^0.28.0
+      '@effected/schemastore': ^0.31.0
       '@effected/source': ^0.4.0
       '@effected/toml': ^0.19.1
-      '@effected/walker': ^0.25.1
+      '@effected/walker': ^0.26.0
       '@effected/yaml': ^0.29.0
       effect: 4.1.2
 
-  '@okfit/engine@0.20.0':
-    resolution: {integrity: sha512-D9Szfkkz1tv+nydoHVO/BdyOrL+JzX0iN8WCWfboPh4M1TqHkAjmtKrJOpFTfxhND39VyjtezZKN0HWdkNMgbw==}
+  '@okfit/engine@0.20.1':
+    resolution: {integrity: sha512-3NjFchMSaEY6bvNyn3rWAXin6YfIo5SDIlboBPR6KILXce6ohwoXKPVsv6sE9vvaR3z8o6bNc4SELiGHy5TqJQ==}
     engines: {node: '>=24.11.0'}
 
-  '@okfit/lsp@0.6.3':
-    resolution: {integrity: sha512-rdMID+nSKOOo/w+SnFZB//gwu20L13S6aXCePt4armRd6RLKMlorTSZHrscEUufAdmZH1uiheD7ABEx46If4TQ==}
-    engines: {node: '>=24.11.0'}
-    hasBin: true
-
-  '@okfit/mcp@0.12.0':
-    resolution: {integrity: sha512-ohU1IvDbj0MekZ7ZWHt++O41KDByNe7KYWBdotKvCrOEZr71RoI2gdCVLaXB766BWZEqWghHsEwH1V88s1TkLg==}
+  '@okfit/lsp@0.6.4':
+    resolution: {integrity: sha512-4IpP7zTm8iDB40KVDYCL4eWJ7ZGI3NQhtmMagqFQloRLc05uDHeLnQaiDzmGEb470UT58h4Px+uv+5bJNF0ZLw==}
     engines: {node: '>=24.11.0'}
     hasBin: true
 
-  '@okfit/plugin@0.5.30':
-    resolution: {integrity: sha512-7itsXTDc/zxaJa7t1bXc/WFttv+YkQ3xINQ1661dK8e2c+FuURIthtpGobQDXrKtWb4fFl/sCebH4+1QZiEL3Q==}
+  '@okfit/mcp@0.12.1':
+    resolution: {integrity: sha512-EpCyjO28Pgwrz4a+XZvREe8S1Ogsi1gKVYTnGpHX2HenfbiXIvrneIrswaXq0+JACgpMSkR+AK3ZGa7SFa7aAg==}
     engines: {node: '>=24.11.0'}
     hasBin: true
 
-  '@okfit/profiles@0.14.2':
-    resolution: {integrity: sha512-Y4LY9csuMgA6ncjm6m0FBUDMpCOfSukGrOR8fNQUxba4JgB2GEz1QMxZvxn80gE42AL2GvYoWNj/FYmYMJ6bww==}
+  '@okfit/plugin@0.5.31':
+    resolution: {integrity: sha512-Xn/etnlscvWzWI4h/1+t/31GW24Hh8vmSZvUr9AzZ8v27fXdUQdtkPLN8I3tdX4/Nex/ZCE3u+R8+HNuU/93dw==}
+    engines: {node: '>=24.11.0'}
+    hasBin: true
+
+  '@okfit/profiles@0.14.3':
+    resolution: {integrity: sha512-H56UqBkVA+4a/hQ3U2pihGSBdCj+DVeVlgyHPtW6EgkVaiR7dL9JRHVUf5xDBUk1KUWULZ6CWmDpzVBQv00kbA==}
     engines: {node: '>=24.11.0'}
     peerDependencies:
       '@effected/git': ^0.30.0
-      '@effected/glob': ^0.19.0
+      '@effected/glob': ^0.20.0
       '@effected/jsonc': ^0.24.0
-      '@effected/markdown': ^0.27.0
+      '@effected/markdown': ^0.28.0
       '@effected/source': ^0.4.0
-      '@effected/walker': ^0.25.1
-      '@okfit/core': ^0.13.0
+      '@effected/walker': ^0.26.0
+      '@okfit/core': ^0.13.1
       effect: 4.1.2
 
-  '@oxc-parser/binding-android-arm-eabi@0.157.0':
-    resolution: {integrity: sha512-zFtSEal1K/17LATxVs0VcT/Itt+fxUQ9Ni8HtG+pPcEqy/TenRO74XffkY2dBiy3Pd+w0FuebwCZ6PJx1z7scQ==}
+  '@oxc-parser/binding-android-arm-eabi@0.158.0':
+    resolution: {integrity: sha512-eZ4sHtg/u9mzPaRPWXZ7MmJ3tSFYPDCoDrnAJEXBOIQfdAy0TnzlaJx7nq0HZwE8DkYLQg6GqGZlcjaJrnijKg==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm]
     os: [android]
 
-  '@oxc-parser/binding-android-arm64@0.157.0':
-    resolution: {integrity: sha512-WSlkFUnjamuv+2+TXW5F1rp2I24KVEXj4S+H7J7Y8T/KLR2xXbHj8lgxbZZtjSKi3Z/aGGrlFEOy7EmCWpIUlg==}
+  '@oxc-parser/binding-android-arm64@0.158.0':
+    resolution: {integrity: sha512-Jqfn2GRXFkEukYBke/d1Hc9a3gB/qA3YRZ1u0D6HecjoOc3d9QvB7YFWyaLDWc139pfH+fIMIeOQ2SNOe1mnvQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm64]
     os: [android]
 
-  '@oxc-parser/binding-darwin-arm64@0.157.0':
-    resolution: {integrity: sha512-Usk8UoURmtG2qBLwrO+il+kf6CahEJJriRQACuAwF2CqcWqGsvl9xj9JIMDxP9VTinOt/BZUuDZxcpn68QKsAA==}
+  '@oxc-parser/binding-darwin-arm64@0.158.0':
+    resolution: {integrity: sha512-C3/Sl4HE0DE5r64UWBljMTua5aFh14/Urc6o45gK7J8HWjEttJJP26M0bK2eSWcas2zpJZrJlcvwyIxR7YqSZA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm64]
     os: [darwin]
 
-  '@oxc-parser/binding-darwin-x64@0.157.0':
-    resolution: {integrity: sha512-yOvjPixSD2sYJxtQXOzprXdV1xbr2RZyEnbkwFnnxz332Q4+gwkQgCGXZkFlQpc95Fk4XFITACfbFzze4XXktA==}
+  '@oxc-parser/binding-darwin-x64@0.158.0':
+    resolution: {integrity: sha512-IlU6PMqlk2pbqiidJ1dU5moOeVtzQf4x1n8fXixupLUixA6Sdd3a5WHclvGEZhJom4SjSan0EIpPQkXl9TnjeA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [x64]
     os: [darwin]
 
-  '@oxc-parser/binding-freebsd-x64@0.157.0':
-    resolution: {integrity: sha512-BLTsP8TWvmV53jgGBynwv2DR3hKtjpdpL6fXnQs2Fg5P6HsFTShFjrgQrHMSM1cA4lGmlcj7tdTx96RoJfYuuA==}
+  '@oxc-parser/binding-freebsd-x64@0.158.0':
+    resolution: {integrity: sha512-0uQD/66qKMzcz99yudx7yPWdPziXXl4S4bMxyOwXFPQ6F53Vr2DYM8Tfl9gd/32R2FXlAIqK9g8aNfwJEa0/Kg==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [x64]
     os: [freebsd]
 
-  '@oxc-parser/binding-linux-arm-gnueabihf@0.157.0':
-    resolution: {integrity: sha512-wGMDInIrhayQpNxwpXIWqa2QiKk+/6RxOi4GxPVoqmwrCdn2xj3xXyDUm3RujxQaraZjeWfh0+h9nedoivnL1w==}
+  '@oxc-parser/binding-linux-arm-gnueabihf@0.158.0':
+    resolution: {integrity: sha512-B5ZAgT/cwKVtGa14Z3PEgim8hBTAK//uX/QpwdO2ZKGMqLFDq8myV3jDU1FAGJ0aPZ24SC8X362kKrpFOYmbHg==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm]
     os: [linux]
 
-  '@oxc-parser/binding-linux-arm-musleabihf@0.157.0':
-    resolution: {integrity: sha512-N6OLfOnku4otlU6eF+HLU+1fH2XAaItc+c7dE+S09SzRZHvkaltU9aGTlMhmAIee95hOqkOCVFHNzQYJ1KS+gQ==}
+  '@oxc-parser/binding-linux-arm-musleabihf@0.158.0':
+    resolution: {integrity: sha512-ZLuYVsBUejzfdFmOlY9yW+g/iCInw+pirfTu+eMk27wFcpyCG6yfTmS/qzzvKARI/VmoUdaXmEcDNUm9hdq5Cg==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm]
     os: [linux]
 
-  '@oxc-parser/binding-linux-arm64-gnu@0.157.0':
-    resolution: {integrity: sha512-YfY+qZ8d9tHJEvIq+zXyCcSve/jWgTNDiDtr1W4WVMh5+4fsOjYtH2JDIXIXUkILZzPKgJYbQ08Y/mwhr1gQLQ==}
+  '@oxc-parser/binding-linux-arm64-gnu@0.158.0':
+    resolution: {integrity: sha512-QHKIX2SW3pnUFfhAKU8P9t36QlkGGfxgodwoKkp+pQNZmA/PF3DbkA8OgUHoeCIE0aFL1t9Sse+2wr6+zohdRA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
 
-  '@oxc-parser/binding-linux-arm64-musl@0.157.0':
-    resolution: {integrity: sha512-ytZeO8BKkezwkLoWH3hK0R9Jd+S1BQhcQaWiSAWhXE7Dncq1XiJKb4w5hCe4lwl2ytgoSBgB0XEABhwD2/IhJg==}
+  '@oxc-parser/binding-linux-arm64-musl@0.158.0':
+    resolution: {integrity: sha512-Z57mkQZMjUHh0KxxjmZLNUpqJUT5lPYYpihAOudh4PnQC79Kq7Ujy8KJsmsbla3rU0xV4aCpUKDCfVx0wnYn+Q==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm64]
     os: [linux]
     libc: [musl]
 
-  '@oxc-parser/binding-linux-ppc64-gnu@0.157.0':
-    resolution: {integrity: sha512-54w3SexApRhsw3DOAXBZ85rEMR2y29NDOUr18t69fcsnemS/N1YU+zQddHCol/HDhBPyLHg5fpxChRCSzxHwqw==}
+  '@oxc-parser/binding-linux-ppc64-gnu@0.158.0':
+    resolution: {integrity: sha512-jl6537qMp3Tb2D0J1oYzU/xzvYOM7ZDBf4Dhg8WvgkV+wgept/r2rX30PdWTE5gNo6QdHkOTz7le+9yldU1VwQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [ppc64]
     os: [linux]
     libc: [glibc]
 
-  '@oxc-parser/binding-linux-riscv64-gnu@0.157.0':
-    resolution: {integrity: sha512-byg0y1OHdjjhll0qWJQyowKdCxM/zCKysIIOqkWgCid/cR+RU5nTz/63OeAZvIb1z/VB1CyypDRdLn2Ov3r+HQ==}
+  '@oxc-parser/binding-linux-riscv64-gnu@0.158.0':
+    resolution: {integrity: sha512-BFwDkCZ2K6VuSfBlKLItXkTYMN/8SAcFpZgBohU6qjlq4HrRKBqOXW/J0ViwZ4BHZuNFxgrhUXcM3hcalZnQaA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [riscv64]
     os: [linux]
     libc: [glibc]
 
-  '@oxc-parser/binding-linux-riscv64-musl@0.157.0':
-    resolution: {integrity: sha512-CiQrt8esQTeL17kscbsfpdx5cywItx3y95YejsihET68oYnxHjbEgj8JaqlIWmhpL2h98piqPBLhWmZbp67nQQ==}
+  '@oxc-parser/binding-linux-riscv64-musl@0.158.0':
+    resolution: {integrity: sha512-3YcZPBhpDhD9BUWQct+70To5wJhY36pvn+gA04ArMCdREd76EIXB14IgYsDsRqIgOXSXT1okMpHA6UEamM/QQg==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [riscv64]
     os: [linux]
     libc: [musl]
 
-  '@oxc-parser/binding-linux-s390x-gnu@0.157.0':
-    resolution: {integrity: sha512-wSzuUshJVxcrx0c9UJYUOuUf0XHThC1+f8CEfeFbosg7FzTkjCdt89JKKU7BH8C9eTPrnJ5ir4QM0pWpVSmHnA==}
+  '@oxc-parser/binding-linux-s390x-gnu@0.158.0':
+    resolution: {integrity: sha512-C+HBtM/aauGsp1sRuKHnB6yqrFCfGzGgS/3b/Alwz+bGIgOCm6DiNnFEnA14MOQ1YA63ikjpmTN7LPb505pkCQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [s390x]
     os: [linux]
     libc: [glibc]
 
-  '@oxc-parser/binding-linux-x64-gnu@0.157.0':
-    resolution: {integrity: sha512-C4BY4QSVzN6R03Ner3r6EtIvLNR4VW4RAb63m+L0tiF/zD7grkBHMn1svyrOBFR4i32+GWJHu05xC4gGQYBhtA==}
+  '@oxc-parser/binding-linux-x64-gnu@0.158.0':
+    resolution: {integrity: sha512-COR5cFRE6DqmxZGE9QCJG1X7uUYxNdSYkMR7J9igRLnZqZ8ki6kJIa5S4czYHeIjdNyYn4vo1CsK3rQsK5sjrA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  '@oxc-parser/binding-linux-x64-musl@0.157.0':
-    resolution: {integrity: sha512-kN3LdZ2xp9z+TLuzYUWPR/mz/HrKd20vMCGWyby1d8T8K5t5NPemcqfSv3y0oMwXK8OF3lW7MNJnc3uWphvwvw==}
+  '@oxc-parser/binding-linux-x64-musl@0.158.0':
+    resolution: {integrity: sha512-lF8YZdySxTjYnHfitZpbFWpyyxDchZj+TIyvDnzH3AGZlUvyrsu7BeORPdf05cLFwiyb+RPqAae4EJ7uu5xAhg==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [x64]
     os: [linux]
     libc: [musl]
 
-  '@oxc-parser/binding-openharmony-arm64@0.157.0':
-    resolution: {integrity: sha512-cQKUrgBAFUaGcqp9Umb3GToFkvow92YeJxJuzbk8YPnButv9aY5HLyKUpxxh4WqJvP6POiNR5fUDDB5wI8Wiaw==}
+  '@oxc-parser/binding-openharmony-arm64@0.158.0':
+    resolution: {integrity: sha512-m2HMKQgNNatcwOeCDCewrW5gvmHE61WFKl2J4KHiCGNpJb6ZI8n3T/JzwxFkt8kY3E27fJwvHM6t3WIEgtPiAA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm64]
     os: [openharmony]
 
-  '@oxc-parser/binding-win32-arm64-msvc@0.157.0':
-    resolution: {integrity: sha512-qZsymd8L67o5bpzZ7gVO7qJUIF9Uf0/mXcoG0MDchBvdL7Q2tAF4aZBZFqc/YRd0WP3jTvqjs3CxlFhHgi48dA==}
+  '@oxc-parser/binding-win32-arm64-msvc@0.158.0':
+    resolution: {integrity: sha512-Kksc5jIB7cE9vgoePyIQ8sRkXA4kAfO5oDEI6X+JJMGGTRnvtGafQniLXAHur9XU+5hUgMOGoZcyA8L+JvBu6g==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm64]
     os: [win32]
 
-  '@oxc-parser/binding-win32-ia32-msvc@0.157.0':
-    resolution: {integrity: sha512-Ro9PcgwvRglGKI9fEYkbTKvIgh/hzWjv+yPyCTNuxp173i79YbTkkYeOvAEC9SFQPZXYr4+SuIrpCIaWN6sbUA==}
+  '@oxc-parser/binding-win32-ia32-msvc@0.158.0':
+    resolution: {integrity: sha512-HhxU9z7t6gqSh7UslTwD/wha5U2uD44Ss7GKtrBSJfG061iDrJ1Qk63N0Dzh3clax9pjJgYFnMpQRt72Q1bP8w==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [ia32]
     os: [win32]
 
-  '@oxc-parser/binding-win32-x64-msvc@0.157.0':
-    resolution: {integrity: sha512-Ea0fqR+HLzzCt9tYhKbb6aJlM6wBXKWfuDwLhcG519B8HGtxthDzLGfbqMQdlX2Ii5gAZt/Hgxig/iApdxZSzQ==}
+  '@oxc-parser/binding-win32-x64-msvc@0.158.0':
+    resolution: {integrity: sha512-/SLN0ot62iL6XhmsWyLdU+37vjVCgDP96sOqeCPIFov63odr4DPv9vgq+lIkZMBMOxpWsSMcwDfpERsRAyCl8A==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [x64]
     os: [win32]
@@ -1464,6 +1462,9 @@ packages:
 
   '@oxc-project/types@0.157.0':
     resolution: {integrity: sha512-95iTox1qdt6WGWce3xwNOVayByOfLaYAq+qGPpub6NWbBh9sv0GG3+zyfh9ZBCO/jVu5A0EWI+qQI7g6fevjxg==}
+
+  '@oxc-project/types@0.158.0':
+    resolution: {integrity: sha512-xZ66qA4WmLbTLlxH3mqMd8f9UKbaOzOT0ATwFf4DH/14pMgpUrtqtjyYzOQmgfl2a0iRAAMbQ9G1th/67jRzGw==}
 
   '@pnpm/catalogs.config@1100.0.10':
     resolution: {integrity: sha512-hCunUIYpfdkl5tMuBHgCEZyMGzbomjCueN1uAMyQQOvbtpLyG7TMwdXU+7JVZWj3yQ+Y470y29jdik7i+2sUhA==}
@@ -1729,8 +1730,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@rolldown/pluginutils@1.0.1':
-    resolution: {integrity: sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw==}
+  '@rolldown/pluginutils@1.1.0':
+    resolution: {integrity: sha512-K+NU2HDCEem4sClgHH4ZZXwdJeNFkJo+hRk479DIwdIviAPN2hFJH1KHHwg8CxHQXvi0M5XY4deTXINfIiSG6w==}
 
   '@rushstack/node-core-library@5.25.2':
     resolution: {integrity: sha512-76QGqWRVMtd/KZqhfSOMBgDvxIUsYPhUBhLSorGdn/wwkuESoJ2/cUI3KmfMKrZrE72o8Lau4P8kCBH/omI17Q==}
@@ -1865,6 +1866,7 @@ packages:
   '@tsdoctor/manifest@0.4.0':
     resolution: {integrity: sha512-RmPV+jyLu6nmB1x6w8LPjvlzRkrrfhCeUdMAlFaxulv4BtCTO9JF7+W6S0llT7j8af4fbvOK2Jfvn/IXToDixg==}
     engines: {node: '>=24.11.0'}
+    deprecated: Use @effected/manifest
     peerDependencies:
       effect: 4.1.2
 
@@ -2069,24 +2071,24 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@vitest-agent/cli@4.1.8':
-    resolution: {integrity: sha512-o8oHWBiHmNIwItjLtZrkH+avgP4VMMg9MGiWWQ96mgAgDQzGqilmVksV3LVFv8wI4zDxCWWK/U6AFCn190WKwA==}
+  '@vitest-agent/cli@4.1.10':
+    resolution: {integrity: sha512-K6S+lGPBVWPAM3FycoluD6z7m2fxgbEy1XrT3sM2pMtzNj7DANZNKgr95gqlQE0S7X0PwqMVY6+jAmXifu/hdg==}
     engines: {node: '>=24.11.0'}
     hasBin: true
 
-  '@vitest-agent/engine@3.1.2':
-    resolution: {integrity: sha512-8V+UmBcPoqWlfZiEiJFWqTsO0xSSH6sB/bcJWnKx4HUwVABtGwyaHkALj8bumxXkYKLbmJFrkcFGMPenFFszfA==}
+  '@vitest-agent/engine@3.2.1':
+    resolution: {integrity: sha512-s3DexGCR4mRGQL8BMSOF9AZ5VIh6iHn7OP5owavNZFWoaZ+shIjGfgJHYLT8YzPEJP69aEYVrRg7hwekxYxqMA==}
     engines: {node: '>=24.11.0'}
 
-  '@vitest-agent/mcp@6.1.2':
-    resolution: {integrity: sha512-61l1Low4njE3FfSEXqwzYsb6C3RGqKqadkcnJkHdxguvghCksiNAHNxWVONmhWiQD95L+WgfhlIfZJPgoD2HOQ==}
+  '@vitest-agent/mcp@6.1.4':
+    resolution: {integrity: sha512-3n/55sNSU5S1iM9manDPKnqvi1LCSN70Hz7KL5zgXUlQbexwqYNWIWMG8VAr74hCx5WWhZZCotN6J759cSKBQw==}
     engines: {node: '>=24.11.0'}
     hasBin: true
     peerDependencies:
       vitest: ^5.0.0
 
-  '@vitest-agent/plugin@6.0.6':
-    resolution: {integrity: sha512-CWpXrlDoeElsTmAYwDt5FHYcYau7zqAqh3+Ym0IuL5usgnwwpQpI99T52EDDBRQphqwPrsaKf66IOlpvQaV5Kg==}
+  '@vitest-agent/plugin@6.0.8':
+    resolution: {integrity: sha512-6IgWuHjpKVFuN1spT6U3P84ctDg2Rb8zySVpLW2qnyKpy/qRTX0kl/mREPAT8t8azm9FYQy7yIyvZ39YmETY8Q==}
     engines: {node: '>=24.11.0'}
     hasBin: true
     peerDependencies:
@@ -2099,14 +2101,14 @@ packages:
       '@vitest/coverage-v8':
         optional: true
 
-  '@vitest-agent/reporter@6.1.4':
-    resolution: {integrity: sha512-Cw5nG6yvNy1P/jaI6kLXS7C+71pghP3cNTbanaWIXrUEDazcR74qGUYUebneKUDcMQg8PJfdgoTB+3O5pvV9Rw==}
+  '@vitest-agent/reporter@6.1.6':
+    resolution: {integrity: sha512-u/NvhVPXtdqzRhGAqxsz6UM3MFFBy9KShz0Iq1kVmEb76bRJuWXadlN+nC9GPYn35OuFWxyMNo0puJtU4qlp3A==}
     engines: {node: '>=24.11.0'}
     peerDependencies:
-      '@effected/cli-kit': ^0.27.0
+      '@effected/cli-kit': ^0.27.1
       '@effected/env': ^0.11.0
-      '@effected/glob': ^0.19.0
-      '@effected/walker': ^0.25.1
+      '@effected/glob': ^0.20.0
+      '@effected/walker': ^0.26.0
 
   '@vitest-agent/sdk@9.0.3':
     resolution: {integrity: sha512-gg3jwKjXluT6ZBviyzQnDl1BYOTX6jyM60Kctpy0ffmjUlJqj1WHehXJsgR4GmjMul/1rrXPyxoyDn5wColpzA==}
@@ -2140,16 +2142,16 @@ packages:
     resolution: {integrity: sha512-+tkT7mujtoEpsrqSP6ESlWP0FwBTYWazYmoo2DZZKR0FOouqjC6XgBbyoK5cqg/ucQcV12JaBWh6fDU3Jb8loA==}
     engines: {node: '>=24.11.0'}
 
-  '@vitest-agent/ui@6.0.0':
-    resolution: {integrity: sha512-OgwqJlQ/PXa8DQCEIXRmjuKBMJTyHLW28iAgiQB4I3iBC+RGRRWs1TkrAU1tP+EW1GBaUjYiPJb7cBQPoHF13g==}
+  '@vitest-agent/ui@6.0.2':
+    resolution: {integrity: sha512-t5rJzO0GuElpO2ntgxtQEis7x+3iSFlzeGdusor8BCAn2CdgINC7vUEe6E+3Y/OydLqJM3pWfoiU9AeOYdxkVQ==}
     engines: {node: '>=24.11.0'}
     peerDependencies:
-      '@effected/cli-kit': ^0.27.0
+      '@effected/cli-kit': ^0.27.1
       '@effected/env': ^0.11.0
-      '@effected/glob': ^0.19.0
-      '@effected/walker': ^0.25.1
+      '@effected/glob': ^0.20.0
+      '@effected/walker': ^0.26.0
       ink: ^8.0.0
-      react: ^19.3.0
+      react: ^19.3.1
     peerDependenciesMeta:
       ink:
         optional: true
@@ -2305,8 +2307,8 @@ packages:
     resolution: {integrity: sha512-BvU8nYgGQBxcmMuEeUEmNTvrMVjJNSH7RgW24vXexN4Ven6qCvy4TntnvlnwnMLTVlcRQQdbRY8NKnaIoeWDNg==}
     engines: {node: '>=18'}
 
-  ansi-regex@6.5.0:
-    resolution: {integrity: sha512-zhvbbbdt1kbw7EJ9OQoxmQcuaNR9P5kTj7e/YdmOSU10aHWbycofJxA6jKfoEy3vlLdctOF9ZHaxLtmSm998wQ==}
+  ansi-regex@6.6.0:
+    resolution: {integrity: sha512-XZ5apbzreCbXSKwPjJstu8R0zOi247w3XYwWxtwBXgpZrCyc1Ka7p9/xY0A9/diMewmHbEKz+FIraWaEWjlN5g==}
     engines: {node: '>=12'}
 
   ansi-styles@6.2.3:
@@ -2334,8 +2336,8 @@ packages:
     resolution: {integrity: sha512-Izi8RQcffqCeNVgFigKli1ssklIbpHnCYc6AknXGYoB6grJqyeby7jv12JUQgmTAnIDnbck1uxksT4dzN3PWBA==}
     engines: {node: '>=12'}
 
-  ast-v8-to-istanbul@1.0.7:
-    resolution: {integrity: sha512-kFL68AG6ajd8fg248zwM9GQrUWEp79gsmjum34OEXjs4yHuUMZfYKwOLW9GMmB4oNvVrj+EAGxsP7ye2UR9UlA==}
+  ast-v8-to-istanbul@1.0.8:
+    resolution: {integrity: sha512-lPdpagk13ANXV+HClJEpCZM7kUsl5XcvgqKzZhaj6Ve1ZFICcY2sGhAN1n1vT0tML6EclT7bfVgTxqL57Gkpow==}
 
   auto-bind@5.0.1:
     resolution: {integrity: sha512-ooviqdwwgfIfNmDwo94wlshcdzfO64XV0Cg6oDsDYBJfITDz1EngD2z7DkbvCWn+XIMsIqW27sEVF6qcpJrRcg==}
@@ -2987,8 +2989,8 @@ packages:
     resolution: {integrity: sha512-kbpaSSGJTWdAY5KPVeMOKXSrPtr8C8C7wodJbcsd51jRnmD+GZu8Y0VoU6Dm5Z4vWr0Ig/1NKuWRKf7j5aaYSg==}
     engines: {node: '>=6'}
 
-  oxc-parser@0.157.0:
-    resolution: {integrity: sha512-2MJ9tZGXUbEIhQT/O2OPLlYCgur75ES26t2Pb1sYrvDQcRjrE7GmubkALgPEB6LzOY6sM81AAHKfl5M/FgnjJg==}
+  oxc-parser@0.158.0:
+    resolution: {integrity: sha512-BKmaZZXp667kLC8Od/ivIkbw6yaxTSqw8ViI1Tvl21E6r+6NLdwDmo43LpL2Ebt/PDMu1d4tcdBucMSor+cL1g==}
     engines: {node: ^20.19.0 || >=22.12.0}
 
   package-manager-detector@1.9.0:
@@ -3171,8 +3173,8 @@ packages:
     resolution: {integrity: sha512-ZA6oR3T/pEyuqwMgAKT0/hAv8oAXckzbkmR0UkUosQ+Mc4RxGoJkRmwHgHufaenlyAgE1Mxgpdcrf75y6XcnDg==}
     engines: {node: '>=14.16'}
 
-  slice-ansi@10.0.0:
-    resolution: {integrity: sha512-2rOYDG420YH3p2PbRAu6LdYnGuMZldshqZS2qqFh/WEzAytVo7b8n1HhubLtRunvqjao74MmGfW4sY4ex0YvpQ==}
+  slice-ansi@10.0.1:
+    resolution: {integrity: sha512-CJKEH3zwVX4bOnE+bFbmh+JK/YMT9VAazqBsVBTesnYKXlNtz6oVmrhNp1jHrxHzscuUkWiKZpzNzFraZcrorg==}
     engines: {node: '>=22'}
 
   smol-toml@1.9.1:
@@ -3455,8 +3457,8 @@ packages:
     resolution: {integrity: sha512-42AtmgqjV+X1VpdOfyTGOYRi0/zsoLqtXQckTmqTeybT+BDIbM/Guxo7x3pE2vtpr1ok6xRqM9OpBe+Jyoqyww==}
     engines: {node: '>=18'}
 
-  ws@8.22.1:
-    resolution: {integrity: sha512-oyL6OPYme/CmiFvNuGzeoxCJ4nOrZE2O1FwM9MWM1AsGri6nLXB2pg+lNA8aLeXMSav0J6eIVS1j6vUPzUtK9g==}
+  ws@8.22.2:
+    resolution: {integrity: sha512-/rEZ2ejown2N5gxVTHUu9bVVC7ttu0/Tgzf5hbTOixR3Fs7mbbXgn2DbdbcKgJOmpQMtrIUWivtYuVMnp/W/yA==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1
@@ -3783,7 +3785,7 @@ snapshots:
     dependencies:
       '@types/ws': 8.18.2
       effect: 4.1.2
-      ws: 8.22.1
+      ws: 8.22.2
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -3807,13 +3809,13 @@ snapshots:
       effect: 4.1.2
       vitest: 5.1.0(@types/node@26.6.6)(@vitest/coverage-istanbul@5.1.0)(@vitest/coverage-v8@5.1.0)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
-  '@effected/app@0.31.2(bc63e94f3682f860bc47dab6462ac9e6)':
+  '@effected/app@0.31.2(5a4ee5001a8279397c15441ea0e76497)':
     dependencies:
-      '@effected/config-file': 0.25.0(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
-      '@effected/glob': 0.19.0(effect@4.1.2)
+      '@effected/config-file': 0.26.0(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/glob': 0.20.0(effect@4.1.2)
       '@effected/store': 0.24.0(effect@4.1.2)
-      '@effected/walker': 0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2)
-      '@effected/xdg': 0.19.2(@effected/config-file@0.25.0(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/walker': 0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/xdg': 0.19.2(@effected/config-file@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
       effect: 4.1.2
     optionalDependencies:
       '@effected/jsonc': 0.24.0(effect@4.1.2)
@@ -3821,10 +3823,10 @@ snapshots:
       '@effected/toml': 0.19.1(effect@4.1.2)
       '@effected/yaml': 0.29.0(effect@4.1.2)
 
-  '@effected/bundler@0.1.0(@effected/markdown@0.27.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@types/node@26.6.6)(effect@4.1.2)(redis@6.3.1)(tsx@4.23.15)(typescript@7.1.0-beta)':
+  '@effected/bundler@0.2.0(@effected/markdown@0.28.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@types/node@26.6.6)(effect@4.1.2)(redis@6.3.1)(tsx@4.23.15)(typescript@7.1.0-beta)':
     dependencies:
       '@effect/platform-node': 4.1.2(effect@4.1.2)(redis@6.3.1)
-      '@effected/changesets': 0.1.0(@effected/markdown@0.27.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(effect@4.1.2)
+      '@effected/changesets': 0.2.0(@effected/markdown@0.28.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(effect@4.1.2)
       '@effected/config-file': 0.26.0(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
       '@effected/env': 0.11.0(effect@4.1.2)
       '@effected/files': 0.2.0(effect@4.1.2)
@@ -3832,13 +3834,14 @@ snapshots:
       '@effected/images': 0.9.0(effect@4.1.2)
       '@effected/jsonc': 0.24.0(effect@4.1.2)
       '@effected/jsonl': 0.18.0(effect@4.1.2)
-      '@effected/npm': 0.31.0(@effected/semver@0.22.0(effect@4.1.2))(effect@4.1.2)
-      '@effected/package-json': 0.31.0(effect@4.1.2)
+      '@effected/manifest': 0.1.0(effect@4.1.2)
+      '@effected/npm': 0.32.0(@effected/semver@0.22.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/package-json': 0.31.1(effect@4.1.2)
       '@effected/semver': 0.22.0(effect@4.1.2)
       '@effected/toml': 0.19.1(effect@4.1.2)
       '@effected/tsconfig-json': 0.20.2(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(effect@4.1.2)
       '@effected/walker': 0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2)
-      '@effected/workspaces': 0.44.0(effect@4.1.2)
+      '@effected/workspaces': 0.44.1(effect@4.1.2)
       '@effected/yaml': 0.29.0(effect@4.1.2)
       '@jridgewell/sourcemap-codec': 1.6.0
       '@microsoft/api-extractor': 7.60.1(@types/node@26.6.6)
@@ -3872,15 +3875,15 @@ snapshots:
       - utf-8-validate
       - vue-tsc
 
-  '@effected/changesets@0.1.0(@effected/markdown@0.27.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(effect@4.1.2)':
+  '@effected/changesets@0.2.0(@effected/markdown@0.28.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(effect@4.1.2)':
     dependencies:
       '@effected/glob': 0.20.0(effect@4.1.2)
       '@effected/semver': 0.22.0(effect@4.1.2)
-      '@effected/workspaces': 0.44.0(effect@4.1.2)
+      '@effected/workspaces': 0.44.1(effect@4.1.2)
       '@effected/yaml': 0.29.0(effect@4.1.2)
       effect: 4.1.2
     optionalDependencies:
-      '@effected/markdown': 0.27.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/markdown': 0.28.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
 
   '@effected/cli-kit@0.27.1(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.19.0(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@types/react@19.3.0)(effect@4.1.2)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)':
     dependencies:
@@ -3912,11 +3915,11 @@ snapshots:
       ink: 8.0.0(@types/react@19.3.0)(react@19.3.1)
       react: 19.3.1
 
-  '@effected/cli@0.28.0(@effected/markdown@0.27.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@types/node@26.6.6)(@types/react@19.3.0)(redis@6.3.1)(tsx@4.23.15)(typescript@7.1.0-beta)':
+  '@effected/cli@0.29.0(@effected/markdown@0.28.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@types/node@26.6.6)(@types/react@19.3.0)(redis@6.3.1)(tsx@4.23.15)(typescript@7.1.0-beta)':
     dependencies:
       '@effect/platform-node': 4.1.2(effect@4.1.2)(redis@6.3.1)
       '@effected/cli-kit': 0.27.1(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.20.0(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@types/react@19.3.0)(effect@4.1.2)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)
-      '@effected/engine': 0.14.0(@effected/markdown@0.27.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@types/node@26.6.6)(redis@6.3.1)(tsx@4.23.15)(typescript@7.1.0-beta)
+      '@effected/engine': 0.15.0(@effected/markdown@0.28.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@types/node@26.6.6)(redis@6.3.1)(tsx@4.23.15)(typescript@7.1.0-beta)
       '@effected/env': 0.11.0(effect@4.1.2)
       '@effected/glob': 0.20.0(effect@4.1.2)
       '@effected/kit': 0.13.0(effect@4.1.2)
@@ -3954,17 +3957,6 @@ snapshots:
     dependencies:
       effect: 4.1.2
 
-  '@effected/config-file@0.25.0(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)':
-    dependencies:
-      '@effected/files': 0.1.0(effect@4.1.2)
-      '@effected/glob': 0.19.0(effect@4.1.2)
-      '@effected/walker': 0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2)
-      effect: 4.1.2
-    optionalDependencies:
-      '@effected/jsonc': 0.24.0(effect@4.1.2)
-      '@effected/toml': 0.19.1(effect@4.1.2)
-      '@effected/yaml': 0.29.0(effect@4.1.2)
-
   '@effected/config-file@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)':
     dependencies:
       '@effected/files': 0.2.0(effect@4.1.2)
@@ -3984,16 +3976,16 @@ snapshots:
     dependencies:
       effect: 4.1.2
 
-  '@effected/engine@0.14.0(@effected/markdown@0.27.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@types/node@26.6.6)(redis@6.3.1)(tsx@4.23.15)(typescript@7.1.0-beta)':
+  '@effected/engine@0.15.0(@effected/markdown@0.28.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@types/node@26.6.6)(redis@6.3.1)(tsx@4.23.15)(typescript@7.1.0-beta)':
     dependencies:
-      '@effected/bundler': 0.1.0(@effected/markdown@0.27.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@types/node@26.6.6)(effect@4.1.2)(redis@6.3.1)(tsx@4.23.15)(typescript@7.1.0-beta)
+      '@effected/bundler': 0.2.0(@effected/markdown@0.28.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@types/node@26.6.6)(effect@4.1.2)(redis@6.3.1)(tsx@4.23.15)(typescript@7.1.0-beta)
       '@effected/files': 0.2.0(effect@4.1.2)
       '@effected/jsonc': 0.24.0(effect@4.1.2)
       '@effected/jsonl': 0.18.0(effect@4.1.2)
       '@effected/kit': 0.13.0(effect@4.1.2)
       '@effected/schemastore': 0.31.0(effect@4.1.2)
       '@effected/source': 0.4.0
-      '@effected/workspaces': 0.44.0(effect@4.1.2)
+      '@effected/workspaces': 0.44.1(effect@4.1.2)
       ajv: 8.20.0
       ajv-formats: 3.0.1
       effect: 4.1.2
@@ -4077,11 +4069,11 @@ snapshots:
       '@effected/yaml': 0.29.0(effect@4.1.2)
       effect: 4.1.2
 
-  '@effected/lockfiles@0.23.0(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/npm@0.31.0(@effected/semver@0.22.0(effect@4.1.2))(effect@4.1.2))(@effected/semver@0.22.0(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)':
+  '@effected/lockfiles@0.23.1(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/npm@0.32.0(@effected/semver@0.22.0(effect@4.1.2))(effect@4.1.2))(@effected/semver@0.22.0(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)':
     dependencies:
       '@effected/glob': 0.20.0(effect@4.1.2)
       '@effected/jsonc': 0.24.0(effect@4.1.2)
-      '@effected/npm': 0.31.0(@effected/semver@0.22.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/npm': 0.32.0(@effected/semver@0.22.0(effect@4.1.2))(effect@4.1.2)
       '@effected/semver': 0.22.0(effect@4.1.2)
       '@effected/yaml': 0.29.0(effect@4.1.2)
       effect: 4.1.2
@@ -4090,7 +4082,20 @@ snapshots:
     dependencies:
       effect: 4.1.2
 
+  '@effected/manifest@0.1.0(effect@4.1.2)':
+    dependencies:
+      effect: 4.1.2
+
   '@effected/markdown@0.27.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)':
+    dependencies:
+      '@effected/source': 0.4.0
+      effect: 4.1.2
+    optionalDependencies:
+      '@effected/jsonc': 0.24.0(effect@4.1.2)
+      '@effected/toml': 0.19.1(effect@4.1.2)
+      '@effected/yaml': 0.29.0(effect@4.1.2)
+
+  '@effected/markdown@0.28.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)':
     dependencies:
       '@effected/source': 0.4.0
       effect: 4.1.2
@@ -4104,10 +4109,10 @@ snapshots:
       '@effected/kit': 0.13.0(effect@4.1.2)
       effect: 4.1.2
 
-  '@effected/mcp@0.15.0(@effected/markdown@0.27.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@types/node@26.6.6)(redis@6.3.1)(tsx@4.23.15)(typescript@7.1.0-beta)':
+  '@effected/mcp@0.16.0(@effected/markdown@0.28.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@types/node@26.6.6)(redis@6.3.1)(tsx@4.23.15)(typescript@7.1.0-beta)':
     dependencies:
       '@effect/platform-node': 4.1.2(effect@4.1.2)(redis@6.3.1)
-      '@effected/engine': 0.14.0(@effected/markdown@0.27.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@types/node@26.6.6)(redis@6.3.1)(tsx@4.23.15)(typescript@7.1.0-beta)
+      '@effected/engine': 0.15.0(@effected/markdown@0.28.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@types/node@26.6.6)(redis@6.3.1)(tsx@4.23.15)(typescript@7.1.0-beta)
       '@effected/glob': 0.20.0(effect@4.1.2)
       '@effected/kit': 0.13.0(effect@4.1.2)
       '@effected/mcp-kit': 0.14.0(@effected/kit@0.13.0(effect@4.1.2))(effect@4.1.2)
@@ -4148,7 +4153,7 @@ snapshots:
       '@effected/semver': 0.22.0(effect@4.1.2)
       effect: 4.1.2
 
-  '@effected/npm@0.31.0(@effected/semver@0.22.0(effect@4.1.2))(effect@4.1.2)':
+  '@effected/npm@0.32.0(@effected/semver@0.22.0(effect@4.1.2))(effect@4.1.2)':
     dependencies:
       '@effected/commands': 0.20.0(effect@4.1.2)
       '@effected/crypto': 0.6.0(effect@4.1.2)
@@ -4164,19 +4169,19 @@ snapshots:
       '@effected/spdx': 0.19.0(effect@4.1.2)
       effect: 4.1.2
 
-  '@effected/package-json@0.31.0(effect@4.1.2)':
+  '@effected/package-json@0.31.1(effect@4.1.2)':
     dependencies:
       '@effected/files': 0.2.0(effect@4.1.2)
       '@effected/jsonc': 0.24.0(effect@4.1.2)
-      '@effected/npm': 0.31.0(@effected/semver@0.22.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/npm': 0.32.0(@effected/semver@0.22.0(effect@4.1.2))(effect@4.1.2)
       '@effected/semver': 0.22.0(effect@4.1.2)
       '@effected/spdx': 0.19.0(effect@4.1.2)
       effect: 4.1.2
 
-  '@effected/plugin@0.3.0(@effected/markdown@0.27.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@types/node@26.6.6)(@types/react@19.3.0)(redis@6.3.1)(tsx@4.23.15)(typescript@7.1.0-beta)':
+  '@effected/plugin@0.4.0(@effected/markdown@0.28.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@types/node@26.6.6)(@types/react@19.3.0)(redis@6.3.1)(tsx@4.23.15)(typescript@7.1.0-beta)':
     dependencies:
-      '@effected/cli': 0.28.0(@effected/markdown@0.27.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@types/node@26.6.6)(@types/react@19.3.0)(redis@6.3.1)(tsx@4.23.15)(typescript@7.1.0-beta)
-      '@effected/mcp': 0.15.0(@effected/markdown@0.27.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@types/node@26.6.6)(redis@6.3.1)(tsx@4.23.15)(typescript@7.1.0-beta)
+      '@effected/cli': 0.29.0(@effected/markdown@0.28.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@types/node@26.6.6)(@types/react@19.3.0)(redis@6.3.1)(tsx@4.23.15)(typescript@7.1.0-beta)
+      '@effected/mcp': 0.16.0(@effected/markdown@0.28.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@types/node@26.6.6)(redis@6.3.1)(tsx@4.23.15)(typescript@7.1.0-beta)
       '@effected/schemastore': 0.31.0(effect@4.1.2)
       '@types/node': 26.6.6
       effect: 4.1.2
@@ -4204,12 +4209,6 @@ snapshots:
       - unrun
       - utf-8-validate
       - vue-tsc
-
-  '@effected/schemastore@0.30.0(effect@4.1.2)':
-    dependencies:
-      '@effected/files': 0.1.0(effect@4.1.2)
-      '@effected/semver': 0.22.0(effect@4.1.2)
-      effect: 4.1.2
 
   '@effected/schemastore@0.31.0(effect@4.1.2)':
     dependencies:
@@ -4284,15 +4283,15 @@ snapshots:
       '@pnpm/catalogs.types': 1100.0.1
       effect: 4.1.2
 
-  '@effected/workspaces@0.44.0(effect@4.1.2)':
+  '@effected/workspaces@0.44.1(effect@4.1.2)':
     dependencies:
       '@effected/commands': 0.20.0(effect@4.1.2)
       '@effected/git': 0.30.0(effect@4.1.2)
       '@effected/glob': 0.20.0(effect@4.1.2)
       '@effected/jsonc': 0.24.0(effect@4.1.2)
-      '@effected/lockfiles': 0.23.0(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/npm@0.31.0(@effected/semver@0.22.0(effect@4.1.2))(effect@4.1.2))(@effected/semver@0.22.0(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
-      '@effected/npm': 0.31.0(@effected/semver@0.22.0(effect@4.1.2))(effect@4.1.2)
-      '@effected/package-json': 0.31.0(effect@4.1.2)
+      '@effected/lockfiles': 0.23.1(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/npm@0.32.0(@effected/semver@0.22.0(effect@4.1.2))(effect@4.1.2))(@effected/semver@0.22.0(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/npm': 0.32.0(@effected/semver@0.22.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/package-json': 0.31.1(effect@4.1.2)
       '@effected/semver': 0.22.0(effect@4.1.2)
       '@effected/walker': 0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2)
       '@effected/yaml': 0.29.0(effect@4.1.2)
@@ -4302,11 +4301,11 @@ snapshots:
       '@pnpm/catalogs.types': 1100.0.1
       effect: 4.1.2
 
-  '@effected/xdg@0.19.2(@effected/config-file@0.25.0(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)':
+  '@effected/xdg@0.19.2(@effected/config-file@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)':
     dependencies:
-      '@effected/config-file': 0.25.0(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
-      '@effected/glob': 0.19.0(effect@4.1.2)
-      '@effected/walker': 0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/config-file': 0.26.0(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/glob': 0.20.0(effect@4.1.2)
+      '@effected/walker': 0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2)
       effect: 4.1.2
     optionalDependencies:
       '@effected/jsonc': 0.24.0(effect@4.1.2)
@@ -4502,25 +4501,25 @@ snapshots:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.20.3
 
-  '@okfit/cli@0.16.0(@effected/memfs@0.24.0(effect@4.1.2))(@types/react@19.3.0)(redis@6.3.1)':
+  '@okfit/cli@0.16.1(@effected/memfs@0.24.0(effect@4.1.2))(@types/react@19.3.0)(redis@6.3.1)':
     dependencies:
       '@effect/platform-node': 4.1.2(effect@4.1.2)(redis@6.3.1)
-      '@effected/cli-kit': 0.27.1(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.19.0(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@types/react@19.3.0)(effect@4.1.2)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)
-      '@effected/config-file': 0.25.0(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/cli-kit': 0.27.1(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.20.0(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@types/react@19.3.0)(effect@4.1.2)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)
+      '@effected/config-file': 0.26.0(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
       '@effected/env': 0.11.0(effect@4.1.2)
       '@effected/git': 0.30.0(effect@4.1.2)
-      '@effected/glob': 0.19.0(effect@4.1.2)
+      '@effected/glob': 0.20.0(effect@4.1.2)
       '@effected/jsonc': 0.24.0(effect@4.1.2)
       '@effected/kit': 0.13.0(effect@4.1.2)
-      '@effected/markdown': 0.27.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
-      '@effected/schemastore': 0.30.0(effect@4.1.2)
+      '@effected/markdown': 0.28.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/schemastore': 0.31.0(effect@4.1.2)
       '@effected/source': 0.4.0
       '@effected/toml': 0.19.1(effect@4.1.2)
-      '@effected/walker': 0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/walker': 0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2)
       '@effected/yaml': 0.29.0(effect@4.1.2)
-      '@okfit/core': 0.13.0(@effected/config-file@0.25.0(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/markdown@0.27.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/schemastore@0.30.0(effect@4.1.2))(@effected/source@0.4.0)(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
-      '@okfit/engine': 0.20.0(@effected/memfs@0.24.0(effect@4.1.2))(redis@6.3.1)
-      '@okfit/profiles': 0.14.2(0fc77f299059fefa4b7862ec4c94c784)
+      '@okfit/core': 0.13.1(@effected/config-file@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/markdown@0.28.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/schemastore@0.31.0(effect@4.1.2))(@effected/source@0.4.0)(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
+      '@okfit/engine': 0.20.1(@effected/memfs@0.24.0(effect@4.1.2))(redis@6.3.1)
+      '@okfit/profiles': 0.14.3(e6d2875297f805a832161b3b27ff33e3)
       effect: 4.1.2
       ink: 8.0.0(@types/react@19.3.0)(react@19.3.1)
       react: 19.3.1
@@ -4532,39 +4531,39 @@ snapshots:
       - redis
       - utf-8-validate
 
-  '@okfit/core@0.13.0(@effected/config-file@0.25.0(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/markdown@0.27.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/schemastore@0.30.0(effect@4.1.2))(@effected/source@0.4.0)(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)':
+  '@okfit/core@0.13.1(@effected/config-file@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/markdown@0.28.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/schemastore@0.31.0(effect@4.1.2))(@effected/source@0.4.0)(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)':
     dependencies:
-      '@effected/config-file': 0.25.0(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
-      '@effected/glob': 0.19.0(effect@4.1.2)
+      '@effected/config-file': 0.26.0(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/glob': 0.20.0(effect@4.1.2)
       '@effected/jsonc': 0.24.0(effect@4.1.2)
-      '@effected/markdown': 0.27.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
-      '@effected/schemastore': 0.30.0(effect@4.1.2)
+      '@effected/markdown': 0.28.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/schemastore': 0.31.0(effect@4.1.2)
       '@effected/source': 0.4.0
       '@effected/toml': 0.19.1(effect@4.1.2)
-      '@effected/walker': 0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/walker': 0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2)
       '@effected/yaml': 0.29.0(effect@4.1.2)
       effect: 4.1.2
 
-  '@okfit/engine@0.20.0(@effected/memfs@0.24.0(effect@4.1.2))(redis@6.3.1)':
+  '@okfit/engine@0.20.1(@effected/memfs@0.24.0(effect@4.1.2))(redis@6.3.1)':
     dependencies:
       '@effect/platform-node': 4.1.2(effect@4.1.2)(redis@6.3.1)
-      '@effected/app': 0.31.2(bc63e94f3682f860bc47dab6462ac9e6)
-      '@effected/config-file': 0.25.0(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
-      '@effected/files': 0.1.0(effect@4.1.2)
+      '@effected/app': 0.31.2(5a4ee5001a8279397c15441ea0e76497)
+      '@effected/config-file': 0.26.0(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/files': 0.2.0(effect@4.1.2)
       '@effected/git': 0.30.0(effect@4.1.2)
-      '@effected/glob': 0.19.0(effect@4.1.2)
+      '@effected/glob': 0.20.0(effect@4.1.2)
       '@effected/jsonc': 0.24.0(effect@4.1.2)
       '@effected/kit': 0.13.0(effect@4.1.2)
-      '@effected/markdown': 0.27.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
-      '@effected/schemastore': 0.30.0(effect@4.1.2)
+      '@effected/markdown': 0.28.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/schemastore': 0.31.0(effect@4.1.2)
       '@effected/source': 0.4.0
       '@effected/store': 0.24.0(effect@4.1.2)
       '@effected/toml': 0.19.1(effect@4.1.2)
-      '@effected/walker': 0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2)
-      '@effected/xdg': 0.19.2(@effected/config-file@0.25.0(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/walker': 0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/xdg': 0.19.2(@effected/config-file@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
       '@effected/yaml': 0.29.0(effect@4.1.2)
-      '@okfit/core': 0.13.0(@effected/config-file@0.25.0(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/markdown@0.27.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/schemastore@0.30.0(effect@4.1.2))(@effected/source@0.4.0)(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
-      '@okfit/profiles': 0.14.2(0fc77f299059fefa4b7862ec4c94c784)
+      '@okfit/core': 0.13.1(@effected/config-file@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/markdown@0.28.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/schemastore@0.31.0(effect@4.1.2))(@effected/source@0.4.0)(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
+      '@okfit/profiles': 0.14.3(e6d2875297f805a832161b3b27ff33e3)
       effect: 4.1.2
     transitivePeerDependencies:
       - '@effected/memfs'
@@ -4572,25 +4571,25 @@ snapshots:
       - redis
       - utf-8-validate
 
-  '@okfit/lsp@0.6.3(@effected/memfs@0.24.0(effect@4.1.2))(redis@6.3.1)':
+  '@okfit/lsp@0.6.4(@effected/memfs@0.24.0(effect@4.1.2))(redis@6.3.1)':
     dependencies:
       '@effect/platform-node': 4.1.2(effect@4.1.2)(redis@6.3.1)
-      '@effected/config-file': 0.25.0(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/config-file': 0.26.0(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
       '@effected/git': 0.30.0(effect@4.1.2)
-      '@effected/glob': 0.19.0(effect@4.1.2)
+      '@effected/glob': 0.20.0(effect@4.1.2)
       '@effected/jsonc': 0.24.0(effect@4.1.2)
       '@effected/kit': 0.13.0(effect@4.1.2)
       '@effected/lsp': 0.8.0(effect@4.1.2)
-      '@effected/markdown': 0.27.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
-      '@effected/schemastore': 0.30.0(effect@4.1.2)
+      '@effected/markdown': 0.28.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/schemastore': 0.31.0(effect@4.1.2)
       '@effected/source': 0.4.0
       '@effected/toml': 0.19.1(effect@4.1.2)
-      '@effected/walker': 0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2)
-      '@effected/xdg': 0.19.2(@effected/config-file@0.25.0(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/walker': 0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/xdg': 0.19.2(@effected/config-file@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
       '@effected/yaml': 0.29.0(effect@4.1.2)
-      '@okfit/core': 0.13.0(@effected/config-file@0.25.0(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/markdown@0.27.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/schemastore@0.30.0(effect@4.1.2))(@effected/source@0.4.0)(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
-      '@okfit/engine': 0.20.0(@effected/memfs@0.24.0(effect@4.1.2))(redis@6.3.1)
-      '@okfit/profiles': 0.14.2(0fc77f299059fefa4b7862ec4c94c784)
+      '@okfit/core': 0.13.1(@effected/config-file@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/markdown@0.28.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/schemastore@0.31.0(effect@4.1.2))(@effected/source@0.4.0)(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
+      '@okfit/engine': 0.20.1(@effected/memfs@0.24.0(effect@4.1.2))(redis@6.3.1)
+      '@okfit/profiles': 0.14.3(e6d2875297f805a832161b3b27ff33e3)
       effect: 4.1.2
       vscode-languageserver: 11.0.0
     transitivePeerDependencies:
@@ -4599,25 +4598,25 @@ snapshots:
       - redis
       - utf-8-validate
 
-  '@okfit/mcp@0.12.0(@effected/memfs@0.24.0(effect@4.1.2))(redis@6.3.1)':
+  '@okfit/mcp@0.12.1(@effected/memfs@0.24.0(effect@4.1.2))(redis@6.3.1)':
     dependencies:
       '@effect/platform-node': 4.1.2(effect@4.1.2)(redis@6.3.1)
-      '@effected/config-file': 0.25.0(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/config-file': 0.26.0(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
       '@effected/git': 0.30.0(effect@4.1.2)
-      '@effected/glob': 0.19.0(effect@4.1.2)
+      '@effected/glob': 0.20.0(effect@4.1.2)
       '@effected/jsonc': 0.24.0(effect@4.1.2)
       '@effected/kit': 0.13.0(effect@4.1.2)
-      '@effected/markdown': 0.27.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/markdown': 0.28.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
       '@effected/mcp-kit': 0.14.0(@effected/kit@0.13.0(effect@4.1.2))(effect@4.1.2)
-      '@effected/schemastore': 0.30.0(effect@4.1.2)
+      '@effected/schemastore': 0.31.0(effect@4.1.2)
       '@effected/source': 0.4.0
       '@effected/toml': 0.19.1(effect@4.1.2)
-      '@effected/walker': 0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2)
-      '@effected/xdg': 0.19.2(@effected/config-file@0.25.0(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/walker': 0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/xdg': 0.19.2(@effected/config-file@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
       '@effected/yaml': 0.29.0(effect@4.1.2)
-      '@okfit/core': 0.13.0(@effected/config-file@0.25.0(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/markdown@0.27.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/schemastore@0.30.0(effect@4.1.2))(@effected/source@0.4.0)(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
-      '@okfit/engine': 0.20.0(@effected/memfs@0.24.0(effect@4.1.2))(redis@6.3.1)
-      '@okfit/profiles': 0.14.2(0fc77f299059fefa4b7862ec4c94c784)
+      '@okfit/core': 0.13.1(@effected/config-file@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/markdown@0.28.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/schemastore@0.31.0(effect@4.1.2))(@effected/source@0.4.0)(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
+      '@okfit/engine': 0.20.1(@effected/memfs@0.24.0(effect@4.1.2))(redis@6.3.1)
+      '@okfit/profiles': 0.14.3(e6d2875297f805a832161b3b27ff33e3)
       effect: 4.1.2
     transitivePeerDependencies:
       - '@effected/memfs'
@@ -4625,11 +4624,11 @@ snapshots:
       - redis
       - utf-8-validate
 
-  '@okfit/plugin@0.5.30(@effected/memfs@0.24.0(effect@4.1.2))(@types/react@19.3.0)(redis@6.3.1)':
+  '@okfit/plugin@0.5.31(@effected/memfs@0.24.0(effect@4.1.2))(@types/react@19.3.0)(redis@6.3.1)':
     dependencies:
-      '@okfit/cli': 0.16.0(@effected/memfs@0.24.0(effect@4.1.2))(@types/react@19.3.0)(redis@6.3.1)
-      '@okfit/lsp': 0.6.3(@effected/memfs@0.24.0(effect@4.1.2))(redis@6.3.1)
-      '@okfit/mcp': 0.12.0(@effected/memfs@0.24.0(effect@4.1.2))(redis@6.3.1)
+      '@okfit/cli': 0.16.1(@effected/memfs@0.24.0(effect@4.1.2))(@types/react@19.3.0)(redis@6.3.1)
+      '@okfit/lsp': 0.6.4(@effected/memfs@0.24.0(effect@4.1.2))(redis@6.3.1)
+      '@okfit/mcp': 0.12.1(@effected/memfs@0.24.0(effect@4.1.2))(redis@6.3.1)
     transitivePeerDependencies:
       - '@effected/memfs'
       - '@types/react'
@@ -4638,77 +4637,79 @@ snapshots:
       - redis
       - utf-8-validate
 
-  '@okfit/profiles@0.14.2(0fc77f299059fefa4b7862ec4c94c784)':
+  '@okfit/profiles@0.14.3(e6d2875297f805a832161b3b27ff33e3)':
     dependencies:
       '@effected/git': 0.30.0(effect@4.1.2)
-      '@effected/glob': 0.19.0(effect@4.1.2)
+      '@effected/glob': 0.20.0(effect@4.1.2)
       '@effected/jsonc': 0.24.0(effect@4.1.2)
-      '@effected/markdown': 0.27.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/markdown': 0.28.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
       '@effected/source': 0.4.0
-      '@effected/walker': 0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2)
-      '@okfit/core': 0.13.0(@effected/config-file@0.25.0(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/markdown@0.27.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/schemastore@0.30.0(effect@4.1.2))(@effected/source@0.4.0)(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/walker': 0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2)
+      '@okfit/core': 0.13.1(@effected/config-file@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/markdown@0.28.0(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/schemastore@0.31.0(effect@4.1.2))(@effected/source@0.4.0)(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
       effect: 4.1.2
 
-  '@oxc-parser/binding-android-arm-eabi@0.157.0':
+  '@oxc-parser/binding-android-arm-eabi@0.158.0':
     optional: true
 
-  '@oxc-parser/binding-android-arm64@0.157.0':
+  '@oxc-parser/binding-android-arm64@0.158.0':
     optional: true
 
-  '@oxc-parser/binding-darwin-arm64@0.157.0':
+  '@oxc-parser/binding-darwin-arm64@0.158.0':
     optional: true
 
-  '@oxc-parser/binding-darwin-x64@0.157.0':
+  '@oxc-parser/binding-darwin-x64@0.158.0':
     optional: true
 
-  '@oxc-parser/binding-freebsd-x64@0.157.0':
+  '@oxc-parser/binding-freebsd-x64@0.158.0':
     optional: true
 
-  '@oxc-parser/binding-linux-arm-gnueabihf@0.157.0':
+  '@oxc-parser/binding-linux-arm-gnueabihf@0.158.0':
     optional: true
 
-  '@oxc-parser/binding-linux-arm-musleabihf@0.157.0':
+  '@oxc-parser/binding-linux-arm-musleabihf@0.158.0':
     optional: true
 
-  '@oxc-parser/binding-linux-arm64-gnu@0.157.0':
+  '@oxc-parser/binding-linux-arm64-gnu@0.158.0':
     optional: true
 
-  '@oxc-parser/binding-linux-arm64-musl@0.157.0':
+  '@oxc-parser/binding-linux-arm64-musl@0.158.0':
     optional: true
 
-  '@oxc-parser/binding-linux-ppc64-gnu@0.157.0':
+  '@oxc-parser/binding-linux-ppc64-gnu@0.158.0':
     optional: true
 
-  '@oxc-parser/binding-linux-riscv64-gnu@0.157.0':
+  '@oxc-parser/binding-linux-riscv64-gnu@0.158.0':
     optional: true
 
-  '@oxc-parser/binding-linux-riscv64-musl@0.157.0':
+  '@oxc-parser/binding-linux-riscv64-musl@0.158.0':
     optional: true
 
-  '@oxc-parser/binding-linux-s390x-gnu@0.157.0':
+  '@oxc-parser/binding-linux-s390x-gnu@0.158.0':
     optional: true
 
-  '@oxc-parser/binding-linux-x64-gnu@0.157.0':
+  '@oxc-parser/binding-linux-x64-gnu@0.158.0':
     optional: true
 
-  '@oxc-parser/binding-linux-x64-musl@0.157.0':
+  '@oxc-parser/binding-linux-x64-musl@0.158.0':
     optional: true
 
-  '@oxc-parser/binding-openharmony-arm64@0.157.0':
+  '@oxc-parser/binding-openharmony-arm64@0.158.0':
     optional: true
 
-  '@oxc-parser/binding-win32-arm64-msvc@0.157.0':
+  '@oxc-parser/binding-win32-arm64-msvc@0.158.0':
     optional: true
 
-  '@oxc-parser/binding-win32-ia32-msvc@0.157.0':
+  '@oxc-parser/binding-win32-ia32-msvc@0.158.0':
     optional: true
 
-  '@oxc-parser/binding-win32-x64-msvc@0.157.0':
+  '@oxc-parser/binding-win32-x64-msvc@0.158.0':
     optional: true
 
   '@oxc-project/types@0.156.0': {}
 
   '@oxc-project/types@0.157.0': {}
+
+  '@oxc-project/types@0.158.0': {}
 
   '@pnpm/catalogs.config@1100.0.10':
     dependencies:
@@ -4850,7 +4851,7 @@ snapshots:
   '@rolldown/binding-win32-x64-msvc@1.3.0':
     optional: true
 
-  '@rolldown/pluginutils@1.0.1': {}
+  '@rolldown/pluginutils@1.1.0': {}
 
   '@rushstack/node-core-library@5.25.2(@types/node@26.6.6)':
     dependencies:
@@ -5230,18 +5231,18 @@ snapshots:
   '@typescript/typescript-win32-x64@7.1.0-beta':
     optional: true
 
-  '@vitest-agent/cli@4.1.8(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(@types/react@19.3.0)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)(redis@6.3.1)':
+  '@vitest-agent/cli@4.1.10(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(@types/react@19.3.0)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)(redis@6.3.1)':
     dependencies:
       '@effect/platform-node': 4.1.2(effect@4.1.2)(redis@6.3.1)
       '@effect/sql-sqlite-node': 4.1.2(effect@4.1.2)
-      '@effected/cli-kit': 0.27.1(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.19.0(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@types/react@19.3.0)(effect@4.1.2)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)
-      '@effected/config-file': 0.25.0(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/cli-kit': 0.27.1(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.20.0(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@types/react@19.3.0)(effect@4.1.2)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)
+      '@effected/config-file': 0.26.0(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
       '@effected/env': 0.11.0(effect@4.1.2)
-      '@effected/glob': 0.19.0(effect@4.1.2)
+      '@effected/glob': 0.20.0(effect@4.1.2)
       '@effected/kit': 0.13.0(effect@4.1.2)
-      '@effected/walker': 0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2)
-      '@effected/workspaces': 0.43.0(effect@4.1.2)
-      '@vitest-agent/engine': 3.1.2(@types/react@19.3.0)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)(redis@6.3.1)
+      '@effected/walker': 0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/workspaces': 0.44.1(effect@4.1.2)
+      '@vitest-agent/engine': 3.2.1(@types/react@19.3.0)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)(redis@6.3.1)
       '@vitest-agent/sdk': 9.0.3
       '@vitest-agent/sidecar': 2.2.18
       effect: 4.1.2
@@ -5256,25 +5257,25 @@ snapshots:
       - redis
       - utf-8-validate
 
-  '@vitest-agent/engine@3.1.2(@types/react@19.3.0)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)(redis@6.3.1)':
+  '@vitest-agent/engine@3.2.1(@types/react@19.3.0)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)(redis@6.3.1)':
     dependencies:
       '@effect/platform-node': 4.1.2(effect@4.1.2)(redis@6.3.1)
       '@effect/sql-sqlite-node': 4.1.2(effect@4.1.2)
-      '@effected/app': 0.31.2(bc63e94f3682f860bc47dab6462ac9e6)
-      '@effected/cli-kit': 0.27.1(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.19.0(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@types/react@19.3.0)(effect@4.1.2)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)
-      '@effected/config-file': 0.25.0(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/app': 0.31.2(5a4ee5001a8279397c15441ea0e76497)
+      '@effected/cli-kit': 0.27.1(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.20.0(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@types/react@19.3.0)(effect@4.1.2)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)
+      '@effected/config-file': 0.26.0(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
       '@effected/env': 0.11.0(effect@4.1.2)
       '@effected/git': 0.30.0(effect@4.1.2)
-      '@effected/glob': 0.19.0(effect@4.1.2)
+      '@effected/glob': 0.20.0(effect@4.1.2)
       '@effected/jsonc': 0.24.0(effect@4.1.2)
       '@effected/kit': 0.13.0(effect@4.1.2)
       '@effected/memfs': 0.24.0(effect@4.1.2)
-      '@effected/package-json': 0.30.0(effect@4.1.2)
+      '@effected/package-json': 0.31.1(effect@4.1.2)
       '@effected/store': 0.24.0(effect@4.1.2)
       '@effected/toml': 0.19.1(effect@4.1.2)
-      '@effected/walker': 0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2)
-      '@effected/workspaces': 0.43.0(effect@4.1.2)
-      '@effected/xdg': 0.19.2(@effected/config-file@0.25.0(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/glob@0.19.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/walker': 0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/workspaces': 0.44.1(effect@4.1.2)
+      '@effected/xdg': 0.19.2(@effected/config-file@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2))(@effected/glob@0.20.0(effect@4.1.2))(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(effect@4.1.2)
       '@effected/yaml': 0.29.0(effect@4.1.2)
       '@vitest-agent/sdk': 9.0.3
       effect: 4.1.2
@@ -5286,16 +5287,16 @@ snapshots:
       - redis
       - utf-8-validate
 
-  '@vitest-agent/mcp@6.1.2(@types/react@19.3.0)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)(redis@6.3.1)(vitest@5.1.0)':
+  '@vitest-agent/mcp@6.1.4(@types/react@19.3.0)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)(redis@6.3.1)(vitest@5.1.0)':
     dependencies:
       '@effect/platform-node': 4.1.2(effect@4.1.2)(redis@6.3.1)
       '@effected/commands': 0.20.0(effect@4.1.2)
       '@effected/git': 0.30.0(effect@4.1.2)
-      '@effected/glob': 0.19.0(effect@4.1.2)
+      '@effected/glob': 0.20.0(effect@4.1.2)
       '@effected/kit': 0.13.0(effect@4.1.2)
       '@effected/mcp-kit': 0.14.0(@effected/kit@0.13.0(effect@4.1.2))(effect@4.1.2)
-      '@effected/walker': 0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2)
-      '@vitest-agent/engine': 3.1.2(@types/react@19.3.0)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)(redis@6.3.1)
+      '@effected/walker': 0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2)
+      '@vitest-agent/engine': 3.2.1(@types/react@19.3.0)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)(redis@6.3.1)
       '@vitest-agent/sdk': 9.0.3
       effect: 4.1.2
       vitest: 5.1.0(@types/node@26.6.6)(@vitest/coverage-istanbul@5.1.0)(@vitest/coverage-v8@5.1.0)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
@@ -5307,19 +5308,19 @@ snapshots:
       - redis
       - utf-8-validate
 
-  '@vitest-agent/plugin@6.0.6(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(@types/react@19.3.0)(@vitest/coverage-istanbul@5.1.0)(@vitest/coverage-v8@5.1.0)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)(redis@6.3.1)(vitest@5.1.0)':
+  '@vitest-agent/plugin@6.0.8(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(@types/react@19.3.0)(@vitest/coverage-istanbul@5.1.0)(@vitest/coverage-v8@5.1.0)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)(redis@6.3.1)(vitest@5.1.0)':
     dependencies:
       '@effect/platform-node': 4.1.2(effect@4.1.2)(redis@6.3.1)
-      '@effected/cli-kit': 0.27.1(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.19.0(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@types/react@19.3.0)(effect@4.1.2)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)
+      '@effected/cli-kit': 0.27.1(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.20.0(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@types/react@19.3.0)(effect@4.1.2)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)
       '@effected/commands': 0.20.0(effect@4.1.2)
       '@effected/env': 0.11.0(effect@4.1.2)
-      '@effected/glob': 0.19.0(effect@4.1.2)
-      '@effected/walker': 0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2)
-      '@effected/workspaces': 0.43.0(effect@4.1.2)
-      '@vitest-agent/cli': 4.1.8(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(@types/react@19.3.0)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)(redis@6.3.1)
-      '@vitest-agent/engine': 3.1.2(@types/react@19.3.0)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)(redis@6.3.1)
-      '@vitest-agent/mcp': 6.1.2(@types/react@19.3.0)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)(redis@6.3.1)(vitest@5.1.0)
-      '@vitest-agent/reporter': 6.1.4(@effected/cli-kit@0.27.1(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.19.0(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@types/react@19.3.0)(effect@4.1.2)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1))(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.19.0(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@types/react@19.3.0)(redis@6.3.1)
+      '@effected/glob': 0.20.0(effect@4.1.2)
+      '@effected/walker': 0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/workspaces': 0.44.1(effect@4.1.2)
+      '@vitest-agent/cli': 4.1.10(@effected/jsonc@0.24.0(effect@4.1.2))(@effected/toml@0.19.1(effect@4.1.2))(@effected/yaml@0.29.0(effect@4.1.2))(@types/react@19.3.0)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)(redis@6.3.1)
+      '@vitest-agent/engine': 3.2.1(@types/react@19.3.0)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)(redis@6.3.1)
+      '@vitest-agent/mcp': 6.1.4(@types/react@19.3.0)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)(redis@6.3.1)(vitest@5.1.0)
+      '@vitest-agent/reporter': 6.1.6(@effected/cli-kit@0.27.1(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.20.0(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@types/react@19.3.0)(effect@4.1.2)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1))(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.20.0(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@types/react@19.3.0)(redis@6.3.1)
       '@vitest-agent/sdk': 9.0.3
       effect: 4.1.2
       magic-string: 1.4.5
@@ -5339,15 +5340,15 @@ snapshots:
       - redis
       - utf-8-validate
 
-  '@vitest-agent/reporter@6.1.4(@effected/cli-kit@0.27.1(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.19.0(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@types/react@19.3.0)(effect@4.1.2)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1))(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.19.0(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@types/react@19.3.0)(redis@6.3.1)':
+  '@vitest-agent/reporter@6.1.6(@effected/cli-kit@0.27.1(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.20.0(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@types/react@19.3.0)(effect@4.1.2)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1))(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.20.0(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@types/react@19.3.0)(redis@6.3.1)':
     dependencies:
       '@effect/platform-node': 4.1.2(effect@4.1.2)(redis@6.3.1)
-      '@effected/cli-kit': 0.27.1(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.19.0(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@types/react@19.3.0)(effect@4.1.2)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)
+      '@effected/cli-kit': 0.27.1(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.20.0(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@types/react@19.3.0)(effect@4.1.2)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)
       '@effected/env': 0.11.0(effect@4.1.2)
-      '@effected/glob': 0.19.0(effect@4.1.2)
-      '@effected/walker': 0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/glob': 0.20.0(effect@4.1.2)
+      '@effected/walker': 0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2)
       '@vitest-agent/sdk': 9.0.3
-      '@vitest-agent/ui': 6.0.0(@effected/cli-kit@0.27.1(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.19.0(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@types/react@19.3.0)(effect@4.1.2)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1))(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.19.0(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)
+      '@vitest-agent/ui': 6.0.2(@effected/cli-kit@0.27.1(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.20.0(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@types/react@19.3.0)(effect@4.1.2)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1))(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.20.0(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)
       effect: 4.1.2
       ink: 8.0.0(@types/react@19.3.0)(react@19.3.1)
       react: 19.3.1
@@ -5386,12 +5387,12 @@ snapshots:
       '@vitest-agent/sidecar-linux-x64': 2.2.18
       '@vitest-agent/sidecar-win32-x64': 2.2.18
 
-  '@vitest-agent/ui@6.0.0(@effected/cli-kit@0.27.1(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.19.0(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@types/react@19.3.0)(effect@4.1.2)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1))(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.19.0(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)':
+  '@vitest-agent/ui@6.0.2(@effected/cli-kit@0.27.1(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.20.0(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@types/react@19.3.0)(effect@4.1.2)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1))(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.20.0(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)':
     dependencies:
-      '@effected/cli-kit': 0.27.1(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.19.0(effect@4.1.2))(@effected/walker@0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2))(@types/react@19.3.0)(effect@4.1.2)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)
+      '@effected/cli-kit': 0.27.1(@effected/env@0.11.0(effect@4.1.2))(@effected/glob@0.20.0(effect@4.1.2))(@effected/walker@0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2))(@types/react@19.3.0)(effect@4.1.2)(ink@8.0.0(@types/react@19.3.0)(react@19.3.1))(react@19.3.1)
       '@effected/env': 0.11.0(effect@4.1.2)
-      '@effected/glob': 0.19.0(effect@4.1.2)
-      '@effected/walker': 0.25.1(@effected/glob@0.19.0(effect@4.1.2))(effect@4.1.2)
+      '@effected/glob': 0.20.0(effect@4.1.2)
+      '@effected/walker': 0.26.0(@effected/glob@0.20.0(effect@4.1.2))(effect@4.1.2)
       '@vitest-agent/sdk': 9.0.3
       effect: 4.1.2
     optionalDependencies:
@@ -5414,7 +5415,7 @@ snapshots:
       '@bcoe/v8-coverage': 1.0.2
       '@vitest/istanbul-lib-coverage': 2.1.0
       '@vitest/istanbul-lib-report': 2.1.0
-      ast-v8-to-istanbul: 1.0.7
+      ast-v8-to-istanbul: 1.0.8
       magicast: 0.5.5
       obug: 3.0.0
       std-env: 4.3.0
@@ -5540,7 +5541,7 @@ snapshots:
     dependencies:
       environment: 1.1.0
 
-  ansi-regex@6.5.0: {}
+  ansi-regex@6.6.0: {}
 
   ansi-styles@6.2.3: {}
 
@@ -5558,7 +5559,7 @@ snapshots:
 
   assertion-error@2.0.1: {}
 
-  ast-v8-to-istanbul@1.0.7:
+  ast-v8-to-istanbul@1.0.8:
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       estree-walker: 3.0.3
@@ -5603,7 +5604,7 @@ snapshots:
 
   cli-truncate@6.2.0:
     dependencies:
-      slice-ansi: 10.0.0
+      slice-ansi: 10.0.1
       string-width: 8.3.0
 
   cliui@9.0.1:
@@ -6260,29 +6261,29 @@ snapshots:
     dependencies:
       mimic-fn: 2.1.0
 
-  oxc-parser@0.157.0:
+  oxc-parser@0.158.0:
     dependencies:
-      '@oxc-project/types': 0.157.0
+      '@oxc-project/types': 0.158.0
     optionalDependencies:
-      '@oxc-parser/binding-android-arm-eabi': 0.157.0
-      '@oxc-parser/binding-android-arm64': 0.157.0
-      '@oxc-parser/binding-darwin-arm64': 0.157.0
-      '@oxc-parser/binding-darwin-x64': 0.157.0
-      '@oxc-parser/binding-freebsd-x64': 0.157.0
-      '@oxc-parser/binding-linux-arm-gnueabihf': 0.157.0
-      '@oxc-parser/binding-linux-arm-musleabihf': 0.157.0
-      '@oxc-parser/binding-linux-arm64-gnu': 0.157.0
-      '@oxc-parser/binding-linux-arm64-musl': 0.157.0
-      '@oxc-parser/binding-linux-ppc64-gnu': 0.157.0
-      '@oxc-parser/binding-linux-riscv64-gnu': 0.157.0
-      '@oxc-parser/binding-linux-riscv64-musl': 0.157.0
-      '@oxc-parser/binding-linux-s390x-gnu': 0.157.0
-      '@oxc-parser/binding-linux-x64-gnu': 0.157.0
-      '@oxc-parser/binding-linux-x64-musl': 0.157.0
-      '@oxc-parser/binding-openharmony-arm64': 0.157.0
-      '@oxc-parser/binding-win32-arm64-msvc': 0.157.0
-      '@oxc-parser/binding-win32-ia32-msvc': 0.157.0
-      '@oxc-parser/binding-win32-x64-msvc': 0.157.0
+      '@oxc-parser/binding-android-arm-eabi': 0.158.0
+      '@oxc-parser/binding-android-arm64': 0.158.0
+      '@oxc-parser/binding-darwin-arm64': 0.158.0
+      '@oxc-parser/binding-darwin-x64': 0.158.0
+      '@oxc-parser/binding-freebsd-x64': 0.158.0
+      '@oxc-parser/binding-linux-arm-gnueabihf': 0.158.0
+      '@oxc-parser/binding-linux-arm-musleabihf': 0.158.0
+      '@oxc-parser/binding-linux-arm64-gnu': 0.158.0
+      '@oxc-parser/binding-linux-arm64-musl': 0.158.0
+      '@oxc-parser/binding-linux-ppc64-gnu': 0.158.0
+      '@oxc-parser/binding-linux-riscv64-gnu': 0.158.0
+      '@oxc-parser/binding-linux-riscv64-musl': 0.158.0
+      '@oxc-parser/binding-linux-s390x-gnu': 0.158.0
+      '@oxc-parser/binding-linux-x64-gnu': 0.158.0
+      '@oxc-parser/binding-linux-x64-musl': 0.158.0
+      '@oxc-parser/binding-openharmony-arm64': 0.158.0
+      '@oxc-parser/binding-win32-arm64-msvc': 0.158.0
+      '@oxc-parser/binding-win32-ia32-msvc': 0.158.0
+      '@oxc-parser/binding-win32-x64-msvc': 0.158.0
 
   package-manager-detector@1.9.0: {}
 
@@ -6402,7 +6403,7 @@ snapshots:
   rolldown@1.2.16:
     dependencies:
       '@oxc-project/types': 0.156.0
-      '@rolldown/pluginutils': 1.0.1
+      '@rolldown/pluginutils': 1.1.0
     optionalDependencies:
       '@rolldown/binding-android-arm-eabi': 1.2.16
       '@rolldown/binding-android-arm64': 1.2.16
@@ -6423,7 +6424,7 @@ snapshots:
   rolldown@1.3.0:
     dependencies:
       '@oxc-project/types': 0.157.0
-      '@rolldown/pluginutils': 1.0.1
+      '@rolldown/pluginutils': 1.1.0
     optionalDependencies:
       '@rolldown/binding-android-arm-eabi': 1.3.0
       '@rolldown/binding-android-arm64': 1.3.0
@@ -6460,7 +6461,7 @@ snapshots:
 
   slash@5.1.0: {}
 
-  slice-ansi@10.0.0:
+  slice-ansi@10.0.1:
     dependencies:
       ansi-styles: 7.0.0
       string-width: 8.3.0
@@ -6494,7 +6495,7 @@ snapshots:
 
   strip-ansi@7.2.0:
     dependencies:
-      ansi-regex: 6.5.0
+      ansi-regex: 6.6.0
 
   supports-color@8.1.1:
     dependencies:
@@ -6686,7 +6687,7 @@ snapshots:
       string-width: 7.2.0
       strip-ansi: 7.2.0
 
-  ws@8.22.1: {}
+  ws@8.22.2: {}
 
   y18n@5.0.8: {}
 

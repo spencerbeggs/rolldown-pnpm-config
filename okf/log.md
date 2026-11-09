@@ -1,5 +1,11 @@
 # Log
 
+## 2026-11-09
+
+* Updated CLI
+* Updated CLI output, audience and exit codes
+* Updated upgrade command
+
 ## 2026-11-08
 
 * Added Build the package

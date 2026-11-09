@@ -2,7 +2,11 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "@effect/vitest";
 import { Effect } from "effect";
 import { RegistryResolver } from "../../src/cli/resolve.js";
-import { WorkspaceResolverLive, readWorkspaceVersions } from "../../src/cli/workspace-resolve.js";
+import {
+	WorkspaceResolverLive,
+	makeWorkspaceResolver,
+	readWorkspaceVersions,
+} from "../../src/cli/workspace-resolve.js";
 
 const FIXTURE = fileURLToPath(new URL("./fixtures/workspace-next/", import.meta.url));
 const GLOB_FIXTURE = fileURLToPath(new URL("./fixtures/workspace-globs/", import.meta.url));
@@ -103,10 +107,21 @@ describe("pending changeset bumps", () => {
 		expect(readWorkspaceVersions(BUMPS_FIXTURE).has("@bump/outside")).toBe(false);
 	});
 
-	it("degrades to current versions when any changeset is malformed", () => {
+	it.effect("reports a skipped changeset only once a read has happened", () =>
+		Effect.gen(function* () {
+			const resolver = makeWorkspaceResolver(BAD_CHANGESET_FIXTURE);
+			expect(resolver.skippedChangesets()).toEqual([]);
+			yield* resolver.versions("@bump/alpha");
+			const skipped = resolver.skippedChangesets();
+			expect(skipped.map((s) => s.file)).toEqual([".changeset/bad.md"]);
+			expect(skipped[0]?.message).not.toBe("");
+		}),
+	);
+
+	it("drops only a malformed changeset's bumps and keeps the valid ones", () => {
 		expect(readWorkspaceVersions(BAD_CHANGESET_FIXTURE)).toEqual(
 			new Map([
-				["@bump/alpha", "1.0.0"],
+				["@bump/alpha", "1.1.0"],
 				["@bump/beta", "1.0.0"],
 				["@bump/gamma", "1.0.0"],
 			]),

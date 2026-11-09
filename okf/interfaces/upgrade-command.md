@@ -6,7 +6,7 @@ kind: cli
 resource: ../../package/src/cli/commands/upgrade.ts
 generated:
   by: okfit/claude-code
-  at: 2026-11-05T22:58:21Z
+  at: 2026-11-09T18:10:01Z
 sources:
   - id: upgrade-ts
     resource: ../../package/src/cli/commands/upgrade.ts
@@ -14,7 +14,7 @@ sources:
     resource: ../../package/src/cli/bin.ts
 integrity:
   generated:
-    body: 1caab28e5bee913a
+    body: 5b91265f7bcbcffa
 ---
 
 # upgrade command
@@ -105,8 +105,20 @@ is the contract:
 - `1` — a `--yes` run would rewrite something (a finding: the command
   succeeds and records the code with `CliExit.set`), **or** the run failed
   to resolve (`CheckFailedError` — a typo'd package name, a registry auth
-  failure, or a peer-strategy warning). Both share the single non-zero exit
-  code, so the output must distinguish the two families.
+  failure, a peer-strategy warning, or a malformed pending changeset read
+  while resolving a workspace-sourced entry). Both share the single
+  non-zero exit code, so the output must distinguish the two families.
+
+A malformed pending changeset fails `--check` even when nothing drifted:
+its bumps were dropped, so the workspace versions the check compared
+against may be stale, and an in-sync answer would be unfounded. `--yes`
+fails on it the same way, before writing anything, as it does on every
+other warning: unattended, it would write a range one release behind. Both
+fail through `runUpgrade`, so `--format json` reports it as `error.kind`
+`"changeset"`. It fails only when a workspace-sourced entry actually
+resolved; a catalog that reads nothing from the workspace is not affected.
+The interactive table, the non-interactive summary and `--preview` report
+the same file as a warning on stderr and carry on.
 
 Two distinguished output families:
 
@@ -127,7 +139,8 @@ spaces** before the paren.[^upgrade-ts]
 anything else is a usage error (exit `64`, mapped by tag through
 `CliRuntime.main`'s `exitCodes`). stdout then carries exactly one
 single-line JSON document in every case, failure included (`{ "command",
-"inSync" | "applied", ..., "error": { "kind", "message" } }`), printed by
+"inSync" | "applied", ..., "error": { "kind", "message" } }`, where `kind`
+is `"peer-strategy"`, `"changeset"` or `"resolution"`), printed by
 `CliFormat.print` with `indent: 0`, and the human failure report goes to
 stderr. Under GitHub Actions a `##[` inside the document is written as the
 JSON escape `#\u0023[`, which decodes to the same text.[^upgrade-ts]
