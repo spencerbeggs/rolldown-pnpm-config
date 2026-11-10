@@ -6,7 +6,7 @@ import { DESCRIPTORS, deriveSchemas } from "../descriptors/index.js";
 import { FIELD_REGISTRY } from "../registry.js";
 import type { Base, Enforcement, Manifest } from "../runtime/types.js";
 import { resolvePeerDependencyRules } from "./allowed-versions.js";
-import { resolveOverrides } from "./overrides-from-catalogs.js";
+import { pinCatalogs, resolveOverrides } from "./overrides-from-catalogs.js";
 
 /**
  * Typed failure for invalid plugin configuration, surfaced as a build error.
@@ -118,6 +118,16 @@ export function freeze(
 				...(decl.options ? { options: decl.options } : {}),
 			};
 		}
+		// A catalog member the overrides directive pins ships the pinned version,
+		// not its authored range: pnpm never applies an override to a `catalog:`
+		// specifier, so the two must name the same version. Runs after the loop so
+		// it reads the final `overrides`, hand-authored winners included.
+		base.catalogs = pinCatalogs(
+			base.catalogs as Record<string, Record<string, string>>,
+			base.overrides,
+			config.overridesFromCatalogs,
+			config.catalogs,
+		);
 		// `base.catalogs` is unconditionally decoded above; a missing/invalid
 		// catalogs map already fails as `Invalid catalogs: …`, so no further guard.
 		return { base, manifest, name: config.name };

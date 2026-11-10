@@ -20,6 +20,17 @@ import { rangeOf } from "../catalogs.js";
  * authored by hand wins over a derived one on the same selector, and the
  * consumer's own `overrides` still win over the plugin's at install time.
  *
+ * Every pinned member's catalog value is frozen to the version its override
+ * names, so the catalog and the override always agree. pnpm never matches an
+ * override against a `catalog:` specifier, so a catalog left at `~X.Y.Z`
+ * would let a dependent writing `catalog:` resolve a newer patch than the
+ * override pins everywhere else, and the graph would carry two copies. Only
+ * the frozen output changes (the pnpmfile's `base`, `export`, `preview`): the
+ * authored range stays what `upgrade` reads and rewrites, and the `:peers`
+ * catalog keeps its peer range. When a hand-authored override wins on the
+ * selector, the catalog takes its value if that is an exact version and keeps
+ * the authored range otherwise.
+ *
  * `include` and `exclude` select which members are pinned, so one catalog can
  * hold both a release family that is pinned graph-wide and packages that are
  * not. Each entry is an exact package name or a glob pattern (`@effect/*`),
@@ -86,11 +97,22 @@ function compileFilter(
 	return (name) => globs.some((glob) => Glob.match(glob, name));
 }
 
-/** Derive the overrides for one directive. Pure; throws when the catalog is absent or a filter entry matches nothing. */
+/**
+ * One catalog member a directive pins: where it lives, the override selector
+ * derived for it, and the version that selector pins.
+ */
+interface Pin {
+	readonly catalog: string;
+	readonly name: string;
+	readonly selector: string;
+	readonly version: string;
+}
+
+/** Derive the pins for one directive. Pure; throws when the catalog is absent or a filter entry matches nothing. */
 function deriveOne(
 	catalogs: Record<string, CatalogDeclaration>,
 	{ catalog, include, exclude = [], scope = "line" }: OverridesFromCatalogs,
-): Record<string, string> {
+): Pin[] {
 	const decl = catalogs[catalog];
 	if (decl === undefined) {
 		throw new Error(`overridesFromCatalogs: catalog "${catalog}" is not declared`);
@@ -101,7 +123,7 @@ function deriveOne(
 	const members = Object.keys(decl.packages);
 	const isIncluded = include === undefined ? () => true : compileFilter(include, members, "included", catalog);
 	const isExcluded = compileFilter(exclude, members, "excluded", catalog);
-	const table: Record<string, string> = {};
+	const pins: Pin[] = [];
 	for (const [name, spec] of Object.entries(decl.packages)) {
 		if (!isIncluded(name) || isExcluded(name)) continue;
 		const parsed = Result.getOrNull(VersionSpecifier.parseResult(rangeOf(spec)));
@@ -112,9 +134,18 @@ function deriveOne(
 		const { version } = parsed;
 		if (version.prerelease.length > 0 || version.build.length > 0) continue;
 		const selector = scope === "any" ? name : `${name}@${releaseLine(version.major, version.minor)}`;
-		table[selector] = version.toString();
+		pins.push({ catalog, name, selector, version: version.toString() });
 	}
-	return table;
+	return pins;
+}
+
+/** Every directive's pins, in directive order. */
+function derivePins(
+	catalogs: Record<string, CatalogDeclaration>,
+	directives: OverridesFromCatalogs | readonly OverridesFromCatalogs[],
+): Pin[] {
+	const list = Array.isArray(directives) ? directives : [directives];
+	return list.flatMap((d) => deriveOne(catalogs, d));
 }
 
 /**
@@ -127,9 +158,43 @@ export function deriveOverrides(
 	catalogs: Record<string, CatalogDeclaration>,
 	directives: OverridesFromCatalogs | readonly OverridesFromCatalogs[],
 ): Record<string, string> {
-	const list = Array.isArray(directives) ? directives : [directives];
 	const out: Record<string, string> = {};
-	for (const d of list) Object.assign(out, deriveOne(catalogs, d));
+	for (const pin of derivePins(catalogs, directives)) out[pin.selector] = pin.version;
+	return out;
+}
+
+/** The exact version an override value names, or `null` for a range, alias or removal. */
+function exactVersion(value: unknown): string | null {
+	if (typeof value !== "string") return null;
+	const parsed = Result.getOrNull(VersionSpecifier.parseResult(value));
+	if (parsed === null || (parsed.operator !== "" && parsed.operator !== "=")) return null;
+	return parsed.version.toString();
+}
+
+/**
+ * Freeze each pinned member's catalog value to the exact version its final
+ * override names, so a `catalog:` specifier (which pnpm never matches against
+ * an override) resolves the same version the override pins. Returns a new
+ * catalogs map; `:peers` catalogs and unpinned members pass through verbatim,
+ * and a member whose winning override is not an exact version keeps its range.
+ *
+ * @internal
+ */
+export function pinCatalogs(
+	resolved: Record<string, Record<string, string>>,
+	overrides: unknown,
+	directives: OverridesFromCatalogs | readonly OverridesFromCatalogs[] | undefined,
+	catalogs: Record<string, CatalogDeclaration>,
+): Record<string, Record<string, string>> {
+	if (directives === undefined || !Predicate.isObject(overrides)) return resolved;
+	const table = overrides as Record<string, unknown>;
+	const out: Record<string, Record<string, string>> = { ...resolved };
+	for (const { catalog, name, selector } of derivePins(catalogs, directives)) {
+		const pinned = exactVersion(table[selector]);
+		const current = out[catalog];
+		if (pinned === null || current === undefined || !(name in current)) continue;
+		out[catalog] = { ...current, [name]: pinned };
+	}
 	return out;
 }
 

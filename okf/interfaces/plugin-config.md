@@ -6,7 +6,7 @@ resource: ../../package/src/define-plugin.ts
 kind: api
 generated:
   by: okfit/claude-code
-  at: 2026-10-11T16:12:12Z
+  at: 2026-11-10T03:51:52Z
 sources:
   - id: define-plugin
     resource: package/src/define-plugin.ts
@@ -20,7 +20,7 @@ tags:
   - architecture
 integrity:
   generated:
-    body: 55d8969f3b0955f1
+    body: 08110b69c2238d90
 ---
 
 # PnpmConfigPlugin authoring surface
@@ -57,7 +57,10 @@ the default enforcement per field.[^define-plugin]
   `package/src/plugin/overrides-from-catalogs.ts`) is a top-level build-time
   directive, not a pnpm field: `freeze` folds the entries it derives under
   `overrides` and it leaves no trace in `base`, `manifest` or
-  `pnpm-workspace.yaml`. The drift guard excludes it from key coverage
+  `pnpm-workspace.yaml` under its own name. It does change the frozen
+  catalog: every member it pins ships the exact pinned version in place of
+  its authored range (the `:peers` catalog keeps the peer range), while the
+  authored config keeps the range `upgrade` reads. The drift guard excludes it from key coverage
   alongside `name`, `local` and `catalogs`, and `local` does not accept it.
 - `name: string` (`package/src/define-plugin.ts:39`) is a required
   top-level field — plugin metadata, never written to

@@ -79,6 +79,14 @@ export const plugin = PnpmConfigPlugin({
 		expect(yaml).toContain("effect@^4.0.0: 4.0.2"); // the authored selector wins
 		expect(yaml).not.toContain("tsgo@^0.51.0");
 		expect(yaml).not.toContain("overridesFromCatalogs");
+		// The catalog names the version each override pins (the authored winner
+		// included), so a `catalog:` dependent cannot escape the override; the
+		// peers catalog keeps its peer range, and the authored config keeps its caret.
+		expect(yaml).toContain("'@effect/vitest': 4.0.3");
+		expect(yaml).toContain("effect: 4.0.2");
+		expect(yaml).not.toContain("^4.0.3");
+		expect(yaml).toContain("effect: ^4.0.0");
+		expect(readFileSync(join(cwd, "pnpm.config.ts"), "utf8")).toContain('range: "^4.0.3"');
 	});
 
 	it("keeps --check --format json's one-document contract even when no config is found", async () => {

@@ -1,5 +1,10 @@
 # Log
 
+## 2026-11-10
+
+* Updated Plugin engine
+* Updated PnpmConfigPlugin authoring surface
+
 ## 2026-11-09
 
 * Updated CLI
