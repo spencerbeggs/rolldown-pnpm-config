@@ -1,7 +1,7 @@
 autoInstallPeers: true
 configDependencies:
   "@effected/pnpm-plugin-effected": 0.26.0
-  "@savvy-web/pnpm-plugin-silk": 0.52.0
+  "@savvy-web/pnpm-plugin-silk": 0.53.0
 minimumReleaseAgeExclude:
   - "@effected/pnpm-plugin-effected"
   - "@savvy-web/pnpm-plugin-silk"
@@ -11,3 +11,9 @@ overrides:
 packages:
   - examples/*
   - package
+permissions:
+  tsdown:
+    skills: true
+skills:
+  dirs:
+    - .claude/skills

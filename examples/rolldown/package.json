@@ -29,10 +29,10 @@
 		"types:check": "tsc --noEmit"
 	},
 	"devDependencies": {
-		"@types/node": "catalog:silk",
+		"@types/node": "catalog:effected:build",
 		"rolldown": "catalog:effected:build",
 		"rolldown-pnpm-config": "workspace:*",
-		"typescript": "catalog:silk"
+		"typescript": "catalog:effected:build"
 	},
 	"engines": {
 		"node": ">=24.11.0"

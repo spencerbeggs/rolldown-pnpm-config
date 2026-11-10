@@ -45,16 +45,16 @@
 		"effect": "catalog:effected",
 		"ink": "catalog:silk",
 		"oxc-parser": "^0.158.0",
-		"react": "catalog:silk"
+		"react": "catalog:effected:build"
 	},
 	"devDependencies": {
 		"@effect/vitest": "catalog:effected",
 		"@effected/memfs": "catalog:effected",
 		"@effected/toml": "catalog:effected",
-		"@types/node": "catalog:silk",
-		"@types/react": "catalog:silk",
+		"@types/node": "catalog:effected:build",
+		"@types/react": "catalog:effected:build",
 		"rolldown": "catalog:effected:build",
-		"typescript": "catalog:silk"
+		"typescript": "catalog:effected:build"
 	},
 	"peerDependencies": {
 		"rolldown": "catalog:effected:build:peers"
