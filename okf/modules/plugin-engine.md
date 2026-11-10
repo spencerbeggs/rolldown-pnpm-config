@@ -6,7 +6,7 @@ resource: ../../package/src/plugin
 kind: package
 generated:
   by: okfit/claude-code
-  at: 2026-10-31T20:42:34Z
+  at: 2026-11-10T03:51:52Z
 sources:
   - id: plugin-index
     resource: package/src/plugin/index.ts
@@ -16,7 +16,7 @@ sources:
     resource: package/src/plugin/serialize.ts
 integrity:
   generated:
-    body: 2c5d89c13c5c99a4
+    body: 6b83a536744b87c6
 ---
 
 # Plugin engine
@@ -59,8 +59,15 @@ the named catalog from the top-level `overridesFromCatalogs` (narrowed by
 its `include`/`exclude` name patterns, compiled with core `effect/Glob`)
 and merges
 the authored `overrides` over it, materializing the field when none was
-authored. The directive itself is not a managed field and never reaches
-`base` or `manifest`.[^freeze]
+authored. After every field is resolved, `pinCatalogs` rewrites each
+pinned member's entry in `base.catalogs` to the exact version its final
+override names (an authored winner included, when it is an exact version),
+because pnpm never matches an override against a `catalog:` specifier and a
+catalog left at `~X.Y.Z` would let a `catalog:` dependent resolve a second
+copy. The `:peers` catalogs, unpinned members and the authored config are
+untouched, so `upgrade` still reads and rewrites the authored range. The
+directive itself is not a managed field and never reaches `base` or
+`manifest`.[^freeze]
 
 `serialize.ts` turns `{ base, manifest, name }` into the two virtual
 modules: the pnpmfile is `import { createHooks }` plus deterministically

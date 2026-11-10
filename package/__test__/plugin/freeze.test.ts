@@ -1,6 +1,7 @@
 import { describe, expect, it } from "@effect/vitest";
 import { Effect, Exit } from "effect";
 import { freeze } from "../../src/plugin/freeze.js";
+import { catalogsOf } from "../utils/catalogs-of.js";
 
 describe("freeze", () => {
 	it.effect("produces base + manifest from a valid config", () =>
@@ -102,6 +103,74 @@ describe("freeze", () => {
 			});
 			expect(base.overrides).toEqual({ "effect@^4.0.0": "4.0.3" });
 			expect(manifest.overrides).toEqual({ strategy: "overrides", enforcement: "warn" });
+		}),
+	);
+
+	it.effect("pins the catalog value of every member the overrides directive pins", () =>
+		Effect.gen(function* () {
+			const { base } = yield* freeze({
+				name: "@test/cfg",
+				catalogs: {
+					effected: {
+						packages: {
+							effect: { range: "~4.1.2", peer: "~4.1.0", strategy: "lock-minor" },
+							"@effect/vitest": { range: "~4.1.2", peer: "~4.1.0", strategy: "lock-minor" },
+							"@effected/semver": "^0.4.1",
+							"@effect/tsgo": "0.51.1-beta.2",
+						},
+					},
+				},
+				overridesFromCatalogs: { catalog: "effected", include: ["effect", "@effect/*"] },
+			});
+			expect(base.overrides).toEqual({ "effect@^4.0.0": "4.1.2", "@effect/vitest@^4.0.0": "4.1.2" });
+			// The catalog names the version the override names, so a `catalog:`
+			// specifier (which pnpm never matches against an override) cannot
+			// resolve a second copy.
+			expect(catalogsOf(base).effected).toEqual({
+				effect: "4.1.2",
+				"@effect/vitest": "4.1.2",
+				// Outside `include`: the range ships verbatim.
+				"@effected/semver": "^0.4.1",
+				// Prerelease: skipped by the directive, so verbatim too.
+				"@effect/tsgo": "0.51.1-beta.2",
+			});
+			// The peers catalog keeps the derived peer range: packed manifests read it as the peer floor.
+			expect(catalogsOf(base)["effected:peers"]).toEqual({ effect: "~4.1.0", "@effect/vitest": "~4.1.0" });
+		}),
+	);
+
+	it.effect("leaves an excluded member's catalog range verbatim", () =>
+		Effect.gen(function* () {
+			const { base } = yield* freeze({
+				name: "@test/cfg",
+				catalogs: { effect: { packages: { effect: "^4.0.3", "@effect/tsgo": "^0.51.1" } } },
+				overridesFromCatalogs: { catalog: "effect", exclude: ["@effect/tsgo"] },
+			});
+			expect(catalogsOf(base).effect).toEqual({ effect: "4.0.3", "@effect/tsgo": "^0.51.1" });
+		}),
+	);
+
+	it.effect("pins the catalog to a hand-authored exact override that wins on the same selector", () =>
+		Effect.gen(function* () {
+			const { base } = yield* freeze({
+				name: "@test/cfg",
+				catalogs: { effect: { packages: { effect: "~4.1.2", "@effect/vitest": "~4.1.2" } } },
+				overridesFromCatalogs: { catalog: "effect" },
+				overrides: { "effect@^4.0.0": "4.1.5", "@effect/vitest@^4.0.0": ">=4.1.2 <4.2.0" },
+			});
+			expect(base.overrides).toEqual({ "effect@^4.0.0": "4.1.5", "@effect/vitest@^4.0.0": ">=4.1.2 <4.2.0" });
+			// An exact winner is pinned; a range winner cannot be, so the authored range stays.
+			expect(catalogsOf(base).effect).toEqual({ effect: "4.1.5", "@effect/vitest": "~4.1.2" });
+		}),
+	);
+
+	it.effect("leaves catalogs verbatim without the overrides directive", () =>
+		Effect.gen(function* () {
+			const { base } = yield* freeze({
+				name: "@test/cfg",
+				catalogs: { effect: { packages: { effect: "~4.1.2" } } },
+			});
+			expect(catalogsOf(base).effect).toEqual({ effect: "~4.1.2" });
 		}),
 	);
 
