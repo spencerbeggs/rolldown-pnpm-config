@@ -203,6 +203,37 @@ describe("freeze", () => {
 		}),
 	);
 
+	it.effect("fails with a ConfigError when a range override wins over a member the exact catalog names", () =>
+		Effect.gen(function* () {
+			const error = yield* Effect.flip(
+				freeze({
+					name: "@test/cfg",
+					catalogs: { effected: { exact: true, packages: { effect: "~4.1.2" } } },
+					overridesFromCatalogs: { catalog: "effected" },
+					// A range winner leaves no single version for `effected:exact` to name.
+					overrides: { "effect@^4.0.0": "^4.1.5" },
+				}),
+			);
+			expect(error._tag).toBe("ConfigError");
+			expect(error.message).toMatch(/"effect@\^4\.0\.0".*"\^4\.1\.5".*effected:exact/);
+		}),
+	);
+
+	it.effect("allows a range override over a member left out of the exact catalog", () =>
+		Effect.gen(function* () {
+			const { base } = yield* freeze({
+				name: "@test/cfg",
+				catalogs: {
+					effected: { exact: true, packages: { effect: { range: "~4.1.2", exact: false }, other: "^1.0.0" } },
+				},
+				overridesFromCatalogs: { catalog: "effected", include: ["effect"] },
+				overrides: { "effect@^4.0.0": "^4.1.5" },
+			});
+			expect(catalogsOf(base).effected).toEqual({ effect: "~4.1.2", other: "^1.0.0" });
+			expect(catalogsOf(base)["effected:exact"]).toEqual({ other: "1.0.0" });
+		}),
+	);
+
 	it.effect("treats a derived :exact catalog as undeclared to both catalog directives, like :peers", () =>
 		Effect.gen(function* () {
 			const catalogs = { effected: { exact: true, packages: { effect: "~4.1.3" } } };

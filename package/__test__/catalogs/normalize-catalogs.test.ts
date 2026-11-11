@@ -154,6 +154,21 @@ describe("normalizeCatalogs: the exact variant", () => {
 		).toThrow(/"a".*derives its exact version/);
 	});
 
+	it.each(["^1.2", "~1.2", "1.x", "1"])(
+		"rejects an explicit exact value on %j, a partial range upgrade rewrites, so the build survives an upgrade",
+		(range) => {
+			expect(() => normalizeCatalogs({ c: { exact: true, packages: { a: { range, exact: "1.2.0" } } } })).toThrow(
+				/"a".*which upgrade rewrites/,
+			);
+		},
+	);
+
+	it("asks for a full version, not an exact value, on a partial range with no escape", () => {
+		expect(() => normalizeCatalogs({ c: { exact: true, packages: { a: "^1.2" } } })).toThrow(
+			/"a" has range "\^1\.2".*write the range as a full version/,
+		);
+	});
+
 	it("rejects an explicit exact value that is not a plain version", () => {
 		expect(() => normalizeCatalogs({ c: { exact: true, packages: { a: { range: "*", exact: "^1.0.0" } } } })).toThrow(
 			/"a".*not a plain version/,

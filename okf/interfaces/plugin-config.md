@@ -6,7 +6,7 @@ resource: ../../package/src/define-plugin.ts
 kind: api
 generated:
   by: okfit/claude-code
-  at: 2026-11-11T19:21:18Z
+  at: 2026-11-11T19:30:34Z
 sources:
   - id: define-plugin
     resource: package/src/define-plugin.ts
@@ -20,7 +20,7 @@ tags:
   - architecture
 integrity:
   generated:
-    body: 67c87ab5fd7365b9
+    body: d1e572b0d1b733fd
 ---
 
 # PnpmConfigPlugin authoring surface
@@ -68,9 +68,12 @@ the default enforcement per field.[^define-plugin]
   publishes an exact version that still follows the catalog. Only a single
   `^`, `~`, `>=`, `=` or bare comparator derives; any other range fails the
   build unless its entry sets `exact: "<version>"` (a plain version, and
-  only on a range that does not derive) or `exact: false` (left out). An
+  only on a range `upgrade` never rewrites; a partial like `^1.2` must be
+  written in full instead) or `exact: false` (left out). An
   entry `exact` in a catalog that has not opted in also fails. Where
-  `overridesFromCatalogs` pins a member, `:exact` names the pinned version.
+  `overridesFromCatalogs` pins a member, `:exact` names the pinned version,
+  and a winning override that is not an exact version fails the build for
+  a member `:exact` holds.
   Like `:peers`, the derived catalog is never a declaration: neither
   catalog directive accepts it, and `upgrade` never sees it. See
   [exact catalog variant](../decisions/exact-catalog-variant.md).

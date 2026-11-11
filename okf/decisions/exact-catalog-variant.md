@@ -15,10 +15,10 @@ tags:
   - release
 generated:
   by: okfit/claude-code
-  at: 2026-11-11T19:21:18Z
+  at: 2026-11-11T19:30:34Z
 integrity:
   generated:
-    body: 4e6899f738007552
+    body: cc1ae9b210f8f5a4
 ---
 
 # An opt-in `<name>:exact` catalog derived from each range
@@ -45,18 +45,28 @@ the range with its operator stripped. The rules:
   emits nothing new, and an entry-level `exact` there is an error rather
   than silently ignored.
 - **Derivable means one comparator on one version**: `^`, `~`, `>=`, `=`
-  or none, the same operator set `overridesFromCatalogs` pins. A
-  prerelease derives (`^1.0.0-rc.1` → `1.0.0-rc.1`). Compound ranges,
+  or none. That is the operator set `overridesFromCatalogs` derives its pins
+  from (`PINNABLE_OPERATORS`), not the narrower set (`=` or none) it accepts
+  as an exact override value. A prerelease derives (`^1.0.0-rc.1` → `1.0.0-rc.1`). Compound ranges,
   wildcards, tags, `<`/`>`, `X.x`, partial versions and protocol specifiers
   do not.
 - **A non-derivable range fails the build** with the catalog, package and
   range named, unless its entry sets `exact: "<plain version>"` or
-  `exact: false`. An explicit value on a derivable range is rejected,
-  because `upgrade` rewrites `range` and would leave the hand-written value
-  stale.
+  `exact: false`. An explicit value is accepted only on a range `upgrade`
+  never rewrites. The build and `upgrade` share one predicate for that,
+  `REWRITABLE_RANGE_RE`, so a derivable range and a partial one `upgrade`
+  completes (`^1.2`, `1.x`) both reject an explicit value. Otherwise the
+  next `upgrade` would turn `^1.2` into `^1.5.0`, which derives, and the
+  upgrade itself would break the build. A partial range is asked to be
+  written as a full version instead.
 - **It follows the frozen pin.** `pinCatalogs` writes the override's exact
   version into `<name>:exact` as well as `<name>`, so
-  `catalog:<name>:exact` and the graph-wide override never disagree.
+  `catalog:<name>:exact` and the graph-wide override never disagree. When
+  the winning override for a member `<name>:exact` holds is not an exact
+  version (a hand-authored range such as `^4.1.5`), the build fails: the
+  derived version could fall outside that range, and a
+  `catalog:<name>:exact` dependent would resolve a second copy. The base
+  catalog keeps its range in that case, as before.
 - **It is derived, never declared.** `overridesFromCatalogs` and
   `allowedVersionsFromCatalogs` reject `<name>:exact` as undeclared, as
   they do `<name>:peers`, and `upgrade` reads only the authored

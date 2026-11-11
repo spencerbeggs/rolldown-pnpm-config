@@ -62,7 +62,7 @@ export interface CatalogDeclaration {
 	 * `catalog:<name>:exact` publishes an exact version that still follows the
 	 * catalog. Only a single comparator (`^`, `~`, `>=`, `=` or none) on one
 	 * version derives; any other range fails the build unless its entry sets
-	 * `exact`. Where `overridesFromCatalogs` pins a member, the exact catalog
+	 * `exact` (a value only where `upgrade` never rewrites the range). Where `overridesFromCatalogs` pins a member, the exact catalog
 	 * names the pinned version.
 	 */
 	readonly exact?: boolean;
@@ -74,6 +74,16 @@ export interface CatalogDeclaration {
  * @internal
  */
 export const rangeOf = (spec: CatalogPackageSpec): string => (typeof spec === "string" ? spec : spec.range);
+
+/**
+ * Matches a range the `upgrade` CLI discovers and rewrites: a simple operator
+ * (`^`, `~` or none) on a version, partials like `^1.2` and `1.x` included.
+ * Shared so the build and `upgrade` agree on which ranges move under an
+ * upgrade.
+ *
+ * @internal
+ */
+export const REWRITABLE_RANGE_RE = /^(\^|~|)(\d[\w.+-]*)$/;
 
 /** The operators whose single version an exact pin can be read from. */
 const EXACT_OPERATORS: ReadonlySet<string> = new Set(["^", "~", ">=", "=", ""]);
@@ -91,10 +101,19 @@ function exactEntry(catalog: string, pkg: string, spec: CatalogPackageSpec): str
 	const derived = singleVersionOf(range);
 	const explicit = typeof spec === "object" ? spec.exact : undefined;
 	if (explicit === false) return undefined;
+	const rewritable = REWRITABLE_RANGE_RE.test(range);
 	if (explicit !== undefined) {
 		if (derived !== null) {
 			throw new Error(
 				`catalogs: "${pkg}" in catalog "${catalog}" derives its exact version ${derived} from "${range}"; remove its exact value, which upgrade would leave stale`,
+			);
+		}
+		// An explicit value is only safe on a range upgrade never rewrites: once
+		// upgrade turns `^1.2` into `^1.5.0`, the range derives and the explicit
+		// value becomes the error above, so the upgrade itself would break the build.
+		if (rewritable) {
+			throw new Error(
+				`catalogs: "${pkg}" in catalog "${catalog}" has range "${range}", which upgrade rewrites; an exact value would go stale, so write the range as a full version, or set exact: false`,
 			);
 		}
 		const parsed = Result.getOrNull(VersionSpecifier.parseResult(explicit));
@@ -104,6 +123,11 @@ function exactEntry(catalog: string, pkg: string, spec: CatalogPackageSpec): str
 			);
 		}
 		return explicit;
+	}
+	if (derived === null && rewritable) {
+		throw new Error(
+			`catalogs: catalog "${catalog}" sets exact: true, but "${pkg}" has range "${range}", which names no single version; write the range as a full version, or set exact: false to leave it out`,
+		);
 	}
 	if (derived === null) {
 		throw new Error(

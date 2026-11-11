@@ -176,7 +176,8 @@ function exactVersion(value: unknown): string | null {
  * Freeze each pinned member's catalog value to the exact version its final
  * override names, so a `catalog:` specifier (which pnpm never matches against
  * an override) resolves the same version the override pins. Returns a new
- * catalogs map, and the `:exact` variant names the same version; `:peers`
+ * catalogs map, and the `:exact` variant names the same version (a winner that
+ * is not an exact version throws for a member that variant holds); `:peers`
  * catalogs and unpinned members pass through verbatim,
  * and a member whose winning override is not an exact version keeps its range.
  *
@@ -194,11 +195,19 @@ export function pinCatalogs(
 	for (const { catalog, name, selector } of derivePins(catalogs, directives)) {
 		const pinned = exactVersion(table[selector]);
 		const current = out[catalog];
+		const exact = out[`${catalog}:exact`];
+		// A winner that is not an exact version leaves the exact catalog nothing
+		// to name: its derived version may fall outside the override, and a
+		// `catalog:<name>:exact` dependent would then resolve a second copy.
+		if (pinned === null && exact !== undefined && name in exact) {
+			throw new Error(
+				`overridesFromCatalogs: override "${selector}" wins with ${JSON.stringify(table[selector])}, which is not an exact version, so catalog "${catalog}:exact" cannot name the version it pins; override with an exact version, or set exact: false on "${name}"`,
+			);
+		}
 		if (pinned === null || current === undefined || !(name in current)) continue;
 		out[catalog] = { ...current, [name]: pinned };
 		// The exact variant names the same version, so `catalog:<name>:exact`
 		// and the graph-wide pin never disagree.
-		const exact = out[`${catalog}:exact`];
 		if (exact !== undefined && name in exact) out[`${catalog}:exact`] = { ...exact, [name]: pinned };
 	}
 	return out;
