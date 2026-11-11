@@ -2,7 +2,12 @@ import { resolve } from "node:path";
 import type { BumpType } from "@effected/changesets";
 import { PendingChangesets } from "@effected/changesets";
 import { Fmt } from "@effected/cli-kit";
-import { findWorkspaceRootSync, getWorkspacePackagesSync } from "@effected/workspaces";
+import {
+	WorkspaceDiscoveryError,
+	WorkspacePatternError,
+	findWorkspaceRootSync,
+	getWorkspacePackagesSync,
+} from "@effected/workspaces";
 import { nodeSyncOps } from "@effected/workspaces/node-sync";
 import { Effect, Layer, Result } from "effect";
 import { parseVersion } from "../semver-util.js";
@@ -55,10 +60,12 @@ const BUMP_ORDER: Record<BumpType, number> = { patch: 0, minor: 1, major: 2 };
  * publishes is the author's decision, made elsewhere — and catalog membership
  * is already an explicit choice in the consuming config.
  *
- * The sync discovery facade is total by contract — an unreadable or malformed
- * manifest is skipped, never raised — which is exactly this resolver's
- * degrade-don't-fail contract; the Effect surface (`WorkspaceDiscovery`)
- * instead fails typed on any unusable member.
+ * This resolver degrades, never fails. The sync discovery facade skips an
+ * unreadable or malformed member manifest, but since `@effected/workspaces`
+ * 0.46 it throws a `WorkspaceDiscoveryError` or `WorkspacePatternError` when
+ * the pattern source itself (`pnpm-workspace.yaml` or the root `package.json`)
+ * cannot be read, parsed or compiled. Those two are caught here and read as a
+ * workspace with no packages, as before; any other throw propagates.
  *
  * Since `@effected/workspaces` 0.19, that enumeration yields the **root
  * package first** and carries a member whose manifest declares no `version`
@@ -71,7 +78,14 @@ const BUMP_ORDER: Record<BumpType, number> = { patch: 0, minor: 1, major: 2 };
  */
 export function readManifests(rootDir: string): Map<string, Manifest> {
 	const out = new Map<string, Manifest>();
-	for (const pkg of getWorkspacePackagesSync(rootDir, nodeSyncOps)) {
+	let packages: ReturnType<typeof getWorkspacePackagesSync>;
+	try {
+		packages = getWorkspacePackagesSync(rootDir, nodeSyncOps);
+	} catch (error) {
+		if (error instanceof WorkspaceDiscoveryError || error instanceof WorkspacePatternError) return out;
+		throw error;
+	}
+	for (const pkg of packages) {
 		const version = pkg.version;
 		if (version === undefined) continue;
 		out.set(pkg.name, {
