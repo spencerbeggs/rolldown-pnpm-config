@@ -6,7 +6,7 @@ resource: ../../package/src/define-plugin.ts
 kind: api
 generated:
   by: okfit/claude-code
-  at: 2026-11-10T03:51:52Z
+  at: 2026-11-11T19:30:34Z
 sources:
   - id: define-plugin
     resource: package/src/define-plugin.ts
@@ -20,7 +20,7 @@ tags:
   - architecture
 integrity:
   generated:
-    body: 08110b69c2238d90
+    body: d1e572b0d1b733fd
 ---
 
 # PnpmConfigPlugin authoring surface
@@ -31,8 +31,8 @@ An author declares catalogs plus the managed pnpm fields in one canonical,
 statically analyzable call: `PnpmConfigPlugin(config)`
 (`package/src/plugin/index.ts:78`), re-exported from
 `package/src/index.ts`.[^plugin-index] Catalogs are inline —
-`catalogs: { <name>: { packages: { <pkg>: range | { range, peer?,
-strategy?, source? } } } }` — keyed by catalog name
+`catalogs: { <name>: { exact?, packages: { <pkg>: range | { range, peer?,
+strategy?, source?, exact? } } } }` — keyed by catalog name
 (`package/src/catalogs.ts:29-46`).[^catalogs-ts] The catalog types and a
 pure `normalizeCatalogs` live in `package/src/catalogs.ts`; the
 `PluginConfig`/`FieldInput` types live in
@@ -62,6 +62,21 @@ the default enforcement per field.[^define-plugin]
   its authored range (the `:peers` catalog keeps the peer range), while the
   authored config keeps the range `upgrade` reads. The drift guard excludes it from key coverage
   alongside `name`, `local` and `catalogs`, and `local` does not accept it.
+- A catalog declaration with `exact: true` also ships a derived
+  `<name>:exact` catalog: each entry's range with its operator stripped
+  (`^0.34.0` → `0.34.0`), so a dependent writing `catalog:<name>:exact`
+  publishes an exact version that still follows the catalog. Only a single
+  `^`, `~`, `>=`, `=` or bare comparator derives; any other range fails the
+  build unless its entry sets `exact: "<version>"` (a plain version, and
+  only on a range `upgrade` never rewrites; a partial like `^1.2` must be
+  written in full instead) or `exact: false` (left out). An
+  entry `exact` in a catalog that has not opted in also fails. Where
+  `overridesFromCatalogs` pins a member, `:exact` names the pinned version,
+  and a winning override that is not an exact version fails the build for
+  a member `:exact` holds.
+  Like `:peers`, the derived catalog is never a declaration: neither
+  catalog directive accepts it, and `upgrade` never sees it. See
+  [exact catalog variant](../decisions/exact-catalog-variant.md).
 - `name: string` (`package/src/define-plugin.ts:39`) is a required
   top-level field — plugin metadata, never written to
   `pnpm-workspace.yaml` and not a descriptor field; see

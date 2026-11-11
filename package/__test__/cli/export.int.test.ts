@@ -44,6 +44,32 @@ export const plugin = PnpmConfigPlugin({
 	}).pipe(provideNodeFs),
 );
 
+it.effect("writes an opted-in exact catalog beside the base catalog, following the frozen override", () =>
+	Effect.gen(function* () {
+		const dir = mkdtempSync(join(tmpdir(), "rpc-exact-"));
+		const configFile = join(dir, "savvy.build.ts");
+		writeFileSync(
+			configFile,
+			`import { PnpmConfigPlugin } from "rolldown-pnpm-config";
+export const plugin = PnpmConfigPlugin({
+ name: "@test/cfg",
+ catalogs: { effected: { exact: true, packages: { effect: "~4.1.3", "@effected/npm": "^0.34.0" } } },
+ overridesFromCatalogs: { catalog: "effected", include: ["effect"] },
+});
+`,
+			"utf8",
+		);
+		const workspacePath = join(dir, "pnpm-workspace.yaml");
+		writeFileSync(workspacePath, "packages:\n  - pkg/*\n", "utf8");
+		yield* runExport({ configFile, workspacePath, preview: false });
+		const out = parseWorkspace(readFileSync(workspacePath, "utf8")) as Record<string, unknown>;
+		const catalogs = out.catalogs as Record<string, unknown>;
+		expect(catalogs.effected).toEqual({ effect: "4.1.3", "@effected/npm": "^0.34.0" });
+		expect(catalogs["effected:exact"]).toEqual({ effect: "4.1.3", "@effected/npm": "0.34.0" });
+		expect(out.overrides).toEqual({ "effect@^4.0.0": "4.1.3" });
+	}).pipe(provideNodeFs),
+);
+
 const CONFIG = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
 export const plugin = PnpmConfigPlugin({
  name: "@test/cfg",

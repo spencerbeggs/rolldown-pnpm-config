@@ -58,4 +58,23 @@ PnpmConfigPlugin({ name: "@test/cfg", catalogs: { effect: { packages: {
 		const { entries } = discoverCatalogEntries(src, "c.ts");
 		expect(entries[0]?.strategy).toBe("interop");
 	});
+
+	it("reads an exact-opted catalog's ranges only, so the derived :exact catalog can never drift", () => {
+		const src = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
+PnpmConfigPlugin({ name: "@test/cfg", catalogs: { effected: { exact: true, packages: {
+ effect: "~4.1.3",
+ "@effected/npm": { range: "^0.34.0", peer: "^0.34.0", strategy: "lock-minor" },
+ wide: { range: ">=1 <2", exact: "1.4.2" },
+} } } });`;
+		const { entries, catalogs, skipped } = discoverCatalogEntries(src, "c.ts");
+		// Only the authored catalog is declared: upgrade rewrites `range`, and the
+		// exact variant re-derives from it at build time.
+		expect(catalogs).toEqual(["effected"]);
+		expect(entries.map((e) => [e.pkg, e.currentRange])).toEqual([
+			["effect", "~4.1.3"],
+			["@effected/npm", "^0.34.0"],
+		]);
+		// A non-derivable range is skipped by upgrade as before; its explicit exact is the author's.
+		expect(skipped).toEqual(["effected.wide"]);
+	});
 });

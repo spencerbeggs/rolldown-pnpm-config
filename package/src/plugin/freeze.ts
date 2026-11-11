@@ -70,7 +70,12 @@ export function freeze(
 		const manifest: Manifest = {};
 		// catalogs is always present and special: normalize the inline declarations into
 		// the resolved map (incl. materialized peer catalogs), then validate the shape.
-		base.catalogs = yield* Schema.decodeUnknownEffect(CatalogsSchema)(normalizeCatalogs(config.catalogs)).pipe(
+		// normalizeCatalogs throws when an exact-opted entry names no single version.
+		const normalized = yield* Effect.try({
+			try: () => normalizeCatalogs(config.catalogs),
+			catch: (error) => new ConfigError({ message: Fmt.describe(error) }),
+		});
+		base.catalogs = yield* Schema.decodeUnknownEffect(CatalogsSchema)(normalized).pipe(
 			Effect.mapError((error) => new ConfigError({ message: `Invalid catalogs: ${Fmt.describe(error)}` })),
 		);
 		manifest.catalogs = { strategy: "catalogs", enforcement: "warn" };
@@ -122,12 +127,17 @@ export function freeze(
 		// not its authored range: pnpm never applies an override to a `catalog:`
 		// specifier, so the two must name the same version. Runs after the loop so
 		// it reads the final `overrides`, hand-authored winners included.
-		base.catalogs = pinCatalogs(
-			base.catalogs as Record<string, Record<string, string>>,
-			base.overrides,
-			config.overridesFromCatalogs,
-			config.catalogs,
-		);
+		// pinCatalogs throws when a range override wins over a member the exact catalog names.
+		base.catalogs = yield* Effect.try({
+			try: () =>
+				pinCatalogs(
+					base.catalogs as Record<string, Record<string, string>>,
+					base.overrides,
+					config.overridesFromCatalogs,
+					config.catalogs,
+				),
+			catch: directiveError,
+		});
 		// `base.catalogs` is unconditionally decoded above; a missing/invalid
 		// catalogs map already fails as `Invalid catalogs: …`, so no further guard.
 		return { base, manifest, name: config.name };

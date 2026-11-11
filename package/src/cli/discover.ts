@@ -1,5 +1,6 @@
 import { Data } from "effect";
 import { parseSync } from "oxc-parser";
+import { REWRITABLE_RANGE_RE } from "../catalogs.js";
 import type { Node } from "./ast.js";
 import { findPluginArg, keyName, prop } from "./ast.js";
 import type { CatalogEntry } from "./types.js";
@@ -10,9 +11,6 @@ import type { CatalogEntry } from "./types.js";
  * @internal
  */
 export class DiscoverError extends Data.TaggedError("DiscoverError")<{ readonly message: string }> {}
-
-/** Matches a simple-operator range we can safely rewrite (`^x`, `~x`, or bare `x`). */
-const SIMPLE_RANGE_RE = /^(\^|~|)(\d[\w.+-]*)$/;
 
 function operatorOf(range: string): "^" | "~" | "" {
 	if (range.startsWith("^")) return "^";
@@ -103,7 +101,7 @@ export function discoverCatalogEntries(
 				}
 			}
 
-			if (!rangeNode || !SIMPLE_RANGE_RE.test(rangeNode.value as string)) {
+			if (!rangeNode || !REWRITABLE_RANGE_RE.test(rangeNode.value as string)) {
 				skippedRefs.push({ catalog, pkg });
 				continue;
 			}

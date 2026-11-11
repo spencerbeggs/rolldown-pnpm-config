@@ -34,6 +34,15 @@ describe("PnpmConfigPlugin", () => {
 		expect(src).not.toContain('["silkPeers"');
 	});
 
+	it("loads an opted-in exact catalog into the catalogs module", async () => {
+		const plugin = PnpmConfigPlugin({
+			name: "@test/cfg",
+			catalogs: { effected: { exact: true, packages: { effect: "~4.1.3" } } },
+		});
+		const src = await callHook<Promise<string | null>>(plugin.load, "\0rolldown-pnpm-config/virtual/catalogs");
+		expect(src).toContain('["effected:exact", new Map([["effect", "4.1.3"]])]');
+	});
+
 	it("runs freeze exactly once across multiple load calls (memoized across passes)", async () => {
 		// Spy returns a fixed frozen value regardless of which config is passed.
 		const freezeSpy = vi.fn((_c: PluginConfig) =>
