@@ -1,5 +1,21 @@
 # rolldown-pnpm-config
 
+## 2.4.8
+
+### Bug Fixes
+
+- `upgrade` resolves workspace-sourced entries against an unreadable or unparseable `pnpm-workspace.yaml` as a workspace with no packages, as before, instead of crashing under `@effected/workspaces` 0.46
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/changesets | dependency | updated | ^0.4.0 | ^0.4.1 |
+| @effected/cli-kit | dependency | updated | ^0.28.0 | ^0.28.1 |
+| @effected/npm | dependency | updated | ^0.33.0 | ^0.34.0 |
+| @effected/walker | dependency | updated | ^0.27.0 | ^0.28.0 |
+| @effected/workspaces | dependency | updated | ^0.45.0 | ^0.46.0 |
+
 ## 2.4.7
 
 ### Dependencies
