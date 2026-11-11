@@ -1,3 +1,6 @@
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "@effect/vitest";
 import { Effect } from "effect";
@@ -86,6 +89,14 @@ describe("readWorkspaceVersions", () => {
 
 	it("returns an empty map when the root has no packages directory", () => {
 		expect(readWorkspaceVersions("/nonexistent/nowhere")).toEqual(new Map());
+	});
+
+	it("degrades to an empty map when pnpm-workspace.yaml does not parse", () => {
+		// Written at test time: a committed unparseable YAML file fails the pre-commit YAML formatter.
+		const root = mkdtempSync(join(tmpdir(), "rpc-bad-yaml-"));
+		writeFileSync(join(root, "package.json"), JSON.stringify({ name: "@bad/root", private: true }));
+		writeFileSync(join(root, "pnpm-workspace.yaml"), 'packages:\n  - "packages/*\n  : [unclosed\n');
+		expect(readWorkspaceVersions(root)).toEqual(new Map());
 	});
 });
 
