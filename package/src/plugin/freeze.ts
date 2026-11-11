@@ -70,7 +70,12 @@ export function freeze(
 		const manifest: Manifest = {};
 		// catalogs is always present and special: normalize the inline declarations into
 		// the resolved map (incl. materialized peer catalogs), then validate the shape.
-		base.catalogs = yield* Schema.decodeUnknownEffect(CatalogsSchema)(normalizeCatalogs(config.catalogs)).pipe(
+		// normalizeCatalogs throws when an exact-opted entry names no single version.
+		const normalized = yield* Effect.try({
+			try: () => normalizeCatalogs(config.catalogs),
+			catch: (error) => new ConfigError({ message: Fmt.describe(error) }),
+		});
+		base.catalogs = yield* Schema.decodeUnknownEffect(CatalogsSchema)(normalized).pipe(
 			Effect.mapError((error) => new ConfigError({ message: `Invalid catalogs: ${Fmt.describe(error)}` })),
 		);
 		manifest.catalogs = { strategy: "catalogs", enforcement: "warn" };

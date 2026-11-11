@@ -1,5 +1,12 @@
 # Log
 
+## 2026-11-11
+
+* Added An opt-in `<name>:exact` catalog derived from each range
+* Updated Plugin engine
+* Updated PnpmConfigPlugin authoring surface
+* Updated materialize
+
 ## 2026-11-10
 
 * Updated Plugin engine

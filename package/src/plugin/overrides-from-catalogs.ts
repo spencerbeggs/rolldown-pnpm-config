@@ -26,8 +26,9 @@ import { rangeOf } from "../catalogs.js";
  * would let a dependent writing `catalog:` resolve a newer patch than the
  * override pins everywhere else, and the graph would carry two copies. Only
  * the frozen output changes (the pnpmfile's `base`, `export`, `preview`): the
- * authored range stays what `upgrade` reads and rewrites, and the `:peers`
- * catalog keeps its peer range. When a hand-authored override wins on the
+ * authored range stays what `upgrade` reads and rewrites, the `:peers`
+ * catalog keeps its peer range, and an opted-in `:exact` catalog names the
+ * pinned version. When a hand-authored override wins on the
  * selector, the catalog takes its value if that is an exact version and keeps
  * the authored range otherwise.
  *
@@ -175,7 +176,8 @@ function exactVersion(value: unknown): string | null {
  * Freeze each pinned member's catalog value to the exact version its final
  * override names, so a `catalog:` specifier (which pnpm never matches against
  * an override) resolves the same version the override pins. Returns a new
- * catalogs map; `:peers` catalogs and unpinned members pass through verbatim,
+ * catalogs map, and the `:exact` variant names the same version; `:peers`
+ * catalogs and unpinned members pass through verbatim,
  * and a member whose winning override is not an exact version keeps its range.
  *
  * @internal
@@ -194,6 +196,10 @@ export function pinCatalogs(
 		const current = out[catalog];
 		if (pinned === null || current === undefined || !(name in current)) continue;
 		out[catalog] = { ...current, [name]: pinned };
+		// The exact variant names the same version, so `catalog:<name>:exact`
+		// and the graph-wide pin never disagree.
+		const exact = out[`${catalog}:exact`];
+		if (exact !== undefined && name in exact) out[`${catalog}:exact`] = { ...exact, [name]: pinned };
 	}
 	return out;
 }

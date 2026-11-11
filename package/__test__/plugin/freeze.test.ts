@@ -164,6 +164,63 @@ describe("freeze", () => {
 		}),
 	);
 
+	it.effect("names the frozen override version in the exact catalog", () =>
+		Effect.gen(function* () {
+			const { base } = yield* freeze({
+				name: "@test/cfg",
+				catalogs: {
+					effected: {
+						exact: true,
+						packages: { effect: "~4.1.2", "@effect/vitest": "~4.1.2", "@effected/npm": "^0.34.0" },
+					},
+				},
+				overridesFromCatalogs: { catalog: "effected", include: ["effect", "@effect/*"] },
+				// A hand-authored exact winner moves the pinned value off the authored range.
+				overrides: { "effect@^4.0.0": "4.1.5" },
+			});
+			expect(catalogsOf(base).effected).toEqual({
+				effect: "4.1.5",
+				"@effect/vitest": "4.1.2",
+				"@effected/npm": "^0.34.0",
+			});
+			// `catalog:effected:exact` and the graph-wide pins never disagree.
+			expect(catalogsOf(base)["effected:exact"]).toEqual({
+				effect: "4.1.5",
+				"@effect/vitest": "4.1.2",
+				"@effected/npm": "0.34.0",
+			});
+		}),
+	);
+
+	it.effect("fails with a ConfigError when an exact catalog holds a range with no single version", () =>
+		Effect.gen(function* () {
+			// A typed failure, not a defect: the error channel carries it.
+			const error = yield* Effect.flip(
+				freeze({ name: "@test/cfg", catalogs: { c: { exact: true, packages: { wide: ">=1 <2" } } } }),
+			);
+			expect(error._tag).toBe("ConfigError");
+			expect(error.message).toMatch(/no single version/);
+		}),
+	);
+
+	it.effect("treats a derived :exact catalog as undeclared to both catalog directives, like :peers", () =>
+		Effect.gen(function* () {
+			const catalogs = { effected: { exact: true, packages: { effect: "~4.1.3" } } };
+			const overrides = yield* Effect.flip(
+				freeze({ name: "@test/cfg", catalogs, overridesFromCatalogs: { catalog: "effected:exact" } }),
+			);
+			expect(overrides.message).toMatch(/catalog "effected:exact" is not declared/);
+			const allowed = yield* Effect.flip(
+				freeze({
+					name: "@test/cfg",
+					catalogs,
+					peerDependencyRules: { allowedVersionsFromCatalogs: { catalog: "effected:exact", peer: "effect" } },
+				}),
+			);
+			expect(allowed.message).toMatch(/catalog "effected:exact" is not declared/);
+		}),
+	);
+
 	it.effect("leaves catalogs verbatim without the overrides directive", () =>
 		Effect.gen(function* () {
 			const { base } = yield* freeze({

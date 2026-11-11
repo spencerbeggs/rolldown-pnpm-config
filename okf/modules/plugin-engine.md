@@ -6,7 +6,7 @@ resource: ../../package/src/plugin
 kind: package
 generated:
   by: okfit/claude-code
-  at: 2026-11-10T03:51:52Z
+  at: 2026-11-11T19:21:18Z
 sources:
   - id: plugin-index
     resource: package/src/plugin/index.ts
@@ -16,7 +16,7 @@ sources:
     resource: package/src/plugin/serialize.ts
 integrity:
   generated:
-    body: 6b83a536744b87c6
+    body: c69f0309a8e819f8
 ---
 
 # Plugin engine
@@ -44,7 +44,9 @@ to frozen value), `manifest` (field to `{ strategy, enforcement, options?
 `catalogs` is special-cased — `freeze` runs `normalizeCatalogs` (imported at
 `package/src/plugin/freeze.ts:2` from `package/src/catalogs.ts`) to resolve
 inline catalog declarations, including materialized `<name>:peers`
-catalogs, before validating (`package/src/plugin/freeze.ts:64`).[^freeze]
+catalogs and opted-in `<name>:exact` catalogs, before validating; a
+`normalizeCatalogs` throw (an exact-opted range naming no single version)
+surfaces as a `ConfigError` (`package/src/plugin/freeze.ts:64`).[^freeze]
 `peerDependencyRules` is likewise special-cased:
 `resolvePeerDependencyRules` (`package/src/plugin/allowed-versions.ts`,
 imported at `package/src/plugin/freeze.ts:7`, called at
@@ -64,8 +66,9 @@ pinned member's entry in `base.catalogs` to the exact version its final
 override names (an authored winner included, when it is an exact version),
 because pnpm never matches an override against a `catalog:` specifier and a
 catalog left at `~X.Y.Z` would let a `catalog:` dependent resolve a second
-copy. The `:peers` catalogs, unpinned members and the authored config are
-untouched, so `upgrade` still reads and rewrites the authored range. The
+copy. The member's `<name>:exact` entry, when the catalog opted in, takes
+the same version. The `:peers` catalogs, unpinned members and the authored
+config are untouched, so `upgrade` still reads and rewrites the authored range. The
 directive itself is not a managed field and never reaches `base` or
 `manifest`.[^freeze]
 
