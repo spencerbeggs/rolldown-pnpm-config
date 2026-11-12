@@ -1,5 +1,29 @@
 # rolldown-pnpm-config
 
+## 2.5.1
+
+### Build System
+
+- The published manifest now pins every `@effected/*`, `@effect/*` and `effect` dependency to an exact version. Installing this package resolves the same kit tree it was tested against, and a newer kit patch reaches it only through a release of this package.
+- Your workspace may resolve this package's own kit copies beside newer ones. That is expected; do not override them.
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effect/platform-node | dependency | updated | 4.1.3 | 4.1.4 |
+| @effected/changesets | dependency | updated | ^0.4.1 | 0.5.0 |
+| @effected/cli-kit | dependency | updated | ^0.28.1 | 0.28.2 |
+| @effected/env | dependency | updated | ^0.12.0 | 0.12.0 |
+| @effected/files | dependency | updated | ^0.3.0 | 0.3.0 |
+| @effected/glob | dependency | updated | ^0.21.0 | 0.21.0 |
+| @effected/npm | dependency | updated | ^0.34.0 | 0.34.0 |
+| @effected/semver | dependency | updated | ^0.24.0 | 0.24.0 |
+| @effected/walker | dependency | updated | ^0.28.0 | 0.28.0 |
+| @effected/workspaces | dependency | updated | ^0.46.0 | 0.47.0 |
+| @effected/yaml | dependency | updated | ^0.30.0 | 0.30.0 |
+| effect | dependency | updated | 4.1.3 | 4.1.4 |
+
 ## 2.5.0
 
 ### Features
