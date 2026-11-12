@@ -59,7 +59,12 @@ export interface StrategyResult {
  *
  * @internal
  */
-export type Strategy = (base: unknown, local: unknown, ctx: RuntimeCtx) => StrategyResult;
+export type Strategy = (
+	base: unknown,
+	local: unknown,
+	ctx: RuntimeCtx,
+	options?: Record<string, unknown>,
+) => StrategyResult;
 
 /**
  * How a field's divergences are enforced: silent, console warning, or a thrown

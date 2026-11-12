@@ -78,7 +78,17 @@ export function freeze(
 		base.catalogs = yield* Schema.decodeUnknownEffect(CatalogsSchema)(normalized).pipe(
 			Effect.mapError((error) => new ConfigError({ message: `Invalid catalogs: ${Fmt.describe(error)}` })),
 		);
-		manifest.catalogs = { strategy: "catalogs", enforcement: "warn" };
+		// The runtime cannot tell a derived `<name>:exact` from an authored catalog,
+		// so the names that carry one travel in the manifest options. Read them from
+		// the declarations, not the `:exact` suffix, which an authored name can carry.
+		const exactCatalogs = Object.entries(config.catalogs).flatMap(([name, decl]) =>
+			decl?.exact === true && normalized[`${name}:exact`] !== undefined ? [name] : [],
+		);
+		manifest.catalogs = {
+			strategy: "catalogs",
+			enforcement: "warn",
+			...(exactCatalogs.length > 0 ? { options: { exactCatalogs } } : {}),
+		};
 		if (typeof config.name !== "string" || config.name.trim() === "") {
 			return yield* Effect.fail(
 				new ConfigError({ message: "Config `name` is required and must be a non-empty string" }),

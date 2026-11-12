@@ -29,7 +29,7 @@ export function createHooks(base: Base, manifest: Manifest, name: string): PnpmH
 			for (const [field, entry] of Object.entries(manifest)) {
 				const strategy = STRATEGY_TABLE[entry.strategy];
 				if (!strategy) continue;
-				const result = strategy(base[field], config[field], ctx);
+				const result = strategy(base[field], config[field], ctx, entry.options);
 				// Apply any data-driven refine (e.g. excludeByRepo on publicHoistPattern)
 				// to the merged value before enforcement.
 				let merged = result.merged;

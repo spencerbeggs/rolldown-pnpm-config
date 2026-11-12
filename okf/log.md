@@ -4,6 +4,9 @@
 
 * Updated Effect v4 collapses the declared peer closure
 * Added The package pins its kit dependencies exactly through `catalog:effected:exact`
+* Updated An opt-in `<name>:exact` catalog derived from each range
+* Updated Runtime
+* Updated { base, manifest, name } contract
 
 ## 2026-11-11
 

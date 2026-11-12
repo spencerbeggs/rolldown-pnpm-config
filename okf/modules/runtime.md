@@ -6,7 +6,7 @@ resource: ../../package/src/runtime
 kind: package
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
+  at: 2026-11-12T19:15:27Z
 sources:
   - id: runtime-index
     resource: package/src/runtime/index.ts
@@ -20,7 +20,7 @@ sources:
     resource: package/src/runtime/strategies/table.ts
 integrity:
   generated:
-    body: 894b26c8f138b9ad
+    body: 7f30117803885c74
 ---
 
 # Runtime
@@ -55,11 +55,17 @@ strategy and the enforcement step share.[^runtime-types]
 
 ## What lives inside
 
-A strategy is a pure `(base, local, ctx) => { merged, divergences }` —
+A strategy is a pure `(base, local, ctx, options?) => { merged, divergences }`, where `options` is the field's `ManifestEntry.options` —
 strategies only *detect* divergences and classify each by `kind`; they
 never decide the response. Strategies live under `strategies/` (`arrays.ts`,
 `maps.ts`, `overrides.ts`, `scalar.ts`, `catalogs.ts`), grouped by kind and
-keyed by name in `strategies/table.ts`; the manifest references a strategy
+keyed by name in `strategies/table.ts`; the `catalogs` strategy reads
+`options.exactCatalogs` (the catalogs carrying a derived `<name>:exact`) so a
+local override of `<name>.<pkg>` naming a single version re-derives
+`<name>:exact.<pkg>` (an explicit local `<name>:exact` entry wins; a range
+naming no single version, per the zero-dependency `single-version.ts`, leaves
+it at its managed value), and notes in the override divergence what
+`<name>:exact` and `<name>:peers` did; the manifest references a strategy
 by name, so the build emits no strategy code — the runtime owns every
 implementation.[^strategies-table] The response — routing `warn`
 divergences to the override or security console box by `kind`, throwing
