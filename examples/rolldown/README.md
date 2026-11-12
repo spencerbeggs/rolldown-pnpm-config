@@ -1,6 +1,6 @@
 # @example/rolldown
 
-The vanilla-rolldown half of the plugin's two dogfood examples — see also [`examples/savvy/`](../savvy), which wires the same `PnpmConfigPlugin({...})` call through `@savvy-web/bundler` instead.
+The vanilla-rolldown example — see also [`examples/tsdown/`](../tsdown) and [`examples/effected/`](../effected), which wire the same `PnpmConfigPlugin({...})` call through tsdown and `effected package build` instead.
 
 Two files wire the plugin into a plain rolldown build:
 

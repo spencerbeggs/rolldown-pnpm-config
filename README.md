@@ -9,7 +9,7 @@ Monorepo for `rolldown-pnpm-config`, a rolldown plugin that compiles your catalo
 | [`package/`](./package) | The published [`rolldown-pnpm-config`](./package/README.md) library — the rolldown plugin that emits a pnpm config-dependency pnpmfile. |
 | [`examples/rolldown/`](./examples/rolldown) | The vanilla rolldown setup from the docs, as a runnable, tested example. |
 | [`examples/tsdown/`](./examples/tsdown) | The rolldown setup from the docs, used in a basic [tsdown](https://tsdown.dev/) config. |
-| [`examples/savvy/`](./examples/savvy) | The same plugin built through `@savvy-web/bundler`, dogfooding the full pipeline. |
+| [`examples/effected/`](./examples/effected) | The same plugin built through `effected package build`, loaded from `effected.toml`'s `plugins` list. |
 
 ## Documentation
 
@@ -21,7 +21,7 @@ Monorepo for `rolldown-pnpm-config`, a rolldown plugin that compiles your catalo
 
 Run `pnpm install` and `pnpm build` once first — the scripts below proxy to the built `rolldown-pnpm-config` CLI binary, which does not exist until after a build.
 
-Each example package (`examples/rolldown/`, `examples/tsdown/`, `examples/savvy/`, ) exposes `pnpm:export`, `pnpm:preview` and `pnpm:up` scripts that run the CLI against its own config. The root re-exposes all six as `pnpm <script>:<type>`, `pnpm pnpm:preview:rolldown`:
+Each example package (`examples/rolldown/`, `examples/tsdown/`, `examples/effected/`) exposes `pnpm:export`, `pnpm:preview` and `pnpm:up` scripts that run the CLI against its own config. The root re-exposes all six as `pnpm <script>:<type>`, `pnpm pnpm:preview:rolldown`:
 
 | Root script | Proxies to | Example config |
 | ----------- | ---------- | -------------- |
@@ -31,13 +31,13 @@ Each example package (`examples/rolldown/`, `examples/tsdown/`, `examples/savvy/
 | `pnpm:up:tsdown` | `rolldown-pnpm-config upgrade tsdown.config.ts --dry-run` | `examples/tsdown/tsdown.config.ts` |
 | `pnpm:preview:tsdown` | `rolldown-pnpm-config preview` | `examples/tsdown/tsdown.config.ts` |
 | `pnpm:export:tsdown` | `rolldown-pnpm-config export --dry-run` | `examples/tsdown/tsdown.config.ts` |
-| `pnpm:up:savvy` | `rolldown-pnpm-config upgrade savvy.build.ts --dry-run` | `examples/savvy/savvy.build.ts` |
-| `pnpm:preview:savvy` | `rolldown-pnpm-config preview` | `examples/savvy/savvy.build.ts` |
-| `pnpm:export:savvy` | `rolldown-pnpm-config export --dry-run` | `examples/savvy/savvy.build.ts` |
+| `pnpm:up:effected` | `rolldown-pnpm-config upgrade pnpm-config.ts --dry-run` | `examples/effected/pnpm-config.ts` |
+| `pnpm:preview:effected` | `rolldown-pnpm-config preview` | `examples/effected/pnpm-config.ts` |
+| `pnpm:export:effected` | `rolldown-pnpm-config export --dry-run` | `examples/effected/pnpm-config.ts` |
 
 ```bash
-pnpm pnpm:up:savvy
-# runs the interactive upgrade table against examples/savvy/savvy.build.ts;
+pnpm pnpm:up:effected
+# runs the interactive upgrade table against examples/effected/pnpm-config.ts;
 # --dry-run means Esc or Enter never rewrites the file
 ```
 

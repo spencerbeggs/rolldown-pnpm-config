@@ -5,7 +5,7 @@ description: "The examples/* workspaces resolve rolldown-pnpm-config to package/
 status: stable
 generated:
   by: okfit/claude-code
-  at: 2026-11-08T21:16:18Z
+  at: 2026-11-12T19:15:57Z
 sources:
   - id: package-package-json
     resource: ../../package/package.json
@@ -24,7 +24,7 @@ tags:
   - dx
 integrity:
   generated:
-    body: b7aa2627b6697939
+    body: 0fb851068de6c65d
   verified:
     by: human:spencer
     at: 2026-11-08T21:37:34Z
@@ -38,7 +38,7 @@ verified:
 
 ## Context
 
-The three example workspaces (`examples/rolldown`, `examples/savvy`,
+The three example workspaces (`examples/rolldown`, `examples/effected`,
 `examples/tsdown`) depend on `rolldown-pnpm-config` as `workspace:*` and run
 both its build plugin and its CLI. The package builds with
 `effected package build`, which emits only `dist/prod/` and has no dev
@@ -88,7 +88,8 @@ is what the tests exercise; the test global setup builds it with
 - `tsx` is a root-only devDependency and a hard requirement for running the
   examples' scripts; removing `nodeOptions` from `pnpm-workspace.yaml` breaks
   every workspace link.
-- The examples' own `build:dev`/`build:prod` tasks do not depend on `^build`,
+- The examples' own build tasks (`build:dev`/`build:prod`, and `build` in
+  `examples/effected`) do not depend on `^build`,
   because they load the package's source, not its build. They list
   `package/src/**` and `package/package.json` as Turbo inputs, so a source
   edit still invalidates their cache. A `^build` edge was tried first and

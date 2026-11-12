@@ -6,7 +6,7 @@ resource: ../../package/src/runtime/index.ts
 kind: api
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
+  at: 2026-11-12T19:15:27Z
 sources:
   - id: runtime-index
     resource: package/src/runtime/index.ts
@@ -18,7 +18,7 @@ tags:
   - architecture
 integrity:
   generated:
-    body: be9acbcaafe6f2f9
+    body: afdf2a701d5631ac
 ---
 
 # { base, manifest, name } contract
@@ -33,7 +33,9 @@ values:
   — field name to frozen value.[^runtime-types]
 - `manifest: Manifest` (`Record<string, ManifestEntry>`,
   `package/src/runtime/types.ts:92`) — field name to `{ strategy,
-  enforcement, options? }`.[^runtime-types]
+  enforcement, options? }`.[^runtime-types] The `catalogs` entry's options
+  may carry `exactCatalogs: string[]`, the catalogs with a derived
+  `<name>:exact`; a base frozen without it still merges, re-deriving nothing.
 - `name: string` — the validated, non-empty config-dependency identifier.
 
 `createHooks(base, manifest, name)` (`package/src/runtime/index.ts:22`)

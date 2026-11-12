@@ -1,0 +1,10 @@
+{
+	"$schema": "https://turborepo.com/schema.v2.json",
+	"extends": ["//"],
+	"tasks": {
+		"build": {
+			"dependsOn": [],
+			"inputs": ["$TURBO_EXTENDS$", "effected.toml", "$TURBO_ROOT$/package/package.json", "$TURBO_ROOT$/package/src/**"]
+		}
+	}
+}

@@ -12,6 +12,25 @@ describe("freeze", () => {
 		}),
 	);
 
+	it.effect("records which catalogs carry a derived :exact variant in the catalogs manifest options", () =>
+		Effect.gen(function* () {
+			const out = yield* freeze({
+				name: "@test/cfg",
+				catalogs: {
+					effected: { exact: true, packages: { a: "^1.0.0" } },
+					plain: { packages: { b: "^1.0.0" } },
+					// An authored name ending in `:exact` is not a derived variant.
+					"legacy:exact": { packages: { c: "1.0.0" } },
+				},
+			});
+			expect(out.manifest.catalogs).toEqual({
+				strategy: "catalogs",
+				enforcement: "warn",
+				options: { exactCatalogs: ["effected"] },
+			});
+		}),
+	);
+
 	it.effect("derives peerDependencyRules.allowedVersions from a catalog directive and strips it", () =>
 		Effect.gen(function* () {
 			const { base } = yield* freeze({

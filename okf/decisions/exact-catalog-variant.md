@@ -15,10 +15,10 @@ tags:
   - release
 generated:
   by: okfit/claude-code
-  at: 2026-11-11T19:30:34Z
+  at: 2026-11-12T19:15:27Z
 integrity:
   generated:
-    body: cc1ae9b210f8f5a4
+    body: 68e906da5ace6358
 ---
 
 # An opt-in `<name>:exact` catalog derived from each range
@@ -72,6 +72,20 @@ the range with its operator stripped. The rules:
   they do `<name>:peers`, and `upgrade` reads only the authored
   declaration, so the variant cannot drift: it re-derives from `range` on
   every build.
+
+- **A local override re-derives it at install.** `freeze` records the
+  catalogs carrying a derived variant in the `catalogs` manifest entry's
+  `options.exactCatalogs`. When the consumer's `catalogs.<name>.<pkg>` names
+  a single version, the runtime sets `<name>:exact.<pkg>` to it (only for a
+  package the managed exact catalog carries; an explicit local
+  `<name>:exact` entry wins), so `catalog:<name>` and `catalog:<name>:exact`
+  never resolve two lines of one package. A range naming no single version
+  leaves the exact entry at its managed value without failing the install,
+  and the override warning says so. `<name>:peers` is authored separately
+  and is never re-derived; the warning only notes it kept its managed value.
+  The runtime's single-version parser is a zero-dependency mirror of the
+  build's, pinned to it by a test; an older frozen base without the option
+  re-derives nothing.
 
 Because it lands in `base.catalogs`, the pnpmfile runtime, `export` and
 `preview` carry it with no further change.

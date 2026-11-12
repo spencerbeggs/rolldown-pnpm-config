@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const pkgDir = join(import.meta.dirname, "..", "dist", "dev", "pkg");
+const pkgDir = join(import.meta.dirname, "..", "dist", "prod", "npm", "pkg");
 
 /** Find the built `.`-entry source by content — `exports["."]` is a conditional object, not a string. */
 const readCatalogsEntry = (): string => {
@@ -12,7 +12,7 @@ const readCatalogsEntry = (): string => {
 		const src = readFileSync(join(pkgDir, name), "utf8");
 		if (src.includes("new Map(")) return src;
 	}
-	throw new Error("no built entry containing `new Map(` found in dist/dev/pkg");
+	throw new Error("no built entry containing `new Map(` found in dist/prod/npm/pkg");
 };
 
 describe("example build artifacts", () => {

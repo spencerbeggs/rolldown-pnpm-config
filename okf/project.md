@@ -4,7 +4,7 @@ title: rolldown-pnpm-config
 description: What this project is, its boundaries, and its non-goals.
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
+  at: 2026-11-12T19:15:57Z
 sources:
   - id: package-json
     resource: package/package.json
@@ -14,7 +14,7 @@ sources:
     resource: package/src/runtime/enforcement.ts
 integrity:
   generated:
-    body: 75190d4d007a8ebb
+    body: ac19e5f1f953246d
 ---
 
 # rolldown-pnpm-config
@@ -39,7 +39,7 @@ schemas and the strategy/enforcement registry are derived from.
 The `rolldown-pnpm-config` library lives entirely under `package/`; there is
 no source at the repo root. `pnpm-workspace.yaml` names two workspace
 patterns — `package` and `examples/*` — and the latter holds three example
-consumer workspaces (`rolldown`, `savvy`, `tsdown`) that demonstrate the
+consumer workspaces (`effected`, `rolldown`, `tsdown`) that demonstrate the
 plugin under different bundlers rather than owning any part of the library.
 Within `package/`, the library owns: the authoring API (`PnpmConfigPlugin({...})`,
 `package/src/plugin/index.ts`), the build-time `freeze` step

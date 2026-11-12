@@ -8,7 +8,7 @@ repository.
 `rolldown-pnpm-config` is a working, released library for authoring pnpm
 config-dependency plugins, published from `package/` through the changesets
 release flow. There is no source at the repo root. The workspace also contains
-`examples/*` — three example consumer workspaces (`rolldown`, `savvy`,
+`examples/*` — three example consumer workspaces (`effected`, `rolldown`,
 `tsdown`) that exercise the plugin under different bundlers rather than owning
 any part of it.
 
@@ -92,9 +92,10 @@ build and no dev build:
 The example workspaces do not consume a build: they link `package/`'s
 TypeScript source (`exports` and `bin` point at `src/*.ts`), loaded by tsx
 through `nodeOptions: --import=tsx` in `pnpm-workspace.yaml` — see
-`okf/decisions/workspace-source-links.md`. The examples keep their own
-`build:dev`/`build:prod` tasks, because they stand in for consumers building
-under rolldown, tsdown and `@savvy-web/bundler`.
+`okf/decisions/workspace-source-links.md`. The examples keep their own build
+tasks (`build:dev`/`build:prod` for rolldown and tsdown, `build` for
+`examples/effected`), because they stand in for consumers building under
+rolldown, tsdown and `effected package build`.
 
 ### How `private: true` Works
 
@@ -127,6 +128,9 @@ verifiable here.
   A `^build` edge would make the three example `prepare` hooks, which
   `pnpm install` runs in parallel, each build the package into the same
   `dist/prod`, and install fails with `ENOENT`
+- `examples/effected` builds through the shared `build` task, overridden in
+  its own `turbo.json` to `dependsOn: []` and to hash `effected.toml` and
+  `package/src/**`, so its `prepare` neither builds nor typechecks the package
 - Cache excludes: `*.md`, `.changeset/**`, `.claude/**`, `.github/**`,
   `.husky/**`, `.vscode/**`
 - Environment pass-through: `GITHUB_ACTIONS`, `CI`
@@ -139,7 +143,6 @@ installed source.
 
 | Package | Purpose | GitHub | Local Source |
 | ------- | ------- | ------ | ------------ |
-| bundler | Consumer bundler exercised by `examples/savvy` (not this repo's build) | [savvy-web/bundler](https://github.com/savvy-web/bundler) | `examples/savvy/node_modules/@savvy-web/bundler/` |
 | commitlint | Conventional commit + DCO enforcement | [savvy-web/commitlint](https://github.com/savvy-web/commitlint) | `node_modules/@savvy-web/commitlint/` |
 | changesets | Versioning, changelogs, release management | [savvy-web/changesets](https://github.com/savvy-web/changesets) | `node_modules/@savvy-web/changesets/` |
 | lint-staged | Pre-commit file linting via Biome | [savvy-web/lint-staged](https://github.com/savvy-web/lint-staged) | `node_modules/@savvy-web/lint-staged/` |
