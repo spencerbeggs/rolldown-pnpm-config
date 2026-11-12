@@ -1,0 +1,11 @@
+[package.build]
+# The PnpmConfigPlugin call lives in its own module: effected.toml holds data,
+# and `plugins` is the one key that brings code into the build.
+plugins = ["./pnpm-config.ts"]
+# Inline every import so each loose pnpmfile is self-contained: pnpm loads it
+# before any dependency is installed.
+bundleNodeModules = true
+
+[package.build.looseFiles]
+"pnpmfile.mjs" = "./src/pnpmfile.ts"
+"pnpmfile.cjs" = "./src/pnpmfile.ts"

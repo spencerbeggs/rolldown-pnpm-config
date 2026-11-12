@@ -7,6 +7,8 @@
 * Updated An opt-in `<name>:exact` catalog derived from each range
 * Updated Runtime
 * Updated { base, manifest, name } contract
+* Updated Workspace consumers link the package's TypeScript source through tsx
+* Updated rolldown-pnpm-config
 
 ## 2026-11-11
 

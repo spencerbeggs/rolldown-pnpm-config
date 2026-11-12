@@ -2,8 +2,8 @@
 
 This example shows how to configure `rolldown-pnpm-config` through [tsdown](https://tsdown.dev) instead of a standalone `rolldown.config.ts`.
 
-If you want the plain Rolldown setup, see [examples/rolldown/](../exampples/rolldown/). If you want the `@savvy-web/bundler` setup, see
-`examples/savvy/`.
+If you want the plain Rolldown setup, see [examples/rolldown/](../rolldown/). If you want the `effected package build` setup, see
+[examples/effected/](../effected/).
 
 ## How this version is wired
 
