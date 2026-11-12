@@ -1,5 +1,22 @@
 # rolldown-pnpm-config
 
+## 2.5.2
+
+### Bug Fixes
+
+- Fix a local override of `catalogs.<name>.<pkg>` leaving the derived `<name>:exact` catalog at its managed value, so `catalog:<name>` and `catalog:<name>:exact` resolved different lines of one package. A local range that names a single version now re-derives `<name>:exact.<pkg>`, an explicit local `<name>:exact` entry still wins, and the override warning says what happened to `<name>:exact` and `<name>:peers`. Closes #319.
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/changesets | dependency | updated | 0.5.0 | 0.5.1 |
+| @effected/cli-kit | dependency | updated | 0.28.2 | 0.29.0 |
+| @effected/glob | dependency | updated | 0.21.0 | 0.22.0 |
+| @effected/npm | dependency | updated | 0.34.0 | 0.34.1 |
+| @effected/walker | dependency | updated | 0.28.0 | 0.29.0 |
+| @effected/workspaces | dependency | updated | 0.47.0 | 0.47.1 |
+
 ## 2.5.1
 
 ### Build System
