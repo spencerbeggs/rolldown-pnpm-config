@@ -1,5 +1,10 @@
 # Log
 
+## 2026-11-12
+
+* Updated Effect v4 collapses the declared peer closure
+* Added The package pins its kit dependencies exactly through `catalog:effected:exact`
+
 ## 2026-11-11
 
 * Added An opt-in `<name>:exact` catalog derived from each range
