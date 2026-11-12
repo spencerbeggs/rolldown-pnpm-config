@@ -5,7 +5,7 @@ description: The v3-era satellite peer-closure workaround in package/package.jso
 status: stable
 generated:
   by: okfit/claude-code
-  at: 2026-10-31T20:42:34Z
+  at: 2026-11-12T02:30:03Z
 sources:
   - id: package-json
     resource: package/package.json
@@ -20,7 +20,7 @@ verified:
     at: 2026-11-01T21:52:55Z
 integrity:
   generated:
-    body: ba48ef205c8af4fc
+    body: 1fdf8648d96c4fad
   verified:
     by: human:spencer
     at: 2026-11-01T21:52:55Z
@@ -51,9 +51,9 @@ lives at `effect/cli`, process spawning at `effect/process` (both under
 — and `@effect/platform-node` v4 peers only on `effect`. There is no closure
 left to leak, so `autoInstallPeers` has nothing to resolve into a consumer's
 lockfile. The build-time/CLI dependency surface declared today is just
-`effect` (`catalog:effected`) plus `@effect/platform-node` (also
-`catalog:effected`); nothing else from the Effect org appears in
-`dependencies`.[^package-json] Both are genuinely imported, unlike the
+`effect` plus `@effect/platform-node`, both written
+`catalog:effected:exact` (see [kit-dependency-pins](kit-dependency-pins.md));
+nothing else from the Effect org appears in `dependencies`.[^package-json] Both are genuinely imported, unlike the
 removed v3 satellites: `@effect/platform-node`'s `NodeRuntime` and
 `NodeServices` are imported directly in `package/src/cli/bin.ts`.[^bin]
 

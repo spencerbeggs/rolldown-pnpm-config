@@ -26,7 +26,7 @@ task touches the area it covers; do not load the bundle by default.
   `descriptors.md` (the 121-field descriptor table), `cli.md` (`upgrade`,
   `export`, `preview`), `patches.md` (patch discovery and path rewrite). Load
   the matching module before editing `package/src/**` under that area.
-- `okf/decisions/` (21) — a choice made, the alternatives rejected, and why.
+- `okf/decisions/` (22) — a choice made, the alternatives rejected, and why.
   Load before changing something that looks arbitrary — e.g. why builds never
   write (`builds-never-write.md`), why Effect is fenced to build time
   (`effect-at-build-time-only.md`), why the descriptor table is the single
