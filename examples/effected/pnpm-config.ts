@@ -350,7 +350,6 @@ const plugin: ReturnType<typeof PnpmConfigPlugin> = PnpmConfigPlugin({
 		value: 1440,
 		enforcement: "warn",
 	},
-	confirmModulesPurge: false,
 	peerDependencyRules: {
 		allowedVersionsFromCatalogs: {
 			catalog: "effect", // which catalog supplies the satellites

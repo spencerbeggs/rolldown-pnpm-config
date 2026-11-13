@@ -1,5 +1,6 @@
+import { OverrideKey } from "@effected/pnpm";
 import { VersionSpecifier } from "@effected/semver";
-import { Glob, Predicate, Result } from "effect";
+import { Glob, Option, Predicate, Result } from "effect";
 import type { CatalogDeclaration } from "../catalogs.js";
 import { rangeOf } from "../catalogs.js";
 
@@ -109,6 +110,23 @@ interface Pin {
 	readonly version: string;
 }
 
+/** The override selector for `name`, qualified by `range` when given, in pnpm's grammar. */
+function selectorOf(name: string, range?: string): string {
+	return OverrideKey.make({
+		path: [{ name, range: range === undefined ? Option.none() : Option.some(range) }],
+	}).format();
+}
+
+/**
+ * The canonical spelling of an `overrides` key, so `" effect@^4.0.0"` and
+ * `"effect@^4.0.0"` are recognised as one selector; a key pnpm cannot parse is
+ * kept as written (the settings schema refuses it later).
+ */
+function canonicalSelector(key: string): string {
+	const parsed = OverrideKey.parseResult(key);
+	return Result.isSuccess(parsed) ? parsed.success.format() : key;
+}
+
 /** Derive the pins for one directive. Pure; throws when the catalog is absent or a filter entry matches nothing. */
 function deriveOne(
 	catalogs: Record<string, CatalogDeclaration>,
@@ -134,7 +152,7 @@ function deriveOne(
 		if (parsed === null || !PINNABLE_OPERATORS.has(parsed.operator)) continue;
 		const { version } = parsed;
 		if (version.prerelease.length > 0 || version.build.length > 0) continue;
-		const selector = scope === "any" ? name : `${name}@${releaseLine(version.major, version.minor)}`;
+		const selector = scope === "any" ? selectorOf(name) : selectorOf(name, releaseLine(version.major, version.minor));
 		pins.push({ catalog, name, selector, version: version.toString() });
 	}
 	return pins;
@@ -190,10 +208,11 @@ export function pinCatalogs(
 	catalogs: Record<string, CatalogDeclaration>,
 ): Record<string, Record<string, string>> {
 	if (directives === undefined || !Predicate.isObject(overrides)) return resolved;
-	const table = overrides as Record<string, unknown>;
+	// The winner for a selector, whatever spelling of it the table carries.
+	const table = new Map(Object.entries(overrides).map(([key, value]) => [canonicalSelector(key), value]));
 	const out: Record<string, Record<string, string>> = { ...resolved };
 	for (const { catalog, name, selector } of derivePins(catalogs, directives)) {
-		const pinned = exactVersion(table[selector]);
+		const pinned = exactVersion(table.get(selector));
 		const current = out[catalog];
 		const exact = out[`${catalog}:exact`];
 		// A winner that is not an exact version leaves the exact catalog nothing
@@ -201,7 +220,7 @@ export function pinCatalogs(
 		// `catalog:<name>:exact` dependent would then resolve a second copy.
 		if (pinned === null && exact !== undefined && name in exact) {
 			throw new Error(
-				`overridesFromCatalogs: override "${selector}" wins with ${JSON.stringify(table[selector])}, which is not an exact version, so catalog "${catalog}:exact" cannot name the version it pins; override with an exact version, or set exact: false on "${name}"`,
+				`overridesFromCatalogs: override "${selector}" wins with ${JSON.stringify(table.get(selector))}, which is not an exact version, so catalog "${catalog}:exact" cannot name the version it pins; override with an exact version, or set exact: false on "${name}"`,
 			);
 		}
 		if (pinned === null || current === undefined || !(name in current)) continue;
@@ -229,5 +248,9 @@ export function resolveOverrides(
 	if (directives === undefined) return authored;
 	const derived = deriveOverrides(catalogs, directives);
 	const manual = Predicate.isObject(authored) ? (authored as Record<string, string>) : {};
-	return { ...derived, ...manual };
+	// A hand-written selector wins even when it spells the derived one
+	// differently: drop the derived entry, so pnpm never sees one selector twice.
+	const authoredSelectors = new Set(Object.keys(manual).map(canonicalSelector));
+	const kept = Object.fromEntries(Object.entries(derived).filter(([key]) => !authoredSelectors.has(key)));
+	return { ...kept, ...manual };
 }

@@ -5,13 +5,13 @@ description: Tests live in package/__test__/, never co-located in src/; classifi
 stale_after: 2026-12-08T00:00:00Z
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
+  at: 2026-11-13T04:57:23Z
 sources:
   - id: test-claude-md
     resource: package/__test__/CLAUDE.md
 integrity:
   generated:
-    body: abcf536fd31e6e24
+    body: d518932a3c77ef78
 ---
 
 # Test file layout
@@ -24,13 +24,13 @@ Classification is by filename suffix, not by which directory a file sits
 in:[^test-claude-md]
 
 - `*.test.ts` — a unit test. May be grouped into topic subdirectories such
-  as `descriptors/`, `plugin/`, or `runtime/`.[^test-claude-md]
+  as `cli/`, `plugin/`, or `runtime/`.[^test-claude-md]
 - `*.e2e.test.ts` — always an end-to-end test, regardless of which
   directory it sits in.[^test-claude-md]
 - `*.int.test.ts` — always an integration test, regardless of which
   directory it sits in.[^test-claude-md]
 - `*.test-d.ts` — a compile-time type test, asserted under the typecheck
-  pass, not the runtime test pass (e.g. the `PluginConfig`-to-descriptor-table
+  pass, not the runtime test pass (e.g. the `PluginConfig`-to-settings-catalog
   drift guard).[^test-claude-md]
 
 ## `utils/` and `fixtures/` are per-category and excluded from discovery

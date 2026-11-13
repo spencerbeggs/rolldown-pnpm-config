@@ -11,13 +11,13 @@ describe("createHooks engine", () => {
 		expect(out.catalogs).toEqual({ silk: { a: "1.0.0", b: "9.9.9", c: "3.0.0" } });
 	});
 
-	it("applies a quiet scalar field (confirmModulesPurge) silently, child wins", () => {
-		const base = { confirmModulesPurge: true };
-		const manifest = { confirmModulesPurge: { strategy: "scalar", enforcement: "absent" as const } };
-		expect(createHooks(base, manifest, "@acme/cfg").updateConfig({}).confirmModulesPurge).toBe(true);
-		expect(
-			createHooks(base, manifest, "@acme/cfg").updateConfig({ confirmModulesPurge: false }).confirmModulesPurge,
-		).toBe(false);
+	it("applies a quiet scalar field (dedupeDirectDeps) silently, child wins", () => {
+		const base = { dedupeDirectDeps: true };
+		const manifest = { dedupeDirectDeps: { strategy: "scalar", enforcement: "absent" as const } };
+		expect(createHooks(base, manifest, "@acme/cfg").updateConfig({}).dedupeDirectDeps).toBe(true);
+		expect(createHooks(base, manifest, "@acme/cfg").updateConfig({ dedupeDirectDeps: false }).dedupeDirectDeps).toBe(
+			false,
+		);
 	});
 
 	it("omits a field whose merged value is undefined/empty", () => {

@@ -35,7 +35,6 @@ export const plugin = {
   allowBuilds: { esbuild: true },
   strictDepBuilds: true,
   minimumReleaseAge: { value: 1440, enforcement: "warn" },
-  confirmModulesPurge: false,
 } satisfies PluginConfig;
 ```
 

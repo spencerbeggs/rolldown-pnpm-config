@@ -6,7 +6,7 @@ resource: ../../package/src/runtime/index.ts
 kind: api
 generated:
   by: okfit/claude-code
-  at: 2026-11-12T19:15:27Z
+  at: 2026-11-13T04:57:23Z
 sources:
   - id: runtime-index
     resource: package/src/runtime/index.ts
@@ -18,7 +18,7 @@ tags:
   - architecture
 integrity:
   generated:
-    body: afdf2a701d5631ac
+    body: b90d8d1a37fefa06
 ---
 
 # { base, manifest, name } contract
@@ -63,7 +63,7 @@ contract.[^runtime-index]
 ## What is not part of the promise
 
 How `base` and `manifest` are produced — the `freeze` validation step
-(`package/src/plugin/freeze.ts`), the descriptor-derived schemas, and the
+(`package/src/plugin/freeze.ts`), the catalog schemas, and the
 catalog and `peerDependencyRules` special-casing — is build-time
 machinery, not part of this contract. A consumer of the runtime only ever
 sees the three plain values.

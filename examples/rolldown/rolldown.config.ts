@@ -37,7 +37,6 @@ export default defineConfig({
 				value: 1440,
 				enforcement: "warn",
 			},
-			confirmModulesPurge: false,
 		}),
 	],
 });

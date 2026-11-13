@@ -1,11 +1,11 @@
-import type { PartialReleaseAgeGate } from "@effected/npm";
+import type { PartialReleaseAgeGate } from "@effected/pnpm";
 import { isWrappedField } from "../plugin/freeze.js";
 
 /**
  * Read a release-age gate from config and combine it with
- * {@link @effected/npm#ReleaseAgeGate.combine}. The gate model itself
+ * `ReleaseAgeGate.combine`. The gate model itself
  * (`ReleaseAgeGate`, `PartialReleaseAgeGate`, the age filter, and the
- * `@pnpm/matcher` exclude semantics) lives in `@effected/npm`; this module
+ * `@pnpm/matcher` exclude semantics) lives in `@effected/pnpm`; this module
  * only turns a plugin config into a partial contribution (pnpm's own settings
  * are read by `RegistryResolver.pnpmReleaseAge`, through `PnpmSettings`).
  */

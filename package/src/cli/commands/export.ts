@@ -3,15 +3,16 @@ import { dirname, relative } from "node:path";
 import type { BlockOf, Document } from "@effected/cli-kit";
 import { CliDoc, CliMessage } from "@effected/cli-kit";
 import { AtomicFile } from "@effected/files";
+import { PnpmWorkspaceFile } from "@effected/pnpm";
 import type { FileSystem, Path } from "effect";
 import { Data, Effect, Option, Predicate } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
 import type { PluginConfig } from "../../define-plugin.js";
-import { DESCRIPTORS } from "../../descriptors/index.js";
 import { discoverOwnedPatches, withResolvedBuildPatches } from "../../patches/build.js";
 import type { PatchReconcileReport } from "../../patches/reconcile.js";
 import { reconcilePatches } from "../../patches/reconcile.js";
 import { freeze } from "../../plugin/freeze.js";
+import { WORKSPACE_FIELDS } from "../../registry.js";
 import { resolveRootName } from "../../runtime/ctx.js";
 import { WorkingDirectory, resolveWorkspacePath } from "../cwd.js";
 import { buildDiff } from "../diff/build.js";
@@ -23,7 +24,6 @@ import { legend } from "../render/legend.js";
 import { printView } from "../render/print.js";
 import { failureDoc } from "../render/report.js";
 import { findConfigFiles, pickConfigCandidate } from "../select-file.js";
-import { canonicalize, writeWorkspace } from "../workspace-file.js";
 import { overlayWorkspace } from "../workspace-overlay.js";
 
 /**
@@ -37,18 +37,6 @@ export class ExportError extends Data.TaggedError("ExportError")<{ readonly mess
 		return failureDoc(this.message);
 	}
 }
-
-/**
- * The set of pnpm config keys that belong in pnpm-workspace.yaml
- * (i.e. descriptors with `workspaceYaml: true`).
- *
- * @internal
- */
-export const WORKSPACE_FIELDS: ReadonlySet<string> = new Set(
-	Object.entries(DESCRIPTORS)
-		.filter(([, d]) => d.workspaceYaml)
-		.map(([k]) => k),
-);
 
 /**
  * Export core: freeze the plugin config first, then apply excludeByRepo and
@@ -69,7 +57,7 @@ export function runExport(opts: {
 	FileSystem.FileSystem | Path.Path
 > {
 	return Effect.gen(function* () {
-		const { config, localCfg, path, parsed, source } = yield* loadConfigAndWorkspace(
+		const { config, localCfg, path, parsed, file } = yield* loadConfigAndWorkspace(
 			opts,
 			(message) => new ExportError({ message }),
 		);
@@ -119,11 +107,13 @@ export function runExport(opts: {
 		const merged = overlayWorkspace(effective, parsed);
 		// Edits over the existing source, not a re-render: unchanged lines keep
 		// their bytes and new ones take the file's own style (#280).
-		const rendered = writeWorkspace(source, merged);
+		const rendered = yield* Effect.fromResult(file.writeResult(merged)).pipe(
+			Effect.mapError((e) => new ExportError({ message: e.message })),
+		);
 		const localKeys = new Set(Object.keys(localCfg ?? {}));
 		const tree: DiffNode = buildDiff(
-			canonicalize(parsed) as Record<string, unknown>,
-			canonicalize(merged) as Record<string, unknown>,
+			PnpmWorkspaceFile.canonicalize(parsed) as Record<string, unknown>,
+			PnpmWorkspaceFile.canonicalize(merged) as Record<string, unknown>,
 			{ localKeys, managedKeys: WORKSPACE_FIELDS },
 		);
 		const diff = renderExportDiff(tree, { full: opts.full ?? false });

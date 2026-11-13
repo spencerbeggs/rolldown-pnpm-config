@@ -151,6 +151,15 @@ describe("resolveOverrides", () => {
 		});
 	});
 
+	it("lets an authored selector win when it spells the derived one differently, leaving one entry", () => {
+		const out = resolveOverrides(
+			{ " effect@^4.0.0 ": "PINNED" },
+			{ catalog: "effect", exclude: ["@effect/tsgo", "@scope/tiny", "@effect/platform-node", "@effect/vitest"] },
+			catalogs,
+		);
+		expect(out).toEqual({ " effect@^4.0.0 ": "PINNED" });
+	});
+
 	it("yields the derived table alone when no overrides are authored", () => {
 		expect(
 			resolveOverrides(undefined, { catalog: "effect", exclude: ["@effect/tsgo", "@scope/tiny"] }, catalogs),

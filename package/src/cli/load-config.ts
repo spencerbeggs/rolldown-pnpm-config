@@ -1,7 +1,7 @@
 import { Fmt } from "@effected/cli-kit";
+import { PnpmWorkspaceFile } from "@effected/pnpm";
 import { Effect, FileSystem, Predicate } from "effect";
 import { evaluatePluginConfig } from "./evaluate.js";
-import { parseWorkspace } from "./workspace-file.js";
 
 /** A statically evaluated plugin config plus the workspace file it targets. @internal */
 export interface LoadedConfig {
@@ -15,6 +15,8 @@ export interface LoadedConfig {
 	readonly parsed: Record<string, unknown>;
 	/** The workspace file's raw text, or `""` when it does not exist yet. */
 	readonly source: string;
+	/** The workspace file, ready to write a new mapping over its text (empty when it does not exist yet). */
+	readonly file: PnpmWorkspaceFile;
 }
 
 /**
@@ -50,8 +52,9 @@ export function loadConfigAndWorkspace<E>(
 		const cannotRead = (e: unknown) => mkError(`Cannot read or parse ${path}: ${Fmt.errorText(e)}`);
 		const present = yield* fs.exists(path).pipe(Effect.mapError(cannotRead));
 		const source = present ? yield* fs.readFileString(path).pipe(Effect.mapError(cannotRead)) : "";
-		const parsed = present ? yield* Effect.try({ try: () => parseWorkspace(source), catch: cannotRead }) : {};
+		const file = yield* PnpmWorkspaceFile.parse(source).pipe(Effect.mapError(cannotRead));
+		const parsed: Record<string, unknown> = { ...file.value };
 		const localCfg = Predicate.isObject(config.local) ? config.local : undefined;
-		return { config, localCfg, path, parsed, source };
+		return { config, localCfg, path, parsed, source, file };
 	});
 }

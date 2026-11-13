@@ -1,16 +1,16 @@
 ---
 type: Decision
 title: Data-driven refines, not injected code
-description: Repo-dependent merge behavior is modeled as a data-driven refine on a descriptor, not as arbitrary injected code, keeping the manifest plain serializable data.
+description: Repo-dependent merge behavior is modeled as a data-driven refine on a managed field, not as arbitrary injected code, keeping the manifest plain serializable data.
 status: stable
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
+  at: 2026-11-13T04:57:23Z
 sources:
   - id: ctx
     resource: package/src/runtime/ctx.ts
   - id: descriptors-types
-    resource: package/src/descriptors/types.ts
+    resource: package/src/plugin/freeze.ts
   - id: runtime-index
     resource: package/src/runtime/index.ts
 verified:
@@ -18,7 +18,7 @@ verified:
     at: 2026-10-27T16:21:39Z
 integrity:
   generated:
-    body: a8475c69828a202d
+    body: e099465caedd98d5
   verified:
     by: human:spencer
     at: 2026-10-27T16:21:39Z
@@ -40,9 +40,9 @@ boundary as plain data.
 ## Decision
 
 Repo-dependent behavior is modeled as a data-driven `excludeByRepo` refine.
-`FieldOptions` on a descriptor carries only a boolean flag —
-`readonly excludeByRepo?: boolean` — never a function
-(`package/src/descriptors/types.ts:20-22`).[^descriptors-types] At install
+The wrapped field form carries the refine as data — `freeze`'s
+`normalizeField` copies `excludeByRepo` into the manifest entry's `options` —
+never a function (`package/src/plugin/freeze.ts`).[^descriptors-types] At install
 time, `resolveRootName` resolves the consuming repo's `package.json` name
 and `excludeByRepo` drops the packages assigned to that repo from the
 merged hoist list (`package/src/runtime/ctx.ts:12-44`).[^ctx] The runtime's
@@ -53,9 +53,9 @@ merge loop applies this refine to the strategy's `merged` value, keyed off
 ## Alternatives rejected
 
 - **Arbitrary code-injected refines** (an author-supplied function run
-  during merge). Deliberately not built: `FieldOptions` models
-  `excludeByRepo` as a boolean flag interpreted by the runtime, not as a
-  place to inject a function (`package/src/descriptors/types.ts:20-22`) —
+  during merge). Deliberately not built: the manifest models
+  `excludeByRepo` as data interpreted by the runtime, not as a
+  place to inject a function (`package/src/plugin/freeze.ts`) —
   allowing arbitrary code into a refine would make the manifest something
   other than plain serializable data, undermining the same build/runtime
   data-only boundary that keeps the shipped pnpmfile a zero-dependency
@@ -64,7 +64,7 @@ merge loop applies this refine to the strategy's `merged` value, keyed off
 ## Consequences
 
 - `publicHoistPattern` is the one field with a documented `options` refine
-  in the descriptor table; any future repo-dependent behavior has to fit
+  in the policy table; any future repo-dependent behavior has to fit
   the same data-driven refine shape rather than reach for injected code.
 - The manifest stays plain serializable data end to end, which is what lets
   it be baked verbatim into the emitted virtual modules.

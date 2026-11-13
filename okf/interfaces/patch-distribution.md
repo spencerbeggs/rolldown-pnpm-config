@@ -6,7 +6,7 @@ kind: config
 resource: ../../package/src/patches
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
+  at: 2026-11-13T04:57:23Z
 sources:
   - id: discover-ts
     resource: ../../package/src/patches/discover.ts
@@ -18,7 +18,7 @@ sources:
     resource: ../../package/src/runtime/strategies/maps.ts
 integrity:
   generated:
-    body: 82402dce9ed8ab4d
+    body: b933e6542690b365
 ---
 
 # patch distribution
@@ -73,7 +73,7 @@ No new top-level `PluginConfig` field is introduced; the existing
 
 At install time, a field whose descriptor uses the `mapChildWins`
 strategy (`package/src/runtime/strategies/maps.ts:9`) — which
-`patchedDependencies` uses (`package/src/descriptors/build.ts:156`) —
+`patchedDependencies` uses (`package/src/registry.ts`) —
 merges a local, consumer-side entry over the distributed one on key
 collision, so a consumer's own patch registration takes precedence over
 a distributed one for the same key.

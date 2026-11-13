@@ -6,7 +6,7 @@ resource: ../../package/src/patches
 kind: package
 generated:
   by: okfit/claude-code
-  at: 2026-10-27T16:27:34Z
+  at: 2026-11-13T04:57:23Z
 sources:
   - id: discover
     resource: package/src/patches/discover.ts
@@ -18,7 +18,7 @@ sources:
     resource: package/src/patches/reconcile.ts
 integrity:
   generated:
-    body: c85ab617c37128d4
+    body: 2c808ce048c17be9
 ---
 
 # Patches
@@ -55,10 +55,10 @@ as stale-entry and key-mismatch warnings.
 
 ## What lives inside
 
-The descriptor table is unchanged by this module: `patchedDependencies`,
+The policy table is unchanged by this module: `patchedDependencies`,
 `patchesDir` and `configDependencies` stay as plain descriptors, and
 `patchesDir` is never read by this code — see
-[descriptors](descriptors.md). Ownership of a patch is scoped by plugin
+[settings policy](settings-policy.md). Ownership of a patch is scoped by plugin
 `name`, so multiple config-deps and a repo's own `patches/` coexist without
 engine-level collision detection; a naming collision is the user's to
 inspect via `preview`.

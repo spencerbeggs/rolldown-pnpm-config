@@ -5,10 +5,10 @@ description: export applies path-targeted YamlFormat.modify edits over the exist
 status: stable
 generated:
   by: okfit/claude-code
-  at: 2026-11-05T22:58:21Z
+  at: 2026-11-13T04:57:23Z
 sources:
   - id: workspace-file
-    resource: ../../package/src/cli/workspace-file.ts
+    resource: "npm:@effected/pnpm"
   - id: export-ts
     resource: ../../package/src/cli/commands/export.ts
   - id: style-tests
@@ -26,7 +26,7 @@ verified:
     at: 2026-11-05T22:55:27Z
 integrity:
   generated:
-    body: 7fdca509b585edf9
+    body: fdc000dff7aa241f
   verified:
     by: human:spencer
     at: 2026-11-05T22:55:27Z
@@ -44,7 +44,7 @@ in a file written in another style, and dropped its comments.[^issue-280]
 
 ## Decision
 
-`writeWorkspace` diffs the parsed file against the merged result, descending
+`PnpmWorkspaceFile.write` (`@effected/pnpm`, where this editor now lives) diffs the parsed file against the merged result, descending
 through mappings present on both sides, and applies one `YamlFormat.modify`
 per changed path over the existing source.[^workspace-file] Each change takes
 one of these routes:
@@ -107,7 +107,7 @@ fallback.[^workspace-file][^style-tests]
 A second export over its own output is byte-identical.[^export-ts] The
 dry-run diff is unaffected: it still compares canonical forms.[^export-ts]
 
-[^workspace-file]: ../../package/src/cli/workspace-file.ts
+[^workspace-file]: `@effected/pnpm`'s `PnpmWorkspaceFile`, the editor this repository's `writeWorkspace` became
 [^export-ts]: ../../package/src/cli/commands/export.ts
 [^style-tests]: `../../package/__test__/cli/workspace-style.test.ts`
 [^issue-280]: <https://github.com/spencerbeggs/rolldown-pnpm-config/issues/280>

@@ -6,7 +6,7 @@ resource: ../../package/src/define-plugin.ts
 kind: api
 generated:
   by: okfit/claude-code
-  at: 2026-11-11T19:30:34Z
+  at: 2026-11-13T04:57:23Z
 sources:
   - id: define-plugin
     resource: package/src/define-plugin.ts
@@ -20,7 +20,7 @@ tags:
   - architecture
 integrity:
   generated:
-    body: d1e572b0d1b733fd
+    body: a1c3a4beb572a6d5
 ---
 
 # PnpmConfigPlugin authoring surface
@@ -48,8 +48,8 @@ the default enforcement per field.[^define-plugin]
 ## What stays stable
 
 - Because `PluginConfig` is hand-authored rather than derived, it is kept
-  in lockstep with the descriptor table (see
-  [descriptor-table](../models/descriptor-table.md)) by the compile-time
+  in lockstep with the policy table and the pnpm settings catalog (see
+  [field-policy](../models/field-policy.md)) by the compile-time
   drift guard at `package/__test__/types/plugin-config.test-d.ts`, so an
   author-visible field's shape cannot silently widen, narrow, or drop
   without `typecheck` failing.[^drift-guard-test]

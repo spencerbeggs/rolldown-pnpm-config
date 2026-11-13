@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "@effect/vitest";
-import { ReleaseAgeGate } from "@effected/npm";
+import { ReleaseAgeGate } from "@effected/pnpm";
 import { Effect } from "effect";
 import { projectDecisions, resolveGatedVersions } from "../../src/cli/commands/upgrade.js";
 import { discoverCatalogEntries } from "../../src/cli/discover.js";
