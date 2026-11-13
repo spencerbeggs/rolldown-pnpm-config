@@ -11,15 +11,6 @@ import { describe, expect, it } from "vitest";
 const KIT = /^(@effected\/|@effect\/|effect$)/;
 const EXACT = "catalog:effected:exact";
 
-/**
- * Kit packages the `effected` catalog does not carry yet, pinned to the exact
- * version they will first publish at. `@effected/pnpm` joins the catalog with
- * its first release; move it to `catalog:effected:exact` then, and this list
- * empties. The build resolves `catalog:` specifiers itself, so the catalog
- * form cannot be written before the catalog has the entry.
- */
-const NOT_YET_CATALOGUED: Readonly<Record<string, string>> = { "@effected/pnpm": "0.1.0" };
-
 const manifest = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")) as {
 	readonly dependencies?: Record<string, string>;
 	readonly peerDependencies?: Record<string, string>;
@@ -33,7 +24,7 @@ describe("kit dependency pins", () => {
 	});
 
 	it("writes every kit dependency as catalog:effected:exact", () => {
-		const loose = kitDeps.filter(([name, spec]) => spec !== EXACT && spec !== NOT_YET_CATALOGUED[name]);
+		const loose = kitDeps.filter(([, spec]) => spec !== EXACT);
 		expect(loose).toEqual([]);
 	});
 

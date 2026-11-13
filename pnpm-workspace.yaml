@@ -1,19 +1,12 @@
 autoInstallPeers: true
 configDependencies:
-  "@effected/pnpm-plugin-effected": 0.26.4
+  "@effected/pnpm-plugin-effected": 0.26.5
   "@savvy-web/pnpm-plugin-silk": 0.54.0
 minimumReleaseAgeExclude:
   - "@effected/pnpm-plugin-effected"
   - "@savvy-web/pnpm-plugin-silk"
 nodeOptions: --import=tsx
 overrides:
-  "@effected/bun": file:/Users/spencer/workspaces/spencerbeggs/effected/packages/bun/dist/prod/npm/pkg
-  "@effected/changesets": file:/Users/spencer/workspaces/spencerbeggs/effected/packages/changesets/dist/prod/npm/pkg
-  "@effected/commands": file:/Users/spencer/workspaces/spencerbeggs/effected/packages/commands/dist/prod/npm/pkg
-  "@effected/lockfiles": file:/Users/spencer/workspaces/spencerbeggs/effected/packages/lockfiles/dist/prod/npm/pkg
-  "@effected/npm": file:/Users/spencer/workspaces/spencerbeggs/effected/packages/npm/dist/prod/npm/pkg
-  "@effected/pnpm": file:/Users/spencer/workspaces/spencerbeggs/effected/packages/pnpm/dist/prod/npm/pkg
-  "@effected/workspaces": file:/Users/spencer/workspaces/spencerbeggs/effected/packages/workspaces/dist/prod/npm/pkg
   tsdown>rolldown-plugin-dts: ^0.29.0
 packages:
   - examples/*

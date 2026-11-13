@@ -38,7 +38,7 @@
 		"@effected/files": "catalog:effected:exact",
 		"@effected/glob": "catalog:effected:exact",
 		"@effected/npm": "catalog:effected:exact",
-		"@effected/pnpm": "0.1.0",
+		"@effected/pnpm": "catalog:effected:exact",
 		"@effected/semver": "catalog:effected:exact",
 		"@effected/walker": "catalog:effected:exact",
 		"@effected/workspaces": "catalog:effected:exact",
