@@ -1,55 +1,49 @@
 ---
 type: Interface
 title: Managed pnpm fields
-description: The 121 pnpm settings fields this library manages, grouped by category, plus the keys deliberately excluded from coverage.
-resource: ../../package/src/descriptors/index.ts
+description: The 110 pnpm settings fields this library manages, grouped by category, plus the keys deliberately excluded from coverage.
+resource: ../../package/src/registry.ts
 kind: config
 generated:
   by: okfit/claude-code
-  at: 2026-10-31T20:42:34Z
+  at: 2026-11-13T06:15:14Z
 sources:
   - id: descriptors
-    resource: package/src/descriptors
+    resource: package/src/registry.ts
+  - id: settings-catalog
+    resource: "npm:@effected/pnpm/settings"
 tags:
   - architecture
 integrity:
   generated:
-    body: b9f2fae59a5e3bd0
+    body: c08a86d6b3fae702
 ---
 
 # Managed pnpm fields
 
 ## What a consumer gets
 
-A plugin author declaring any of these 121 fields on `PnpmConfigPlugin({...})`
+A plugin author declaring any of these 110 fields on `PnpmConfigPlugin({...})`
 gets it validated, merged with the consuming repo's local config by a named
 strategy, and enforced at the level shown, at install time. This is the
 coverage promise; the enumeration below is the point of this document, and
-is grounded directly in `package/src/descriptors/`, one table row per
-descriptor entry. Field counts were verified directly against
-`package/src/descriptors/*.ts` (one entry per top-level key, category
-module noted in each heading below): 23 + 17 + 12 + 26 + 8 + 10 + 14 + 11
-= 121.[^descriptors]
+is grounded directly in the policy table `FIELD_REGISTRY` in `package/src/registry.ts`, one row per entry; each field's kind (and its schema) is the pnpm 12 settings catalog's, from `@effected/pnpm/settings`.[^settings-catalog] The per-heading counts sum to 24+17+12+18+4+10+14+11 = 110.[^descriptors]
 
-For what a pnpm setting means, and which source wins when `pnpm.io` and
-the schemastore JSON Schema disagree, see
-[pnpm settings](../references/pnpm-settings.md) — including the note
-there that `confirmModulesPurge` is a real, working boolean setting this
-repository's descriptor table and tests exercise, absent from both
-external sources.
+For what a pnpm setting means, see [pnpm settings](../references/pnpm-settings.md).
+Every field here is one pnpm 12 reads; settings no pnpm reads, pnpm 11's `confirmModulesPurge`, and the five build settings pnpm 12 accepts but never applies are not offered, and a config naming one fails the build. A pnpm 12 setting not listed here fails the build too (`is a pnpm 12 setting this plugin does not manage`) rather than shipping nowhere.
 
-## Resolution (`resolution.ts`) — 23 fields
+## Resolution — 24 fields
 
 | key | kind | strategy | enforcement |
 | --- | --- | --- | --- |
-| `catalogs` | object | `catalogs` | warn |
-| `confirmModulesPurge` | boolean | `scalar` | absent |
+| `catalogs` | stringRecordRecord | `catalogs` | warn |
 | `packageExtensions` | unknownRecord | `mapChildWins` | absent |
 | `allowedDeprecatedVersions` | stringRecord | `mapChildWins` | absent |
 | `publicHoistPattern` | stringArray | `arrayUnion` | absent |
 | `minimumReleaseAgeExclude` | stringArray | `arrayUnion` | absent |
-| `supportedArchitectures` | stringArrayRecord | `arrayRecordUnion` | absent |
-| `auditConfig` | stringArrayRecord | `arrayRecordUnion` | absent |
+| `supportedArchitectures` | object | `arrayRecordUnion` | absent |
+| `audit` | object | `sectionMerge` | absent |
+| `auditConfig` | object | `arrayRecordUnion` | absent |
 | `overrides` | stringRecord | `overrides` | warn |
 | `peerDependencyRules` | object | `peerDependencyRules` | warn |
 | `strictDepBuilds` | boolean | `securityFlag` | warn |
@@ -57,6 +51,7 @@ external sources.
 | `minimumReleaseAge` | number | `securityMin` | warn |
 | `allowBuilds` | booleanRecord | `allowBuilds` | warn |
 | `ignoredOptionalDependencies` | stringArray | `arrayUnion` | absent |
+| `update` | object | `sectionMerge` | absent |
 | `updateConfig` | object | `mapChildWins` | absent |
 | `catalog` | stringRecord | `mapChildWins` | warn |
 | `minimumReleaseAgeStrict` | boolean | `scalar` | warn |
@@ -71,7 +66,7 @@ external sources.
 (or array) input that `freeze` resolves against the declared catalogs
 into version-qualified `allowedVersions` rules and strips before schema
 validation, baking the result into `base`. This is layered on top of the
-field by `package/src/plugin/allowed-versions.ts`; the descriptor row
+field by `package/src/plugin/allowed-versions.ts`; the policy row
 above is unchanged.[^descriptors]
 
 `overrides` has the same kind of companion in the top-level
@@ -83,10 +78,10 @@ result so a hand-written selector wins. Prerelease and compound-range
 members are skipped, never widened. `include` and `exclude` take exact
 names or glob patterns (`@effect/*`); `exclude` wins on overlap, and an
 entry matching no member (or an empty `include`) throws. Layered on by
-`package/src/plugin/overrides-from-catalogs.ts`; the descriptor row is
+`package/src/plugin/overrides-from-catalogs.ts`; the policy row is
 unchanged.
 
-## Hoisting (`hoisting.ts`) — 17 fields
+## Hoisting — 17 fields
 
 | key | kind | strategy | enforcement |
 | --- | --- | --- | --- |
@@ -96,7 +91,7 @@ unchanged.
 | `shamefullyHoist` | boolean | `scalar` | absent |
 | `hoistingLimits` | enum | `scalar` | absent |
 | `modulesDir` | string | `scalar` | absent |
-| `nodeLinker` | enum | `scalar` | absent |
+| `nodeLinker` | union | `scalar` | absent |
 | `symlink` | boolean | `scalar` | absent |
 | `enableModulesDir` | boolean | `scalar` | absent |
 | `virtualStoreDir` | string | `scalar` | absent |
@@ -108,11 +103,11 @@ unchanged.
 | `verifyStoreIntegrity` | boolean | `scalar` | warn |
 | `strictStorePkgContentCheck` | boolean | `scalar` | warn |
 
-## Lockfile (`lockfile.ts`) — 12 fields
+## Lockfile — 12 fields
 
 | key | kind | strategy | enforcement |
 | --- | --- | --- | --- |
-| `lockfile` | boolean | `scalar` | absent |
+| `lockfile` | union | `scalar` | absent |
 | `preferFrozenLockfile` | boolean | `scalar` | absent |
 | `lockfileIncludeTarballUrl` | boolean | `scalar` | absent |
 | `gitBranchLockfile` | boolean | `scalar` | absent |
@@ -125,19 +120,14 @@ unchanged.
 | `strictPeerDependencies` | boolean | `scalar` | absent |
 | `resolvePeersFromWorkspaceRoot` | boolean | `scalar` | absent |
 
-## Build (`build.ts`) — 26 fields
+## Build — 18 fields
 
 | key | kind | strategy | enforcement |
 | --- | --- | --- | --- |
-| `onlyBuiltDependencies` | stringArray | `arrayUnion` | warn |
-| `onlyBuiltDependenciesFile` | string | `scalar` | warn |
-| `neverBuiltDependencies` | stringArray | `arrayUnion` | absent |
-| `ignoredBuiltDependencies` | stringArray | `arrayUnion` | absent |
 | `dangerouslyAllowAllBuilds` | boolean | `scalar` | warn |
 | `ignoreScripts` | boolean | `scalar` | absent |
-| `ignoreDepScripts` | boolean | `scalar` | absent |
 | `childConcurrency` | number | `scalar` | absent |
-| `sideEffectsCache` | boolean | `scalar` | absent |
+| `sideEffectsCache` | union | `scalar` | absent |
 | `sideEffectsCacheReadonly` | boolean | `scalar` | absent |
 | `nodeOptions` | string | `scalar` | absent |
 | `verifyDepsBeforeRun` | union | `scalar` | absent |
@@ -147,11 +137,8 @@ unchanged.
 | `requiredScripts` | stringArray | `arrayUnion` | absent |
 | `patchedDependencies` | stringRecord | `mapChildWins` | warn |
 | `allowUnusedPatches` | boolean | `scalar` | absent |
-| `allowNonAppliedPatches` | boolean | `scalar` | absent |
-| `ignorePatchFailures` | boolean | `scalar` | absent |
 | `patchesDir` | string | `scalar` | absent |
-| `configDependencies` | stringRecord | `mapChildWins` | absent |
-| `executionEnv` | unknownRecord | `mapChildWins` | absent |
+| `configDependencies` | unknownRecord | `mapChildWins` | absent |
 | `injectWorkspacePackages` | boolean | `scalar` | absent |
 | `syncInjectedDepsAfterScripts` | stringArray | `arrayUnion` | absent |
 | `dedupeInjectedDeps` | boolean | `scalar` | absent |
@@ -160,24 +147,20 @@ unchanged.
 discovery and path rewrite — a `{ strategy: "rewrite" }` input discovers
 `public/patches/` and rewrites each entry to a distributed
 `node_modules/.pnpm-config/<name>/<rel>` path baked into `base`. This is
-layered on top of the field by `package/src/patches/`; the descriptor row
+layered on top of the field by `package/src/patches/`; the policy row
 above is unchanged. `patchesDir` stays `absent`/unmanaged and is never
 read by the patch code.[^descriptors]
 
-## Runtime config (`runtime-cfg.ts`) — 8 fields
+## Runtime config — 4 fields
 
 | key | kind | strategy | enforcement |
 | --- | --- | --- | --- |
-| `packageManagerStrict` | boolean | `scalar` | absent |
-| `packageManagerStrictVersion` | boolean | `scalar` | absent |
-| `managePackageManagerVersions` | boolean | `scalar` | absent |
 | `pmOnFail` | enum | `scalar` | absent |
 | `runtimeOnFail` | enum | `scalar` | absent |
 | `nodeVersion` | string | `scalar` | absent |
-| `useNodeVersion` | string | `scalar` | absent |
-| `nodeDownloadMirrors` | unknownRecord | `mapChildWins` | absent |
+| `nodeDownloadMirrors` | stringRecord | `mapChildWins` | absent |
 
-## Workspace (`workspace.ts`) — 10 fields
+## Workspace — 10 fields
 
 | key | kind | strategy | enforcement |
 | --- | --- | --- | --- |
@@ -192,12 +175,12 @@ read by the patch code.[^descriptors]
 | `workspaceConcurrency` | number | `scalar` | absent |
 | `auditLevel` | enum | `scalar` | absent |
 
-## Misc preferences (`misc.ts`) — 14 fields
+## Misc preferences — 14 fields
 
 | key | kind | strategy | enforcement |
 | --- | --- | --- | --- |
 | `resolutionMode` | enum | `scalar` | absent |
-| `savePrefix` | enum | `scalar` | absent |
+| `savePrefix` | string | `scalar` | absent |
 | `saveExact` | boolean | `scalar` | absent |
 | `tag` | string | `scalar` | absent |
 | `preferOffline` | boolean | `scalar` | absent |
@@ -211,7 +194,7 @@ read by the patch code.[^descriptors]
 | `recursiveInstall` | boolean | `scalar` | absent |
 | `engineStrict` | boolean | `scalar` | absent |
 
-## Network and publish (`network.ts`) — 11 fields
+## Network and publish — 11 fields
 
 | key | kind | strategy | enforcement |
 | --- | --- | --- | --- |
@@ -229,9 +212,9 @@ read by the patch code.[^descriptors]
 
 ## Not covered
 
-Keys deliberately excluded from the descriptor table — present in
+Keys deliberately excluded from the policy table — present in
 [pnpm settings](../references/pnpm-settings.md) but absent from every
-category module under `package/src/descriptors/`[^descriptors] — with the
+the policy table in `package/src/registry.ts`[^descriptors] — with the
 classification reason:
 
 | key(s) | reason |
@@ -250,10 +233,8 @@ classification reason:
 
 ## What is not part of the promise
 
-The maintainer-side shape of a descriptor entry — `schema`, `doc`,
-`workspaceYaml`, `anchor`, `options`, `samples` — and how these 121
-entries are authored, merged, and derived from is documented in
-[descriptor-table](../models/descriptor-table.md), not here; this document
-is the consumer-facing coverage promise only.
+The maintainer-side shape of a policy entry (`strategy` and `enforcement`, laid over the catalog's facts) is documented in [field-policy](../models/field-policy.md), not here; this document is the consumer-facing coverage promise only.
 
 [^descriptors]: descriptors
+
+[^settings-catalog]: settings-catalog

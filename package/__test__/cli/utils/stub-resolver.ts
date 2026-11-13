@@ -1,4 +1,4 @@
-import type { PartialReleaseAgeGate } from "@effected/npm";
+import type { PartialReleaseAgeGate } from "@effected/pnpm";
 import { Effect, Layer } from "effect";
 import { RegistryResolver, ResolveError } from "../../../src/cli/resolve.js";
 

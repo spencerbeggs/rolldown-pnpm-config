@@ -6,7 +6,7 @@ resource: ../../package/src/runtime
 kind: package
 generated:
   by: okfit/claude-code
-  at: 2026-11-12T19:15:27Z
+  at: 2026-11-13T06:15:14Z
 sources:
   - id: runtime-index
     resource: package/src/runtime/index.ts
@@ -20,7 +20,7 @@ sources:
     resource: package/src/runtime/strategies/table.ts
 integrity:
   generated:
-    body: 7f30117803885c74
+    body: 616e124c203c6efc
 ---
 
 # Runtime
@@ -59,7 +59,9 @@ A strategy is a pure `(base, local, ctx, options?) => { merged, divergences }`, 
 strategies only *detect* divergences and classify each by `kind`; they
 never decide the response. Strategies live under `strategies/` (`arrays.ts`,
 `maps.ts`, `overrides.ts`, `scalar.ts`, `catalogs.ts`), grouped by kind and
-keyed by name in `strategies/table.ts`; the `catalogs` strategy reads
+keyed by name in `strategies/table.ts`; `sectionMerge` (in `arrays.ts`) merges a
+settings section such as `audit` or `update` by unioning its list keys and
+letting the consumer's scalar keys win; the `catalogs` strategy reads
 `options.exactCatalogs` (the catalogs carrying a derived `<name>:exact`) so a
 local override of `<name>.<pkg>` naming a single version re-derives
 `<name>:exact.<pkg>` (an explicit local `<name>:exact` entry wins; a range

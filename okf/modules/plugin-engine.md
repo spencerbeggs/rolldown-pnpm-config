@@ -6,7 +6,7 @@ resource: ../../package/src/plugin
 kind: package
 generated:
   by: okfit/claude-code
-  at: 2026-11-11T19:21:18Z
+  at: 2026-11-13T04:57:23Z
 sources:
   - id: plugin-index
     resource: package/src/plugin/index.ts
@@ -16,7 +16,7 @@ sources:
     resource: package/src/plugin/serialize.ts
 integrity:
   generated:
-    body: c69f0309a8e819f8
+    body: 7bf77e14a28c6ca1
 ---
 
 # Plugin engine
@@ -38,7 +38,7 @@ across several passes and the validate-freeze-manifest work must not repeat
 
 `freeze` validates `config.name` (non-empty, else a `ConfigError`,
 `package/src/plugin/freeze.ts:14,70`) and each declared field against its
-descriptor-derived schema, and emits three plain-data values: `base` (field
+pnpm 12 catalog schema (`@effected/pnpm/settings`), and emits three plain-data values: `base` (field
 to frozen value), `manifest` (field to `{ strategy, enforcement, options?
 }`) and `name` (the validated string, `package/src/plugin/freeze.ts:58`).[^freeze]
 `catalogs` is special-cased — `freeze` runs `normalizeCatalogs` (imported at
@@ -84,8 +84,8 @@ runtime.
 
 ## What lives inside
 
-Field schemas (`FIELD_SCHEMAS`) are derived from the descriptor table (see
-[descriptors](descriptors.md)), not owned here. `ConfigError` and the
+Field schemas (`FIELD_SCHEMAS`) are the pnpm settings catalog's, selected by
+the policy table (see [settings policy](settings-policy.md)), not owned here. `ConfigError` and the
 `freeze` validation logic are `@internal`; the build step **never writes**
 to a consumer's files — that responsibility belongs solely to the `upgrade`
 CLI (see [cli](cli.md)).

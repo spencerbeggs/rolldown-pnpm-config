@@ -1,14 +1,10 @@
-import { Fmt } from "@effected/cli-kit";
-import type { PartialReleaseAgeGate } from "@effected/npm";
-import { PnpmSettings } from "@effected/workspaces";
-import { Context, Data, Effect, FileSystem, Layer, Option, Path, Predicate } from "effect";
-// The process index re-exports its modules as namespaces, so the
-// ChildProcessSpawner service class lives at ChildProcessSpawner.ChildProcessSpawner
-// (deep subpath imports are not in the package's exports map).
-import { ChildProcess, ChildProcessSpawner } from "effect/process";
-
-type Spawner = ChildProcessSpawner.ChildProcessSpawner;
-const Spawner = ChildProcessSpawner.ChildProcessSpawner;
+import type { NpmConfig, NpmConfigError, RegistryReadError } from "@effected/npm";
+import { NpmRegistry } from "@effected/npm";
+import type { NpmTransportError } from "@effected/npm/node";
+import { NpmHttpClient } from "@effected/npm/node";
+import type { PartialReleaseAgeGate, PnpmSettingsError } from "@effected/pnpm";
+import { PnpmNpmConfig, PnpmSettings } from "@effected/pnpm";
+import { Context, Data, DateTime, Effect, FileSystem, Layer, Option, Path } from "effect";
 
 /**
  * Typed failure raised when a package's versions cannot be resolved.
@@ -18,14 +14,23 @@ const Spawner = ChildProcessSpawner.ChildProcessSpawner;
 export class ResolveError extends Data.TaggedError("ResolveError")<{
 	readonly pkg: string;
 	readonly message: string;
+	/**
+	 * `"config"` when the failure is the run's registry configuration, not the
+	 * package (an unreadable npmrc, a workspace file pnpm refuses, a proxy or
+	 * CA that cannot be applied): every read fails the same way, so the caller
+	 * reports the cause once instead of blaming each package. Absent for a
+	 * failure of this package's own read.
+	 */
+	readonly scope?: "config";
 }> {}
 
 /**
  * Resolves the published versions of a package from the registry, and the
- * release-age gate pnpm itself would apply. The Live implementation shells out
- * to `pnpm view` for registry reads, reusing the user's .npmrc, scoped
- * registries, auth tokens, proxy and TLS settings, and reads pnpm's own
- * settings through `@effected/workspaces`' `PnpmSettings`.
+ * release-age gate pnpm itself would apply. The Live implementation reads the
+ * registry through `@effected/npm`'s `NpmRegistry`, with the registry, proxy,
+ * TLS and credential configuration pnpm 12 would connect with
+ * (`@effected/pnpm`'s `PnpmNpmConfig`), and reads pnpm's own settings through
+ * `PnpmSettings`.
  *
  * @internal
  */
@@ -33,7 +38,12 @@ export class RegistryResolver extends Context.Service<
 	RegistryResolver,
 	{
 		readonly versions: (pkg: string) => Effect.Effect<string[], ResolveError>;
+		/**
+		 * Version to ISO-8601 publish time; the packument's `created` and `modified`
+		 * keys are not included. Fails when the registry lists no publish times.
+		 */
 		readonly times: (pkg: string) => Effect.Effect<Record<string, string>, ResolveError>;
+		/** The version's `peerDependencies`; `{}` when it declares none or the version is not published. */
 		readonly peerDependencies: (pkg: string, version: string) => Effect.Effect<Record<string, string>, ResolveError>;
 		/**
 		 * The release-age gate pnpm's own settings declare (`minimumReleaseAge`,
@@ -52,12 +62,32 @@ export class RegistryResolver extends Context.Service<
  * @internal
  */
 export interface RegistryResolverOptions {
-	/** Where the run was invoked — the directory pnpm reads its settings from. */
+	/** Where the run was invoked: the directory pnpm reads its settings and npmrc from. */
 	readonly cwd: string;
-	/** The environment (`process.env`): `pnpm_config_*`, `HOME`. */
+	/** The environment (`process.env`): `pnpm_config_*`, `npm_config_*` credentials, `HOME`. */
 	readonly env: Readonly<Record<string, string | undefined>>;
 	/** The platform (`process.platform`), for pnpm's global config directory. */
 	readonly platform: string;
+}
+
+/**
+ * Builds the `NpmRegistry` the Live resolver reads through, from the
+ * configuration pnpm 12 would connect with.
+ *
+ * @internal
+ */
+export type RegistryClient = (config: NpmConfig) => Layer.Layer<NpmRegistry, NpmTransportError, FileSystem.FileSystem>;
+
+/**
+ * The production registry client: `NpmRegistry` over `NpmHttpClient`, which
+ * applies the npmrc's proxy, bypass, CA, `strict-ssl` and client-certificate
+ * settings by pnpm's rules.
+ *
+ * @internal
+ */
+export function npmRegistryClient(env: Readonly<Record<string, string | undefined>>): RegistryClient {
+	return (config) =>
+		NpmRegistry.layer.pipe(Layer.provide(NpmHttpClient.layer(config, { env, packageManager: "pnpm" })));
 }
 
 /**
@@ -76,109 +106,118 @@ export function pnpmGateOf(settings: PnpmSettings): PartialReleaseAgeGate | null
 	return out.ageMinutes === undefined && out.exclude === undefined ? null : out;
 }
 
-/**
- * Drop pnpm's own notice lines from captured stdout. pnpm prints e.g.
- * `[WARN] This project is configured to use 12.5.0… Your current pnpm is v12.4.2`
- * (a `packageManager` mismatch) to STDOUT ahead of the `--json` payload, which
- * would otherwise make every `pnpm view` unparseable and report each real
- * package as an unresolvable typo.
- *
- * @internal
- */
-export function stripPnpmNotices(stdout: string): string {
-	return stdout.replace(/^[ \t]*(?:\[WARN\]|\[ERR\]|WARN\b|ERR_PNPM_\w+)[^\n]*\n?/gm, "");
-}
-
-/** Parse `pnpm view ... versions --json` stdout: a JSON array, or a single JSON string. @internal */
-export function parseVersions(pkg: string, stdout: string): Effect.Effect<string[], ResolveError> {
-	return Effect.try({
-		try: () => {
-			const json = JSON.parse(stdout) as unknown;
-			if (Array.isArray(json)) return json.map(String);
-			if (typeof json === "string") return [json];
-			throw new Error("unexpected shape");
-		},
-		catch: () => new ResolveError({ pkg, message: `Could not parse versions for ${pkg}` }),
-	});
-}
-
-/** Parse a `pnpm view ... --json` object of string values into a string record. */
-function parseStringRecord(
-	pkg: string,
-	stdout: string,
-	what: string,
-): Effect.Effect<Record<string, string>, ResolveError> {
-	return Effect.try({
-		try: () => {
-			const json = JSON.parse(stdout) as unknown;
-			if (!Predicate.isObject(json)) throw new Error("unexpected shape");
-			const out: Record<string, string> = {};
-			for (const [k, v] of Object.entries(json)) out[k] = String(v);
-			return out;
-		},
-		catch: () => new ResolveError({ pkg, message: `Could not parse ${what} for ${pkg}` }),
-	});
-}
-
-/** Parse `pnpm view <pkg> time --json` stdout: an object of version → ISO date. @internal */
-export function parseTimes(pkg: string, stdout: string): Effect.Effect<Record<string, string>, ResolveError> {
-	return parseStringRecord(pkg, stdout, "times");
-}
-
-/** Parse `pnpm view <pkg>@<version> peerDependencies --json`; empty stdout → {}. @internal */
-export function parsePeerDeps(pkg: string, stdout: string): Effect.Effect<Record<string, string>, ResolveError> {
-	const trimmed = stdout.trim();
-	if (trimmed === "") return Effect.succeed({});
-	return parseStringRecord(pkg, trimmed, "peerDependencies");
-}
+/** The `ResolveError` a failed read reports against `pkg`, scoped `"config"` when the configuration failed. */
+const failedRead =
+	(pkg: string) =>
+	(error: RegistryReadError | NpmConfigError | PnpmSettingsError | NpmTransportError): ResolveError =>
+		error._tag === "RegistryReadError"
+			? new ResolveError({ pkg, message: error.message })
+			: new ResolveError({ pkg, message: error.message, scope: "config" });
 
 /**
- * Live RegistryResolver: registry reads through `pnpm view`, the release-age
+ * Live RegistryResolver: registry reads through `NpmRegistry`, the release-age
  * gate through `PnpmSettings`.
  *
- * Registry reads stay on `pnpm view` rather than `@effected/npm`'s
- * `NpmRegistry` until the kit honours npmrc `proxy`/`https-proxy`,
- * `cafile`/`ca` and `strict-ssl` (spencerbeggs/effected#1307, tracked locally
- * in #295): over plain `fetch`, a user behind a corporate proxy or an
- * internal CA would fail every lookup that `pnpm view` answers.
+ * @remarks
+ * The configuration is the one pnpm 12 connects with: `PnpmNpmConfig.load`
+ * merges `PNPM_CONFIG_*` variables, `pnpm-workspace.yaml`, the global
+ * `config.yaml` and the npmrc files (the workspace root's `.npmrc`, not a
+ * member's) in pnpm's precedence, so a `registry:` or `httpsProxy:` in
+ * `pnpm-workspace.yaml` applies as it does under `pnpm view`. Every read is
+ * routed through `targetFor`, so a scoped registry and its credential apply
+ * per package. The configuration,
+ * the HTTP client and `PnpmSettings` each load lazily and once
+ * (`Effect.cached`): an unreadable npmrc or a malformed `pnpm-workspace.yaml`
+ * (or a workspace file pnpm would refuse, such as a registry URL with an
+ * environment placeholder) fails the reads that need it, typed as
+ * `ResolveError` carrying the cause's message, never layer
+ * construction. A package the registry does not know fails `versions` (an
+ * unresolvable name is reported, not read as "no versions"); a package whose
+ * packument lists no publish times fails `times` with that cause.
  *
- * `PnpmSettings` loads lazily and once (`Effect.cached`), so a malformed
- * `pnpm-workspace.yaml` fails only `pnpmReleaseAge`, typed, and never layer
- * construction.
+ * `client` is the seam for tests: `() => NpmRegistry.layerSeeded(seed)`
+ * replaces the network while the npmrc loading and routing stay real. Each
+ * call builds a new layer; bind the result to a `const`.
  *
  * @internal
  */
 export function RegistryResolverLive(
 	options: RegistryResolverOptions,
-): Layer.Layer<RegistryResolver, never, Spawner | FileSystem.FileSystem | Path.Path> {
+	client: RegistryClient = npmRegistryClient(options.env),
+): Layer.Layer<RegistryResolver, never, FileSystem.FileSystem | Path.Path> {
 	return Layer.effect(
 		RegistryResolver,
 		Effect.gen(function* () {
-			const spawner = yield* Spawner;
 			const fs = yield* FileSystem.FileSystem;
 			const path = yield* Path.Path;
+			const scope = yield* Effect.scope;
+			const platform = <A, E>(effect: Effect.Effect<A, E, FileSystem.FileSystem | Path.Path>) =>
+				effect.pipe(Effect.provideService(FileSystem.FileSystem, fs), Effect.provideService(Path.Path, path));
 			const pnpmSettings = yield* Effect.cached(
-				PnpmSettings.load({ cwd: options.cwd, env: options.env, platform: options.platform }).pipe(
-					Effect.provideService(FileSystem.FileSystem, fs),
-					Effect.provideService(Path.Path, path),
-				),
+				platform(PnpmSettings.load({ cwd: options.cwd, env: options.env, platform: options.platform })),
 			);
-			/** `pnpm view <spec> <field> --json` stdout, with a spawn failure typed against `pkg`. */
-			const pnpmView = (pkg: string, spec: string, field: string): Effect.Effect<string, ResolveError> =>
-				spawner.string(ChildProcess.make("pnpm", ["view", spec, field, "--json"])).pipe(
-					Effect.map(stripPnpmNotices),
-					Effect.mapError((e) => new ResolveError({ pkg, message: Fmt.errorText(e) })),
-				);
+			// The registry's npm configuration and client, built once in the layer's
+			// own scope so the HTTP dispatcher lives as long as the resolver.
+			const registry = yield* Effect.cached(
+				Effect.gen(function* () {
+					const config = yield* platform(
+						PnpmNpmConfig.load({ cwd: options.cwd, env: options.env, platform: options.platform }),
+					);
+					const context = yield* Layer.buildWithScope(client(config), scope).pipe(
+						Effect.provideService(FileSystem.FileSystem, fs),
+					);
+					return { config, service: Context.get(context, NpmRegistry) };
+				}),
+			);
+			const notFound = (pkg: string) =>
+				new ResolveError({
+					pkg,
+					message: `${pkg} is not on the registry (check the name for a typo, or your registry auth)`,
+				});
+			// The package exists (its versions resolved); its publish times do not, so no
+			// version's age can be established. Not "not on the registry".
+			const noTimes = (pkg: string) =>
+				new ResolveError({ pkg, message: `publish times unavailable for ${pkg}: the registry lists none` });
 			return {
 				versions: (pkg: string) =>
-					pnpmView(pkg, pkg, "versions").pipe(Effect.flatMap((out) => parseVersions(pkg, out))),
-				times: (pkg: string) => pnpmView(pkg, pkg, "time").pipe(Effect.flatMap((out) => parseTimes(pkg, out))),
+					registry.pipe(
+						Effect.flatMap(({ config, service }) => service.versions(pkg, config.targetFor(pkg))),
+						Effect.mapError(failedRead(pkg)),
+						Effect.flatMap(
+							Option.match({ onNone: () => Effect.fail(notFound(pkg)), onSome: (v) => Effect.succeed([...v]) }),
+						),
+					),
+				times: (pkg: string) =>
+					registry.pipe(
+						Effect.flatMap(({ config, service }) => service.publishTimes(pkg, config.targetFor(pkg))),
+						Effect.mapError(failedRead(pkg)),
+						Effect.flatMap(
+							Option.match({
+								onNone: () => Effect.fail(noTimes(pkg)),
+								onSome: (entries) =>
+									entries.length === 0
+										? Effect.fail(noTimes(pkg))
+										: Effect.succeed(
+												Object.fromEntries(entries.map((e) => [e.version, DateTime.formatIso(e.publishedAt)])),
+											),
+							}),
+						),
+					),
 				peerDependencies: (pkg: string, version: string) =>
-					pnpmView(pkg, `${pkg}@${version}`, "peerDependencies").pipe(Effect.flatMap((out) => parsePeerDeps(pkg, out))),
+					registry.pipe(
+						Effect.flatMap(({ config, service }) => service.manifest(pkg, version, config.targetFor(pkg))),
+						Effect.mapError(failedRead(pkg)),
+						Effect.map((manifest) =>
+							Option.match(manifest, {
+								onNone: () => ({}),
+								onSome: (m) => ({ ...(m.peerDependencies ?? {}) }),
+							}),
+						),
+					),
 				pnpmReleaseAge: () =>
 					pnpmSettings.pipe(
 						Effect.map(pnpmGateOf),
-						Effect.mapError((e) => new ResolveError({ pkg: "pnpm-workspace.yaml", message: Fmt.errorText(e) })),
+						Effect.mapError((e) => new ResolveError({ pkg: "pnpm-workspace.yaml", message: e.message })),
 					),
 			};
 		}),

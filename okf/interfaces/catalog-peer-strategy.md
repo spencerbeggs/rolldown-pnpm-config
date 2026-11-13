@@ -6,7 +6,7 @@ resource: ../../package/src/catalogs.ts
 kind: api
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
+  at: 2026-11-13T04:57:23Z
 sources:
   - id: discover-ts
     resource: package/src/cli/discover.ts
@@ -18,7 +18,7 @@ tags:
   - architecture
 integrity:
   generated:
-    body: 372082e6108b7334
+    body: d36b69e514a5cad7
 ---
 
 # Catalog entry, peer strategy, and version source
@@ -83,7 +83,7 @@ identically.[^discover-ts]
   `peer` verbatim.[^catalogs-ts]
 - `strategy` and `source` never reach the runtime — they exist purely for
   the `upgrade` CLI's discover → plan → rewrite pipeline (see
-  [descriptor-table](../models/descriptor-table.md) for the maintainer
+  [field-policy](../models/field-policy.md) for the maintainer
   side of the descriptor this authoring shape ultimately feeds through
   `peerDependencyRules`/`catalogs` special-casing at freeze time).
 

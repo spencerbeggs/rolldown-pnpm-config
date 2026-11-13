@@ -4,7 +4,7 @@ title: rolldown-pnpm-config
 description: What this project is, its boundaries, and its non-goals.
 generated:
   by: okfit/claude-code
-  at: 2026-11-12T19:15:57Z
+  at: 2026-11-13T04:57:23Z
 sources:
   - id: package-json
     resource: package/package.json
@@ -14,7 +14,7 @@ sources:
     resource: package/src/runtime/enforcement.ts
 integrity:
   generated:
-    body: ac19e5f1f953246d
+    body: 0f69252427716e72
 ---
 
 # rolldown-pnpm-config
@@ -30,9 +30,9 @@ architectural decision is a build-time/runtime split: Effect runs only at
 build time (`package/src/plugin/freeze.ts`) to validate and freeze a plugin
 author's declared config, and the bundled artifact that ships to consumers
 is a tiny, zero-dependency, pure-JS runtime (`package/src/runtime/`). The
-managed field surface is defined once in a declarative descriptor table
-(`package/src/descriptors/`) — the single source of truth the validation
-schemas and the strategy/enforcement registry are derived from.
+managed field surface is one policy table (`package/src/registry.ts`) laid
+over `@effected/pnpm/settings`, the pnpm 12 settings catalog that supplies
+every field's schema and locations.
 
 ## Boundaries
 
@@ -43,8 +43,8 @@ consumer workspaces (`effected`, `rolldown`, `tsdown`) that demonstrate the
 plugin under different bundlers rather than owning any part of the library.
 Within `package/`, the library owns: the authoring API (`PnpmConfigPlugin({...})`,
 `package/src/plugin/index.ts`), the build-time `freeze` step
-(`package/src/plugin/freeze.ts`), the descriptor table
-(`package/src/descriptors/`), the zero-dependency runtime the pnpmfile ships
+(`package/src/plugin/freeze.ts`), the policy table
+(`package/src/registry.ts`), the zero-dependency runtime the pnpmfile ships
 (`package/src/runtime/`), and two developer-facing CLI subsystems registered
 in `package/src/cli/bin.ts` — `upgrade` (rewrites catalog version ranges in
 place) and `export`/`preview` (materializes the plugin config into a

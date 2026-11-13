@@ -320,12 +320,10 @@ describe("freeze", () => {
 				publicHoistPattern: { value: ["@types/*"], excludeByRepo: { "my-repo": ["@x/cli"] } },
 				allowBuilds: { esbuild: true },
 				supportedArchitectures: { os: ["linux"] },
-				confirmModulesPurge: false,
 			});
 			expect(out.base.overrides).toEqual({ "tar@<1": ">=1" });
 			expect(out.base.minimumReleaseAge).toBe(1440);
 			expect(out.base.publicHoistPattern).toEqual(["@types/*"]);
-			expect(out.base.confirmModulesPurge).toBe(false);
 			expect(out.manifest.minimumReleaseAge).toEqual({ strategy: "securityMin", enforcement: "warn" });
 			expect(out.manifest.strictDepBuilds).toEqual({ strategy: "securityFlag", enforcement: "warn" });
 			expect(out.manifest.publicHoistPattern).toEqual({
@@ -392,6 +390,126 @@ describe("freeze", () => {
 			const empty = { name: "  ", catalogs: {} } as unknown as Parameters<typeof freeze>[0];
 			expect((yield* Effect.exit(freeze(missing)))._tag).toBe("Failure");
 			expect((yield* Effect.exit(freeze(empty)))._tag).toBe("Failure");
+		}),
+	);
+});
+
+describe("freeze on the pnpm 12 settings catalog", () => {
+	const base = { name: "@test/cfg", catalogs: {} };
+
+	const REFUSED: ReadonlyArray<readonly [string, unknown, string]> = [
+		["allowNonAppliedPatches", true, "no pnpm reads it"],
+		["ignoreDepScripts", true, "ignoreScripts or allowBuilds"],
+		["ignorePatchFailures", true, "no pnpm reads it"],
+		["managePackageManagerVersions", true, "pmOnFail"],
+		["packageManagerStrict", true, "pmOnFail"],
+		["packageManagerStrictVersion", true, "pmOnFail"],
+		["useNodeVersion", "22.0.0", "devEngines.runtime"],
+		["onlyBuiltDependencies", ["esbuild"], "allowBuilds"],
+		["onlyBuiltDependenciesFile", "allow.json", "allowBuilds"],
+		["neverBuiltDependencies", ["esbuild"], "allowBuilds with false"],
+		["ignoredBuiltDependencies", ["esbuild"], "allowBuilds with false"],
+		["executionEnv", { nodeVersion: "22" }, "devEngines.runtime"],
+		["confirmModulesPurge", false, "pnpm 11 setting"],
+	];
+
+	for (const [field, value, hint] of REFUSED) {
+		it.effect(`refuses ${field}, which pnpm 12 does not read, naming what to use instead`, () =>
+			Effect.gen(function* () {
+				const error = yield* Effect.flip(freeze({ ...base, [field]: value } as never));
+				expect(error._tag).toBe("ConfigError");
+				expect(error.message).toContain(`\`${field}\` is not a pnpm 12 setting`);
+				expect(error.message).toContain(hint);
+			}),
+		);
+	}
+
+	it("refuses exactly the settings the table lists", () => {
+		expect(REFUSED).toHaveLength(13);
+	});
+
+	it.effect("ignores a removed setting written as undefined, like any absent field", () =>
+		Effect.gen(function* () {
+			const out = yield* freeze({ ...base, onlyBuiltDependencies: undefined } as never);
+			expect(out.base).not.toHaveProperty("onlyBuiltDependencies");
+		}),
+	);
+
+	it.effect("refuses a pnpm 12 setting the plugin does not manage, instead of dropping it", () =>
+		Effect.gen(function* () {
+			const error = yield* Effect.flip(freeze({ ...base, registry: "https://npm.example.test/" } as never));
+			expect(error.message).toBe("`registry` is a pnpm 12 setting this plugin does not manage");
+			// An unknown key that is no pnpm setting at all is still left to the type checker.
+			const out = yield* freeze({ ...base, notASetting: 1 } as never);
+			expect(out.base).not.toHaveProperty("notASetting");
+		}),
+	);
+
+	it.effect("manages audit and update, the sections that supersede auditConfig and updateConfig", () =>
+		Effect.gen(function* () {
+			const out = yield* freeze({
+				...base,
+				audit: { level: "high", ignore: ["GHSA-x"] },
+				update: { ignoreDeps: ["typescript"] },
+			});
+			expect(out.base.audit).toEqual({ level: "high", ignore: ["GHSA-x"] });
+			expect(out.manifest.audit).toEqual({ strategy: "sectionMerge", enforcement: "absent" });
+			expect(out.base.update).toEqual({ ignoreDeps: ["typescript"] });
+		}),
+	);
+
+	it.effect("refuses a key a closed setting does not declare (auditConfig takes ignoreGhsas only)", () =>
+		Effect.gen(function* () {
+			const error = yield* Effect.flip(freeze({ ...base, auditConfig: { ignoreCves: ["CVE-1"] } } as never));
+			expect(error.message).toContain("Invalid auditConfig");
+			expect(error.message).toContain("audit.ignore");
+			const ok = yield* freeze({ ...base, auditConfig: { ignoreGhsas: ["GHSA-x"] } });
+			expect(ok.base.auditConfig).toEqual({ ignoreGhsas: ["GHSA-x"] });
+		}),
+	);
+
+	it.effect("accepts the shapes pnpm 12 added (nodeLinker loaded, lockfile object form)", () =>
+		Effect.gen(function* () {
+			const out = yield* freeze({ ...base, nodeLinker: "loaded", lockfile: { format: "v13" } });
+			expect(out.base.nodeLinker).toBe("loaded");
+			expect(out.base.lockfile).toEqual({ format: "v13" });
+		}),
+	);
+
+	it.effect("ships the value pnpm reads: a coerced word becomes its boolean", () =>
+		Effect.gen(function* () {
+			const out = yield* freeze({ ...base, hoist: "yes" } as never);
+			expect(out.base.hoist).toBe(true);
+		}),
+	);
+
+	it.effect("ships peerDependencyRules as plain data, not a class instance", () =>
+		Effect.gen(function* () {
+			const out = yield* freeze({ ...base, peerDependencyRules: { ignoreMissing: ["@types/*"] } });
+			expect(Object.getPrototypeOf(out.base.peerDependencyRules)).toBe(Object.prototype);
+			expect(out.base.peerDependencyRules).toEqual({ ignoreMissing: ["@types/*"] });
+		}),
+	);
+
+	it.effect("refuses an overrides key pnpm cannot parse", () =>
+		Effect.gen(function* () {
+			const error = yield* Effect.flip(freeze({ ...base, overrides: { "a>b>c": "1.0.0" } }));
+			expect(error.message).toContain("Invalid overrides");
+		}),
+	);
+});
+
+describe("freeze overridesFromCatalogs with a respelled authored selector", () => {
+	it.effect("pins the catalog to the authored winner, whatever spelling of the selector it uses", () =>
+		Effect.gen(function* () {
+			const { base } = yield* freeze({
+				name: "@test/cfg",
+				catalogs: { effect: { packages: { effect: "^4.0.3" } } },
+				overrides: { " effect@^4.0.0": "4.0.5" },
+				overridesFromCatalogs: { catalog: "effect" },
+			});
+			expect(base.overrides).toEqual({ " effect@^4.0.0": "4.0.5" });
+			expect(catalogsOf(base).effect).toEqual({ effect: "4.0.5" });
 		}),
 	);
 });

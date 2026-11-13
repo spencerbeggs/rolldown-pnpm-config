@@ -1,9 +1,9 @@
 import { Fmt } from "@effected/cli-kit";
+import { PnpmSettingsCatalog } from "@effected/pnpm/settings";
 import { Data, Effect, Predicate, Schema } from "effect";
 import { normalizeCatalogs } from "../catalogs.js";
 import type { PluginConfig } from "../define-plugin.js";
-import { DESCRIPTORS, deriveSchemas } from "../descriptors/index.js";
-import { FIELD_REGISTRY } from "../registry.js";
+import { FIELD_REGISTRY, FIELD_SCHEMAS } from "../registry.js";
 import type { Base, Enforcement, Manifest } from "../runtime/types.js";
 import { resolvePeerDependencyRules } from "./allowed-versions.js";
 import { pinCatalogs, resolveOverrides } from "./overrides-from-catalogs.js";
@@ -15,15 +15,71 @@ import { pinCatalogs, resolveOverrides } from "./overrides-from-catalogs.js";
  */
 export class ConfigError extends Data.TaggedError("ConfigError")<{ readonly message: string }> {}
 
-/** Per-field value-shape schemas; only declared fields are validated. */
-const FIELD_SCHEMAS = deriveSchemas(DESCRIPTORS);
 const CatalogsSchema = FIELD_SCHEMAS.catalogs;
+
+/**
+ * Validate one field's value through its pnpm settings catalog schema and
+ * hand back the plain value pnpm reads.
+ *
+ * @remarks
+ * Decoding refuses keys a closed shape does not declare (`onExcessProperty:
+ * "error"`): a typo'd `auditConfig.ignoreCve` must fail the build, not vanish.
+ * The decoded value is encoded again so `base` holds plain JSON (a catalog
+ * schema may decode to a class instance, such as `PeerDependencyRules`), in
+ * the canonical spelling: a word pnpm coerces (`yes`) becomes the boolean pnpm
+ * reads.
+ */
+function validateField(
+	field: string,
+	schema: Schema.Codec<unknown, unknown>,
+	value: unknown,
+): Effect.Effect<unknown, ConfigError> {
+	return Schema.decodeUnknownEffect(schema)(value, { onExcessProperty: "error", errors: "all" }).pipe(
+		Effect.flatMap((decoded) => Schema.encodeUnknownEffect(schema)(decoded)),
+		Effect.mapError((error) => {
+			const hint = SUCCESSOR_HINTS[field];
+			return new ConfigError({
+				message: `Invalid ${field}: ${Fmt.describe(error)}${hint === undefined ? "" : ` (${hint})`}`,
+			});
+		}),
+	);
+}
 
 interface FieldDecl {
 	readonly value: unknown;
 	readonly enforcement?: Enforcement;
 	readonly options?: Record<string, unknown>;
 }
+
+/**
+ * Settings earlier releases of this plugin offered that pnpm 12 does not read,
+ * each with what to write instead. A config still naming one fails the build:
+ * shipping it would change nothing in the consumer's install, silently.
+ */
+const REMOVED_SETTINGS: Readonly<Record<string, string>> = {
+	allowNonAppliedPatches: "no pnpm reads it",
+	ignorePatchFailures: "no pnpm reads it",
+	ignoreDepScripts: "no pnpm reads it; use ignoreScripts or allowBuilds",
+	managePackageManagerVersions: "no pnpm reads it; use pmOnFail",
+	packageManagerStrict: "no pnpm reads it; use pmOnFail",
+	packageManagerStrictVersion: "no pnpm reads it; use pmOnFail",
+	useNodeVersion: "no pnpm reads it; declare the runtime in devEngines.runtime",
+	onlyBuiltDependencies: "pnpm 12 never applies it; use allowBuilds",
+	onlyBuiltDependenciesFile: "pnpm 12 never applies it; use allowBuilds",
+	neverBuiltDependencies: "pnpm 12 never applies it; use allowBuilds with false",
+	ignoredBuiltDependencies: "pnpm 12 never applies it; use allowBuilds with false",
+	executionEnv: "pnpm 12 never applies it; declare the runtime in devEngines.runtime",
+	confirmModulesPurge: "a pnpm 11 setting pnpm 12 does not read",
+};
+
+/** What to write instead when a deprecated spelling refuses a value pnpm 12 reads only under its successor. */
+const SUCCESSOR_HINTS: Readonly<Record<string, string>> = {
+	auditConfig: "auditConfig takes only ignoreGhsas; write the advisories under audit.ignore",
+	updateConfig: "updateConfig is the deprecated spelling of update; write update",
+};
+
+/** Config keys that are not pnpm settings: the plugin's own metadata and directives. */
+const PLUGIN_KEYS: ReadonlySet<string> = new Set(["name", "catalogs", "local", "overridesFromCatalogs"]);
 
 /** Keys recognized by the wrapped `{ value, enforcement?, excludeByRepo? }` form. */
 const WRAPPED_KEYS = new Set(["value", "enforcement", "excludeByRepo"]);
@@ -75,9 +131,7 @@ export function freeze(
 			try: () => normalizeCatalogs(config.catalogs),
 			catch: (error) => new ConfigError({ message: Fmt.describe(error) }),
 		});
-		base.catalogs = yield* Schema.decodeUnknownEffect(CatalogsSchema)(normalized).pipe(
-			Effect.mapError((error) => new ConfigError({ message: `Invalid catalogs: ${Fmt.describe(error)}` })),
-		);
+		base.catalogs = yield* validateField("catalogs", CatalogsSchema, normalized);
 		// The runtime cannot tell a derived `<name>:exact` from an authored catalog,
 		// so the names that carry one travel in the manifest options. Read them from
 		// the declarations, not the `:exact` suffix, which an authored name can carry.
@@ -94,6 +148,22 @@ export function freeze(
 				new ConfigError({ message: "Config `name` is required and must be a non-empty string" }),
 			);
 		}
+		const declared = config as unknown as Record<string, unknown>;
+		for (const [field, why] of Object.entries(REMOVED_SETTINGS)) {
+			if (Object.hasOwn(declared, field) && declared[field] !== undefined) {
+				return yield* Effect.fail(new ConfigError({ message: `\`${field}\` is not a pnpm 12 setting: ${why}` }));
+			}
+		}
+		// A pnpm 12 setting the plugin has no policy for would otherwise ship nowhere,
+		// silently: refuse it, the way a removed setting is refused.
+		for (const [field, value] of Object.entries(declared)) {
+			if (value === undefined || PLUGIN_KEYS.has(field) || Object.hasOwn(FIELD_REGISTRY, field)) continue;
+			if (Object.hasOwn(PnpmSettingsCatalog.entries, field)) {
+				return yield* Effect.fail(
+					new ConfigError({ message: `\`${field}\` is a pnpm 12 setting this plugin does not manage` }),
+				);
+			}
+		}
 		const directiveError = (error: unknown) => new ConfigError({ message: Fmt.describe(error) });
 		for (const [field, reg] of Object.entries(FIELD_REGISTRY)) {
 			if (field === "catalogs") continue;
@@ -104,7 +174,7 @@ export function freeze(
 			if (raw === undefined && field === "overrides" && config.overridesFromCatalogs !== undefined) raw = {};
 			if (raw === undefined) continue;
 			const decl = normalizeField(raw);
-			const schema = FIELD_SCHEMAS[field];
+			const schema = FIELD_SCHEMAS[field as keyof typeof FIELD_SCHEMAS];
 			// Two fields carry build-time directives that derive entries from the
 			// catalogs: `peerDependencyRules.allowedVersionsFromCatalogs` folds into
 			// `allowedVersions` (and is stripped so the value passes the schema), and
@@ -122,11 +192,7 @@ export function freeze(
 								catch: directiveError,
 							})
 						: decl.value;
-			base[field] = schema
-				? yield* Schema.decodeUnknownEffect(schema)(value).pipe(
-						Effect.mapError((error) => new ConfigError({ message: `Invalid ${field}: ${Fmt.describe(error)}` })),
-					)
-				: value;
+			base[field] = yield* validateField(field, schema, value);
 			manifest[field] = {
 				strategy: reg.strategy,
 				enforcement: decl.enforcement ?? reg.enforcement,

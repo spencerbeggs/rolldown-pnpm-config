@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from "@effect/vitest";
-import { ReleaseAgeGate } from "@effected/npm";
+import { ReleaseAgeGate } from "@effected/pnpm";
 import { Effect } from "effect";
 import { resolveGatedVersions } from "../../src/cli/commands/upgrade.js";
 import type { CatalogEntry } from "../../src/cli/types.js";

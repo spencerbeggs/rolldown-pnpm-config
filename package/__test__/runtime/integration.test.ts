@@ -7,7 +7,7 @@ const base = {
 	strictDepBuilds: true,
 	minimumReleaseAge: 1440,
 	publicHoistPattern: ["@types/*"],
-	confirmModulesPurge: true,
+	dedupeDirectDeps: true,
 };
 const manifest = {
 	catalogs: { strategy: "catalogs", enforcement: "warn" as const },
@@ -15,7 +15,7 @@ const manifest = {
 	strictDepBuilds: { strategy: "securityFlag", enforcement: "warn" as const },
 	minimumReleaseAge: { strategy: "securityMin", enforcement: "warn" as const },
 	publicHoistPattern: { strategy: "arrayUnion", enforcement: "absent" as const },
-	confirmModulesPurge: { strategy: "scalar", enforcement: "absent" as const },
+	dedupeDirectDeps: { strategy: "scalar", enforcement: "absent" as const },
 };
 
 afterEach(() => vi.restoreAllMocks());
@@ -31,7 +31,7 @@ describe("createHooks full integration", () => {
 		expect(out.catalogs).toEqual({ default: { typescript: "5.0.0" } });
 		expect(out.strictDepBuilds).toBe(false);
 		expect(out.publicHoistPattern).toEqual(["@types/*", "lodash"]);
-		expect(out.confirmModulesPurge).toBe(true);
+		expect(out.dedupeDirectDeps).toBe(true);
 		const printed = warn.mock.calls.map((c) => String(c[0])).join("\n");
 		expect(printed).toContain("[@acme/cfg]");
 		expect(printed).toContain("CATALOG OVERRIDE DETECTED");

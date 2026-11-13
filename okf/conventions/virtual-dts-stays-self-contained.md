@@ -5,7 +5,7 @@ description: Never write a cross-module import inside package/src/virtual.d.ts; 
 stale_after: 2026-12-08T00:00:00Z
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
+  at: 2026-11-13T04:57:23Z
 sources:
   - id: virtual-dts
     resource: package/src/virtual.d.ts
@@ -13,7 +13,7 @@ sources:
     resource: package/src/runtime/types.ts
 integrity:
   generated:
-    body: 80d694e3cec5bc84
+    body: c089c09ab49cf53b
 ---
 
 # Keep virtual.d.ts self-contained
@@ -44,7 +44,7 @@ hand-update the inlined copy in `virtual.d.ts` in the same change — the two
 are not type-checked against each other, so drift is silent until a
 consumer's build breaks.[^virtual-dts]
 
-See [descriptor table](../modules/descriptors.md) for another place a single
+See [settings policy table](../modules/settings-policy.md) for another place a single
 source of truth is derived rather than hand-duplicated; `virtual.d.ts` is the
 deliberate exception, forced by the declaration-pass constraint above.
 

@@ -1,7 +1,18 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { PnpmWorkspaceFile } from "@effected/pnpm";
+import { Result } from "effect";
 import { describe, expect, it } from "vitest";
-import { inferWorkspaceStyle, parseWorkspace, renderWorkspace, writeWorkspace } from "../../src/cli/workspace-file.js";
+
+// The editor this CLI writes through is `@effected/pnpm`'s PnpmWorkspaceFile; these
+// cases pin the behaviour `export` relies on (#280) against it.
+const parseWorkspace = (source: string): Record<string, unknown> => ({
+	...Result.getOrThrow(PnpmWorkspaceFile.parseResult(source)).value,
+});
+const writeWorkspace = (source: string, next: Record<string, unknown>): string =>
+	Result.getOrThrow(PnpmWorkspaceFile.parseResult(source)).write(next);
+const renderWorkspace = PnpmWorkspaceFile.render;
+const inferWorkspaceStyle = PnpmWorkspaceFile.inferStyle;
 
 // Stored as `.yaml.txt` so the pre-commit YAML formatter cannot normalize away
 // the very style each fixture is named for.

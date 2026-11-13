@@ -12,9 +12,14 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "@effect/vitest";
-import { Effect, Exit } from "effect";
+import { PnpmWorkspaceFile } from "@effected/pnpm";
+import { Effect, Exit, Result } from "effect";
 import { runExport } from "../../src/cli/commands/export.js";
-import { parseWorkspace } from "../../src/cli/workspace-file.js";
+
+const parseWorkspace = (source: string): Record<string, unknown> => ({
+	...Result.getOrThrow(PnpmWorkspaceFile.parseResult(source)).value,
+});
+
 import { plainText } from "./utils/doc.js";
 import { provideNodeFs } from "./utils/fs.js";
 
@@ -78,7 +83,6 @@ export const plugin = PnpmConfigPlugin({
  overrides: { "tar@<6.2.1": ">=6.2.1" },
  publicHoistPattern: ["@types/*"],
  strictDepBuilds: true,
- confirmModulesPurge: false,
 });
 `;
 
@@ -149,7 +153,6 @@ describe("runExport", () => {
 			expect(out.overrides).toEqual({ "tar@<6.2.1": ">=6.2.1" });
 			expect((out.catalogs as Record<string, unknown>).silk).toEqual({ typescript: "^5.9.0" }); // plugin catalog
 			expect((out.catalogs as Record<string, unknown>).tsdown).toEqual({ tsdown: "^2.0.0" }); // local catalog kept
-			expect("confirmModulesPurge" in out).toBe(false); // config-only, dropped
 		}).pipe(provideNodeFs),
 	);
 

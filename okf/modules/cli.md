@@ -6,7 +6,7 @@ resource: ../../package/src/cli
 kind: package
 generated:
   by: okfit/claude-code
-  at: 2026-11-09T18:10:01Z
+  at: 2026-11-13T06:08:51Z
 sources:
   - id: bin
     resource: package/src/cli/bin.ts
@@ -24,7 +24,7 @@ sources:
     resource: package/src/cli/effective.ts
 integrity:
   generated:
-    body: 40380c2e5fa32fd5
+    body: a30442ec264a851f
 ---
 
 # CLI
@@ -99,11 +99,15 @@ runtime or `base`.[^local-merge] The interactive `upgrade` table
 are internal to the `upgrade` pipeline; `resolve.ts`/`workspace-resolve.ts`
 are the two `RegistryResolver` implementations behind one
 `Context.Service` seam. The live one (`RegistryResolverLive`) reads the
-registry by spawning `pnpm view`, so every npmrc setting pnpm honours
-(registries, tokens, proxy, CA, `strict-ssl`) applies. It reads pnpm's
-release-age settings through `@effected/workspaces`' `PnpmSettings`. The
-registry reads stay off `@effected/npm`'s `NpmRegistry` until the kit
-honours npmrc proxy and TLS settings (spencerbeggs/effected#1307). It is provided once in `main.ts`, at
+registry through `@effected/npm`'s `NpmRegistry` over `NpmHttpClient` from
+`@effected/npm/node`, with the configuration pnpm 12 connects with
+(`@effected/pnpm`'s `PnpmNpmConfig.load`: `PNPM_CONFIG_*`, `pnpm-workspace.yaml`,
+the global `config.yaml` and the npmrc files, in pnpm's precedence): every read
+is routed by `targetFor`, so a workspace-file `registry:`, scoped registries,
+tokens, proxy, CA and `strict-ssl` apply by pnpm's rules, and no subprocess is
+spawned. A configuration that cannot be read fails the run once, with its
+cause; a per-package failure is listed with its own cause. It reads
+pnpm's release-age settings through `@effected/pnpm`'s `PnpmSettings`. It is provided once in `main.ts`, at
 the edge, so a test drives the real command tree against a stub resolver.
 Pending changeset bumps are read by `@effected/changesets`'
 `PendingChangesets.readSettledSync`: a malformed changeset drops only its

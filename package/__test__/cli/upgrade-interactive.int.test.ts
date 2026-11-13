@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "@effect/vitest";
-import { ReleaseAgeGate } from "@effected/npm";
+import { ReleaseAgeGate } from "@effected/pnpm";
 import { Effect, Option } from "effect";
 import {
 	applyInteropAndDecisions,

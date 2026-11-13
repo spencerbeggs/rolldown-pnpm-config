@@ -9,12 +9,12 @@ sources:
     resource: "https://json.schemastore.org/pnpm-workspace.json"
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
+  at: 2026-11-13T04:57:23Z
 tags:
   - architecture
 integrity:
   generated:
-    body: 63f0e0aca2c7227c
+    body: 358aa75db3694309
 ---
 
 # pnpm settings
@@ -31,12 +31,11 @@ is authoritative — it is the canonical, hand-maintained reference. `schemastor
 JSON Schema that may lag behind current pnpm releases and should be treated
 as a secondary, sometimes-stale source.[^pnpm-docs][^schemastore]
 
-## Known gap in both sources
+## Which pnpm this repository targets
 
-`confirmModulesPurge` is a real, working boolean pnpm setting — this
-repository's descriptor table and tests exercise it — but it is absent
-from both `pnpm-docs` and the `schemastore` schema as of the dates
-recorded above.[^pnpm-docs][^schemastore]
+The managed settings are pnpm 12's, as `@effected/pnpm/settings` derives them
+from pnpm 12's config crate. `confirmModulesPurge`, absent from both sources
+above, is a pnpm 11 setting pnpm 12 does not read, and is not offered.
 
 [^pnpm-docs]: pnpm-docs
 [^schemastore]: schemastore

@@ -1,49 +1,38 @@
 ---
 type: Convention
-title: Keep the managed-fields interface in step with the descriptor table
-description: Update okf/interfaces/managed-pnpm-fields.md whenever the descriptor table changes; treat pnpm.io/settings, not schemastore, as authoritative.
+title: Keep the managed-fields interface in step with the policy table
+description: Update okf/interfaces/managed-pnpm-fields.md whenever the policy table changes; a setting's facts are the @effected/pnpm/settings catalog's.
 stale_after: 2026-12-08T00:00:00Z
 generated:
-  by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
+  by: claude-code/opus
+  at: 2026-11-13T04:57:23Z
 sources:
   - id: descriptors-index
-    resource: package/src/descriptors/index.ts
-  - id: resolution-descriptors
-    resource: package/src/descriptors/resolution.ts
+    resource: package/src/registry.ts
 integrity:
   generated:
-    body: 5d07825c37e152c9
+    body: b0194a9feb1b5069
 ---
 
-# Keep the managed-fields interface in step with the descriptor table
+# Keep the managed-fields interface in step with the policy table
 
 Update [managed-pnpm-fields](../interfaces/managed-pnpm-fields.md) whenever
-`package/src/descriptors/` changes — an added, removed, or re-kinded field
-must land in the same change as its entry in that
-interface.[^descriptors-index] The interface enumerates the managed field
-surface generated from the live descriptor table and must be kept current
-with it.
+`FIELD_REGISTRY` in `package/src/registry.ts` changes: an added or removed
+field must land in the same change as its row in that
+interface.[^descriptors-index] A field's kind in the interface is the
+`@effected/pnpm/settings` catalog's, so a kit release that re-kinds a setting
+also updates the interface.
 
 ## Source precedence
 
-When a field's documented shape and the JSON schema disagree, treat
-`pnpm.io/settings` as authoritative over the schemastore JSON schema
-(`schemastore.org/pnpm-workspace.json`), which may lag pnpm releases; do not
-resolve a conflict in the schema's favor.
+What a setting accepts and where pnpm 12 reads it is the catalog's answer,
+which is derived from pnpm 12's own config crate. Do not restate or override a
+setting's shape here; a disagreement with `pnpm.io/settings` or the
+schemastore schema is a report against `@effected/pnpm`, not a local fix.
 
-## `confirmModulesPurge` is real but undocumented
-
-`confirmModulesPurge` is a real boolean pnpm setting, declared in
-`package/src/descriptors/resolution.ts` and carried over from the Silk
-parity set, that has no `pnpm.io` documentation and no schemastore
-entry.[^resolution-descriptors] Record it in the interface with no anchor
-link rather than inventing one or omitting the field.
-
-See [descriptor table](../modules/descriptors.md) for the table this
+See [settings policy table](../modules/settings-policy.md) for the table this
 interface enumerates and
 [adding-a-managed-field](adding-a-managed-field.md) for the convention that
 changes the table in the first place.
 
 [^descriptors-index]: descriptors-index
-[^resolution-descriptors]: resolution-descriptors

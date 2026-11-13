@@ -1,5 +1,29 @@
 # Log
 
+## 2026-11-13
+
+* Updated Add a managed field through the policy table only
+* Updated CLI
+* Updated Catalog entry, peer strategy, and version source
+* Updated Data-driven refines, not injected code
+* Updated Export writes pnpm-workspace.yaml as edits, not a re-render
+* Added Field policy entry
+* Updated Keep the managed-fields interface in step with the policy table
+* Updated Keep virtual.d.ts self-contained
+* Updated Managed pnpm fields
+* Updated Patches
+* Updated Plugin engine
+* Updated PnpmConfigPlugin authoring surface
+* Added Settings policy table
+* Updated Test file layout
+* Updated freeze
+* Updated patch distribution
+* Added pnpm setting facts come from the kit's settings catalog
+* Updated pnpm settings
+* Updated rolldown-pnpm-config
+* Updated { base, manifest, name } contract
+* Updated Runtime
+
 ## 2026-11-12
 
 * Updated Effect v4 collapses the declared peer closure

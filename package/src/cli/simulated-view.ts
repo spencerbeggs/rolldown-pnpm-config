@@ -1,10 +1,10 @@
 import type { BlockOf, Inline } from "@effected/cli-kit";
 import { Doc } from "@effected/cli-kit";
+import { PnpmWorkspaceFile } from "@effected/pnpm";
 import { Predicate } from "effect";
 import type { Enforcement, Manifest, ManifestEntry } from "../runtime/types.js";
 import { scalarText } from "./diff/render.js";
 import { row, tone } from "./render/tone.js";
-import { canonicalize } from "./workspace-file.js";
 
 /**
  * How each merge strategy combines a managed field with the consumer's local
@@ -20,6 +20,7 @@ const STRATEGY_VERB: Record<string, "merge" | "overwrite"> = {
 	mapChildWins: "merge",
 	arrayUnion: "merge",
 	arrayRecordUnion: "merge",
+	sectionMerge: "merge",
 	overrides: "merge",
 	peerDependencyRules: "merge",
 	allowBuilds: "merge",
@@ -63,6 +64,6 @@ function flatten(key: string, value: unknown, depth: number, ann: Inline[]): Arr
  * @internal
  */
 export function renderSimulated(vanilla: Record<string, unknown>, manifest: Manifest): BlockOf<"Lines"> {
-	const canon = canonicalize(vanilla) as Record<string, unknown>;
+	const canon = PnpmWorkspaceFile.canonicalize(vanilla) as Record<string, unknown>;
 	return Doc.lines(Object.entries(canon).flatMap(([k, v]) => flatten(k, v, 0, annotation(manifest[k]))));
 }

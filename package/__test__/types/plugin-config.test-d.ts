@@ -1,15 +1,20 @@
 // package/__test__/types/plugin-config.test-d.ts
-import type { FieldInput, PluginConfig } from "../../src/define-plugin.js";
-import type { DESCRIPTORS } from "../../src/descriptors/index.js";
 
-type Descriptors = typeof DESCRIPTORS;
-type SchemaType<K extends keyof Descriptors> = Descriptors[K]["schema"]["Type"];
+import type { PnpmSettingType } from "@effected/pnpm/settings";
+import type { FieldInput, PluginConfig } from "../../src/define-plugin.js";
+import type { FIELD_REGISTRY } from "../../src/registry.js";
+
+// The managed fields are the policy table's keys; their value types are the
+// pnpm settings catalog's.
+type Descriptors = typeof FIELD_REGISTRY;
+type SchemaType<K extends keyof Descriptors> = PnpmSettingType<K>;
 
 // Keys checked for key-coverage only (value type intentionally not compared):
 // catalogs (authored as inline declarations), publicHoistPattern (carries the
 // excludeByRepo refine), and peerDependencyRules (carries the build-time
-// allowedVersionsFromCatalogs directive) — none of which the schema models.
-type ValueExcluded = "catalogs" | "publicHoistPattern" | "peerDependencyRules";
+// allowedVersionsFromCatalogs directive), and patchedDependencies (also takes
+// `{ strategy: "rewrite" }`) — none of which the schema models.
+type ValueExcluded = "catalogs" | "publicHoistPattern" | "peerDependencyRules" | "patchedDependencies";
 
 // Derived authoring surface for the value-checked keys.
 type DerivedPluginConfig = {
@@ -47,7 +52,7 @@ type MutualExact<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : fa
 //    not a pnpm field) exactly equal the value-checked descriptor keys plus
 //    publicHoistPattern.
 type AuthoredKeys = Exclude<keyof PluginConfig, "catalogs" | "local" | "name" | "overridesFromCatalogs">;
-type DerivedKeys = keyof DerivedPluginConfig | "publicHoistPattern" | "peerDependencyRules";
+type DerivedKeys = keyof DerivedPluginConfig | "publicHoistPattern" | "peerDependencyRules" | "patchedDependencies";
 type _AssertKeyCoverage = Expect<Mutual<AuthoredKeys, DerivedKeys>>;
 
 // 2) Value-level: for each value-checked key, authored and derived value types

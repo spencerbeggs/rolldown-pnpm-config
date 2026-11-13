@@ -5,6 +5,7 @@ import { CliUi } from "@effected/cli-kit/ui";
 import { Data, Effect, Option } from "effect";
 import { Argument, Command } from "effect/cli";
 import { freeze } from "../../plugin/freeze.js";
+import { WORKSPACE_FIELDS } from "../../registry.js";
 import { resolveRootName } from "../../runtime/ctx.js";
 import { WorkingDirectory, resolveWorkspacePath } from "../cwd.js";
 import { loadConfigAndWorkspace } from "../load-config.js";
@@ -14,7 +15,6 @@ import { printView } from "../render/print.js";
 import { failureDoc } from "../render/report.js";
 import { findConfigFiles, pickConfigCandidate } from "../select-file.js";
 import { previewScreen } from "../ui/screens.js";
-import { WORKSPACE_FIELDS } from "./export.js";
 
 /** Typed failure for the preview run. @internal */
 export class PreviewError extends Data.TaggedError("PreviewError")<{ readonly message: string }> {
