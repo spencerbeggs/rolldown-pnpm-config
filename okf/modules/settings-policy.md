@@ -1,13 +1,13 @@
 ---
 type: Module
 title: Settings policy table
-description: The plugin's merge strategy and enforcement for each of the 108 pnpm settings it manages, laid over the pnpm 12 settings catalog from @effected/pnpm/settings.
+description: The plugin's merge strategy and enforcement for each of the 110 pnpm settings it manages, laid over the pnpm 12 settings catalog from @effected/pnpm/settings.
 resource: ../../package/src/registry.ts
 kind: package
 status: draft
 generated:
   by: claude-code/opus
-  at: 2026-11-13T04:57:23Z
+  at: 2026-11-13T06:08:51Z
 sources:
   - id: registry
     resource: package/src/registry.ts
@@ -17,7 +17,7 @@ sources:
     resource: "npm:@effected/pnpm/settings"
 integrity:
   generated:
-    body: 88fe6a66ac81a1e2
+    body: 6b21621a91bde3e4
 ---
 
 # Settings policy table
@@ -48,7 +48,8 @@ Everything else is derived from the table and the catalog:
   strategy table through the manifest (see [runtime](runtime.md)).
 
 `freeze` also refuses, by name and with what to use instead, the settings
-earlier releases offered that pnpm 12 does not read.[^freeze]
+earlier releases offered that pnpm 12 does not read, and refuses a pnpm 12
+setting the table has no policy for.[^freeze]
 
 ## What lives inside
 

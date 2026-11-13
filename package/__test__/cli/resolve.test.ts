@@ -94,6 +94,37 @@ describe("RegistryResolverLive registry reads (NpmRegistry)", () => {
 		}),
 	);
 
+	it.effect("routes reads to the registry pnpm-workspace.yaml names, as pnpm 12 does", () =>
+		Effect.gen(function* () {
+			const files = {
+				...WORKSPACE_FILES,
+				"/repo/pnpm-workspace.yaml": "packages:\n  - packages/*\nregistry: https://mirror.example.test/\n",
+			};
+			const seed = {
+				registries: {
+					"https://mirror.example.test/": { typescript: { "6.0.0": { publishedAt: "2025-04-01T00:00:00.000Z" } } },
+				},
+			};
+			expect(yield* withResolver((r) => r.versions("typescript"), liveResolverWorld(files, {}, seed))).toEqual([
+				"6.0.0",
+			]);
+			// Control: without the workspace-file registry the public registry answers.
+			expect(yield* withResolver((r) => r.versions("typescript"))).toEqual(["5.9.0", "5.9.3"]);
+		}),
+	);
+
+	it.effect("fails reads typed, scoped to the configuration, on a registry URL pnpm refuses", () =>
+		Effect.gen(function* () {
+			const files = {
+				...WORKSPACE_FILES,
+				// biome-ignore lint/suspicious/noTemplateCurlyInString: the literal placeholder pnpm refuses in a registry URL.
+				"/repo/pnpm-workspace.yaml": "packages:\n  - packages/*\nregistry: https://${REGISTRY_HOST}/\n",
+			};
+			const err = yield* withResolver((r) => Effect.flip(r.versions("typescript")), liveResolverWorld(files));
+			expect(err.scope).toBe("config");
+		}),
+	);
+
 	it.effect("reads publish times as version to ISO time", () =>
 		Effect.gen(function* () {
 			expect(yield* withResolver((r) => r.times("typescript"))).toEqual({
@@ -128,6 +159,7 @@ describe("RegistryResolverLive registry reads (NpmRegistry)", () => {
 			const err = yield* withResolver((r) => Effect.flip(r.versions("typescript")), world);
 			expect(err).toBeInstanceOf(ResolveError);
 			expect(err.message).toContain(".npmrc");
+			expect(err.scope).toBe("config");
 			// The release-age gate reads pnpm's settings, not the npmrc, so it still answers.
 			expect(yield* withResolver((r) => r.pnpmReleaseAge(), world)).toEqual({ ageMinutes: 720, exclude: ["@acme/*"] });
 		}),

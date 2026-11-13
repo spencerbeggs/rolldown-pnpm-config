@@ -4,7 +4,7 @@ This page lists every `pnpm-workspace.yaml` setting this plugin manages and the 
 
 ## Supported settings
 
-The plugin manages 108 settings in total. The **Enforcement** column shows the default behavior when a consuming repo diverges from the managed value:
+The plugin manages 110 settings in total. The **Enforcement** column shows the default behavior when a consuming repo diverges from the managed value:
 
 - `absent` — divergence is allowed silently; the local config wins.
 - `warn` — divergence is allowed but prints a warning box describing the conflict.
@@ -34,8 +34,10 @@ Security-relevant settings default to `warn` so divergences are visible without 
 | `publicHoistPattern` | absent | [publicHoistPattern](https://pnpm.io/settings#publichoistpattern) |
 | `minimumReleaseAgeExclude` | absent | [minimumReleaseAgeExclude](https://pnpm.io/settings#minimumreleaseageexclude) |
 | `supportedArchitectures` | absent | [supportedArchitectures](https://pnpm.io/settings#supportedarchitectures) |
+| `audit` | absent | [audit](https://pnpm.io/settings#audit) |
 | `auditConfig` | absent | [auditConfig](https://pnpm.io/settings#auditconfig) |
 | `ignoredOptionalDependencies` | absent | [ignoredOptionalDependencies](https://pnpm.io/settings#ignoredoptionaldependencies) |
+| `update` | absent | [update](https://pnpm.io/settings#update) |
 | `updateConfig` | absent | [updateConfig](https://pnpm.io/settings#updateconfig) |
 
 ### Hoisting & node-modules

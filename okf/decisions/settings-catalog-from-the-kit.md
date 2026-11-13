@@ -6,7 +6,7 @@ status: draft
 supersedes: descriptor-table-as-source-of-truth.md
 generated:
   by: claude-code/opus
-  at: 2026-11-13T04:57:23Z
+  at: 2026-11-13T06:08:51Z
 sources:
   - id: registry
     resource: package/src/registry.ts
@@ -18,7 +18,7 @@ sources:
     last_modified: 2026-11-12T00:00:00Z
 integrity:
   generated:
-    body: 318d79f999276e55
+    body: 5c53e64567939803
 ---
 
 # pnpm setting facts come from the kit's settings catalog
@@ -49,8 +49,12 @@ major release where correct behaviour outranks byte-identical output.[^owner]
   compile.
 - `freeze` refuses excess keys in closed settings and ships the canonical
   value pnpm reads (a coerced word becomes its boolean).
-- New catalog settings are not managed until a policy entry is written for
-  them; the catalog's coverage is wider than the plugin's.
+- A catalog setting without a policy entry is refused at build (`is a pnpm 12
+  setting this plugin does not manage`) rather than shipped nowhere; managing
+  it is one policy row. `audit` and `update`, the sections that supersede
+  `auditConfig` and `updateConfig`, are managed with `mapChildWins`.
+- The CLI's registry reads take the configuration pnpm 12 connects with
+  (`PnpmNpmConfig`), so a `registry:` in `pnpm-workspace.yaml` routes them.
 
 [^registry]: registry
 [^freeze]: freeze

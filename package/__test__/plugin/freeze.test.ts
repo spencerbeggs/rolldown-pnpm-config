@@ -397,12 +397,64 @@ describe("freeze", () => {
 describe("freeze on the pnpm 12 settings catalog", () => {
 	const base = { name: "@test/cfg", catalogs: {} };
 
-	it.effect("refuses a setting pnpm 12 does not read, naming what to use instead", () =>
+	const REFUSED: ReadonlyArray<readonly [string, unknown, string]> = [
+		["allowNonAppliedPatches", true, "no pnpm reads it"],
+		["ignoreDepScripts", true, "ignoreScripts or allowBuilds"],
+		["ignorePatchFailures", true, "no pnpm reads it"],
+		["managePackageManagerVersions", true, "pmOnFail"],
+		["packageManagerStrict", true, "pmOnFail"],
+		["packageManagerStrictVersion", true, "pmOnFail"],
+		["useNodeVersion", "22.0.0", "devEngines.runtime"],
+		["onlyBuiltDependencies", ["esbuild"], "allowBuilds"],
+		["onlyBuiltDependenciesFile", "allow.json", "allowBuilds"],
+		["neverBuiltDependencies", ["esbuild"], "allowBuilds with false"],
+		["ignoredBuiltDependencies", ["esbuild"], "allowBuilds with false"],
+		["executionEnv", { nodeVersion: "22" }, "devEngines.runtime"],
+		["confirmModulesPurge", false, "pnpm 11 setting"],
+	];
+
+	for (const [field, value, hint] of REFUSED) {
+		it.effect(`refuses ${field}, which pnpm 12 does not read, naming what to use instead`, () =>
+			Effect.gen(function* () {
+				const error = yield* Effect.flip(freeze({ ...base, [field]: value } as never));
+				expect(error._tag).toBe("ConfigError");
+				expect(error.message).toContain(`\`${field}\` is not a pnpm 12 setting`);
+				expect(error.message).toContain(hint);
+			}),
+		);
+	}
+
+	it("refuses exactly the settings the table lists", () => {
+		expect(REFUSED).toHaveLength(13);
+	});
+
+	it.effect("ignores a removed setting written as undefined, like any absent field", () =>
 		Effect.gen(function* () {
-			const error = yield* Effect.flip(freeze({ ...base, onlyBuiltDependencies: ["esbuild"] } as never));
-			expect(error._tag).toBe("ConfigError");
-			expect(error.message).toContain("`onlyBuiltDependencies` is not a pnpm 12 setting");
-			expect(error.message).toContain("allowBuilds");
+			const out = yield* freeze({ ...base, onlyBuiltDependencies: undefined } as never);
+			expect(out.base).not.toHaveProperty("onlyBuiltDependencies");
+		}),
+	);
+
+	it.effect("refuses a pnpm 12 setting the plugin does not manage, instead of dropping it", () =>
+		Effect.gen(function* () {
+			const error = yield* Effect.flip(freeze({ ...base, registry: "https://npm.example.test/" } as never));
+			expect(error.message).toBe("`registry` is a pnpm 12 setting this plugin does not manage");
+			// An unknown key that is no pnpm setting at all is still left to the type checker.
+			const out = yield* freeze({ ...base, notASetting: 1 } as never);
+			expect(out.base).not.toHaveProperty("notASetting");
+		}),
+	);
+
+	it.effect("manages audit and update, the sections that supersede auditConfig and updateConfig", () =>
+		Effect.gen(function* () {
+			const out = yield* freeze({
+				...base,
+				audit: { level: "high", ignore: ["GHSA-x"] },
+				update: { ignoreDeps: ["typescript"] },
+			});
+			expect(out.base.audit).toEqual({ level: "high", ignore: ["GHSA-x"] });
+			expect(out.manifest.audit).toEqual({ strategy: "mapChildWins", enforcement: "absent" });
+			expect(out.base.update).toEqual({ ignoreDeps: ["typescript"] });
 		}),
 	);
 
@@ -410,6 +462,7 @@ describe("freeze on the pnpm 12 settings catalog", () => {
 		Effect.gen(function* () {
 			const error = yield* Effect.flip(freeze({ ...base, auditConfig: { ignoreCves: ["CVE-1"] } } as never));
 			expect(error.message).toContain("Invalid auditConfig");
+			expect(error.message).toContain("audit.ignore");
 			const ok = yield* freeze({ ...base, auditConfig: { ignoreGhsas: ["GHSA-x"] } });
 			expect(ok.base.auditConfig).toEqual({ ignoreGhsas: ["GHSA-x"] });
 		}),

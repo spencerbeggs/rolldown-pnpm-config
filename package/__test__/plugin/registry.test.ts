@@ -21,8 +21,8 @@ const NOT_PNPM_12 = [
 ] as const;
 
 describe("field policy table", () => {
-	it("manages 108 settings", () => {
-		expect(MANAGED_FIELDS).toHaveLength(108);
+	it("manages 110 settings", () => {
+		expect(MANAGED_FIELDS).toHaveLength(110);
 	});
 
 	for (const field of MANAGED_FIELDS) {

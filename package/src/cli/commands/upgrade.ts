@@ -22,7 +22,7 @@ import { derivePeerRange } from "../peer-range.js";
 import { defaultPick, planEntry } from "../plan.js";
 import { readConfigReleaseAge } from "../release-age.js";
 import { failureDoc, warningDoc } from "../render/report.js";
-import { RegistryResolver } from "../resolve.js";
+import { RegistryResolver, ResolveError } from "../resolve.js";
 import { applyEdits } from "../rewrite.js";
 import { filterEntriesByCatalog, findConfigFiles, pickConfigCandidate } from "../select-file.js";
 import { summaryDoc } from "../summary.js";
@@ -142,6 +142,19 @@ interface Resolver {
 	readonly peerDependencies: (pkg: string, version: string) => Effect.Effect<Record<string, string>, unknown>;
 }
 
+/** Why one package's read failed: its message, and whether the configuration (not the package) failed. */
+interface ReadFailure {
+	readonly message: string;
+	readonly scope?: "config";
+}
+
+/** A resolver failure as a `ReadFailure`; a resolver may fail with anything. */
+function readFailure(error: unknown): ReadFailure {
+	if (error instanceof ResolveError)
+		return error.scope === undefined ? { message: error.message } : { message: error.message, scope: error.scope };
+	return { message: Fmt.errorText(error) };
+}
+
 /** Write the rewritten config source back to `file`. */
 function writeSource(file: string, next: string): Effect.Effect<void, UpgradeError, FileSystem.FileSystem | Path.Path> {
 	return AtomicFile.write(file, next).pipe(
@@ -240,7 +253,16 @@ export function resolveGatedVersions(
 	now: number,
 	onProgress?: (resolved: number, total: number) => Effect.Effect<void>,
 	workspace?: Resolver,
-): Effect.Effect<{ gated: Map<string, string[]>; raw: Map<string, string[]>; unresolved: string[] }, never> {
+): Effect.Effect<
+	{
+		gated: Map<string, string[]>;
+		raw: Map<string, string[]>;
+		unresolved: string[];
+		/** Why each unresolved package failed, keyed by package name. */
+		causes: ReadonlyMap<string, string>;
+	},
+	UpgradeError
+> {
 	// One resolution per unique (pkg × route) pair. The route is workspace only
 	// when the caller supplied a workspace resolver AND the entry declares
 	// `source: "workspace"` — an entry keyed to the workspace route without a
@@ -272,23 +294,36 @@ export function resolveGatedVersions(
 					// otherwise runs concurrently with the versions fetch — both are
 					// independent registry reads of the same packument.
 					const needTimes = !fromWorkspace && gate.ageMinutes > 0;
-					const [vr, times] = yield* Effect.all(
+					const [vr, tr] = yield* Effect.all(
 						[
 							routed.versions(pkg).pipe(Effect.result),
 							needTimes
-								? resolver.times(pkg).pipe(Effect.orElseSucceed(() => ({}) as Record<string, string>))
-								: Effect.succeed({} as Record<string, string>),
+								? resolver.times(pkg).pipe(Effect.result)
+								: Effect.succeed(Result.succeed({} as Record<string, string>)),
 						],
 						{ concurrency: "unbounded" },
 					);
 					yield* report(++resolved, total);
-					if (Result.isFailure(vr)) return [key, pkg, [] as string[], [] as string[]] as const;
-					if (fromWorkspace) return [key, pkg, vr.success, vr.success] as const;
-					const gated: string[] = [...gate.filterVersions(vr.success, times, pkg, now)];
-					return [key, pkg, gated, vr.success] as const;
+					const none: string[] = [];
+					if (Result.isFailure(vr)) return [key, pkg, none, none, readFailure(vr.failure)] as const;
+					if (fromWorkspace) return [key, pkg, vr.success, vr.success, undefined as ReadFailure | undefined] as const;
+					// Without publish times no version's age can be established, so none is
+					// offered; the failure is reported with its cause rather than read as
+					// "nothing old enough yet".
+					if (Result.isFailure(tr)) return [key, pkg, none, vr.success, readFailure(tr.failure)] as const;
+					const gated: string[] = [...gate.filterVersions(vr.success, tr.success, pkg, now)];
+					return [key, pkg, gated, vr.success, undefined] as const;
 				}),
 			{ concurrency: RESOLVE_CONCURRENCY },
 		).pipe(
+			Effect.flatMap((rows) => {
+				// A configuration failure fails every read the same way: report its cause
+				// once and stop, instead of listing every package as a possible typo.
+				const config = rows.find(([, , , , failure]) => failure?.scope === "config")?.[4];
+				return config === undefined
+					? Effect.succeed(rows)
+					: Effect.fail(new UpgradeError({ message: `Cannot read the registry configuration: ${config.message}` }));
+			}),
 			Effect.map((rows) => ({
 				// `gated` is the only candidate source — it keeps the fail-closed semantics
 				// above. `raw` is ONLY a validation input: validating a derived range against
@@ -304,7 +339,14 @@ export function resolveGatedVersions(
 				// keep-only, counted as up to date, and was hidden from the table entirely —
 				// the author never learned the package does not exist.
 				// Name-based and deduped: a name failing on either route is reported once.
-				unresolved: [...new Set(rows.filter(([, , , raw]) => raw.length === 0).map(([, pkg]) => pkg))],
+				unresolved: [
+					...new Set(
+						rows.filter(([, , , raw, failure]) => failure !== undefined || raw.length === 0).map(([, pkg]) => pkg),
+					),
+				],
+				causes: new Map(
+					rows.flatMap(([, pkg, , , failure]) => (failure === undefined ? [] : [[pkg, failure.message] as const])),
+				),
 			})),
 		),
 	);
@@ -378,7 +420,9 @@ export function runUpgrade(opts: {
 		// Under --yes there is nobody to read a warning, and silently skipping it would
 		// leave a name that will never resolve sitting in the catalog forever. Fail.
 		if (versionsByPkg.unresolved.length > 0) {
-			return yield* Effect.fail(new UpgradeError({ message: unresolvedMessage(versionsByPkg.unresolved) }));
+			return yield* Effect.fail(
+				new UpgradeError({ message: unresolvedMessage(versionsByPkg.unresolved, versionsByPkg.causes) }),
+			);
 		}
 
 		// A malformed pending changeset dropped its bumps, so a workspace-sourced
@@ -581,9 +625,21 @@ export function nothingToUpgradeMessage(totalItems: number): string {
  *
  * @internal
  */
-export function unresolvedMessage(unresolved: readonly string[]): string {
-	const list = unresolved.map((p) => `  ${p}`).join("\n");
-	return `Could not resolve ${Fmt.plural(unresolved.length, "package")} from the registry — check each name for a typo, or your registry auth:\n${list}`;
+export function unresolvedMessage(
+	unresolved: readonly string[],
+	causes: ReadonlyMap<string, string> = new Map(),
+): string {
+	const distinct = new Set(unresolved.map((p) => causes.get(p)).filter((c): c is string => c !== undefined));
+	// One shared cause is stated once; distinct causes go beside their packages.
+	const shared = distinct.size === 1 && unresolved.every((p) => causes.has(p)) ? [...distinct][0] : undefined;
+	const list = unresolved
+		.map((p) => {
+			const cause = causes.get(p);
+			return shared === undefined && cause !== undefined ? `  ${p}: ${cause}` : `  ${p}`;
+		})
+		.join("\n");
+	const why = shared === undefined ? "" : ` (${shared})`;
+	return `Could not resolve ${Fmt.plural(unresolved.length, "package")} from the registry${why} — check each name for a typo, or your registry auth:\n${list}`;
 }
 
 /** Project walk items to the non-interactive default decisions (latest-in-range, plus peer-only keeps). @internal */
@@ -629,7 +685,7 @@ export function runUpgradePreview(opts: {
 	/** Scope the projection to one declared catalog (`--catalog`); see `readCatalogSource`. */
 	catalog?: string;
 }): Effect.Effect<
-	{ readonly doc: Document; readonly unresolved: readonly string[] },
+	{ readonly doc: Document; readonly unresolved: readonly string[]; readonly causes: ReadonlyMap<string, string> },
 	UpgradeError,
 	FileSystem.FileSystem
 > {
@@ -647,7 +703,11 @@ export function runUpgradePreview(opts: {
 		const items = yield* buildWalkItems(entries, versions.gated).pipe(
 			Effect.mapError((e) => new UpgradeError({ message: e.message })),
 		);
-		return { doc: summaryDoc(projectDecisions(items, opts.full)), unresolved: versions.unresolved };
+		return {
+			doc: summaryDoc(projectDecisions(items, opts.full)),
+			unresolved: versions.unresolved,
+			causes: versions.causes,
+		};
 	});
 }
 
@@ -858,9 +918,9 @@ function isChangesetFailure(error: unknown): boolean {
 }
 
 /** Print the unresolved-packages warning to stderr, when there is one. */
-function warnUnresolved(unresolved: readonly string[]) {
+function warnUnresolved(unresolved: readonly string[], causes: ReadonlyMap<string, string>) {
 	return unresolved.length > 0
-		? Doc.print(warningDoc(unresolvedMessage(unresolved)), { stream: "stderr" })
+		? Doc.print(warningDoc(unresolvedMessage(unresolved, causes)), { stream: "stderr" })
 		: Effect.void;
 }
 
@@ -1057,11 +1117,17 @@ export const upgradeCommand = Command.make(
 			const file = yield* resolveTargetFile(fileOpt);
 			const workspaceResolver = workspaceOf(file);
 			if (preview) {
-				const { doc, unresolved } = yield* runUpgradePreview({ file, resolver, full, workspaceResolver, ...scope });
+				const { doc, unresolved, causes } = yield* runUpgradePreview({
+					file,
+					resolver,
+					full,
+					workspaceResolver,
+					...scope,
+				});
 				yield* Doc.print(doc);
 				// --preview must not hide a typo either: an unresolvable package renders as
 				// up-to-date and would otherwise be invisible in the projection.
-				return yield* warnUnresolved(unresolved);
+				return yield* warnUnresolved(unresolved, causes);
 			}
 			if (yes) {
 				const result = yield* withProgress((report) =>
@@ -1107,7 +1173,7 @@ export const upgradeCommand = Command.make(
 					Doc.line(""),
 					Doc.line(Doc.text(note, "muted")),
 				]);
-				return yield* warnUnresolved(versions.unresolved);
+				return yield* warnUnresolved(versions.unresolved, versions.causes);
 			}
 			const { versions, items, interopByCatalog, interopModels } = yield* withProgress((report) =>
 				resolveForWalk(entries, resolver, gate, workspaceResolver, report),
@@ -1120,7 +1186,7 @@ export const upgradeCommand = Command.make(
 				// An unresolvable package plans to keep-only and so counts as "up to date".
 				// Reporting only "nothing to upgrade" here would hide the typo completely —
 				// the exact silent-omission this warning exists to prevent.
-				yield* warnUnresolved(versions.unresolved);
+				yield* warnUnresolved(versions.unresolved, versions.causes);
 				return yield* CliMessage.info(nothingToUpgradeMessage(0));
 			}
 			// Esc is a deliberate "never mind": say so and exit 0. Ctrl-C stays an
@@ -1193,7 +1259,7 @@ export const upgradeCommand = Command.make(
 				: CliMessage.success(`Applied ${Fmt.plural(changed, "change")}.`);
 			// Repeat the unresolved warning after the run: the in-table banner is gone
 			// once the screen unmounts, and this is the last thing the author reads.
-			yield* warnUnresolved(versions.unresolved);
+			yield* warnUnresolved(versions.unresolved, versions.causes);
 		}).pipe(
 			Effect.tapError((error) => (isChangesetFailure(error) ? Effect.sync(skippedChangesets.silence) : Effect.void)),
 			Effect.ensuring(skippedChangesets.report),

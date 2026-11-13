@@ -1,4 +1,5 @@
 import { Fmt } from "@effected/cli-kit";
+import { PnpmSettingsCatalog } from "@effected/pnpm/settings";
 import { Data, Effect, Predicate, Schema } from "effect";
 import { normalizeCatalogs } from "../catalogs.js";
 import type { PluginConfig } from "../define-plugin.js";
@@ -35,7 +36,12 @@ function validateField(
 ): Effect.Effect<unknown, ConfigError> {
 	return Schema.decodeUnknownEffect(schema)(value, { onExcessProperty: "error", errors: "all" }).pipe(
 		Effect.flatMap((decoded) => Schema.encodeUnknownEffect(schema)(decoded)),
-		Effect.mapError((error) => new ConfigError({ message: `Invalid ${field}: ${Fmt.describe(error)}` })),
+		Effect.mapError((error) => {
+			const hint = SUCCESSOR_HINTS[field];
+			return new ConfigError({
+				message: `Invalid ${field}: ${Fmt.describe(error)}${hint === undefined ? "" : ` (${hint})`}`,
+			});
+		}),
 	);
 }
 
@@ -62,9 +68,18 @@ const REMOVED_SETTINGS: Readonly<Record<string, string>> = {
 	onlyBuiltDependenciesFile: "pnpm 12 never applies it; use allowBuilds",
 	neverBuiltDependencies: "pnpm 12 never applies it; use allowBuilds with false",
 	ignoredBuiltDependencies: "pnpm 12 never applies it; use allowBuilds with false",
-	executionEnv: "pnpm 12 never applies it",
+	executionEnv: "pnpm 12 never applies it; declare the runtime in devEngines.runtime",
 	confirmModulesPurge: "a pnpm 11 setting pnpm 12 does not read",
 };
+
+/** What to write instead when a deprecated spelling refuses a value pnpm 12 reads only under its successor. */
+const SUCCESSOR_HINTS: Readonly<Record<string, string>> = {
+	auditConfig: "auditConfig takes only ignoreGhsas; write the advisories under audit.ignore",
+	updateConfig: "updateConfig is the deprecated spelling of update; write update",
+};
+
+/** Config keys that are not pnpm settings: the plugin's own metadata and directives. */
+const PLUGIN_KEYS: ReadonlySet<string> = new Set(["name", "catalogs", "local", "overridesFromCatalogs"]);
 
 /** Keys recognized by the wrapped `{ value, enforcement?, excludeByRepo? }` form. */
 const WRAPPED_KEYS = new Set(["value", "enforcement", "excludeByRepo"]);
@@ -133,9 +148,20 @@ export function freeze(
 				new ConfigError({ message: "Config `name` is required and must be a non-empty string" }),
 			);
 		}
+		const declared = config as unknown as Record<string, unknown>;
 		for (const [field, why] of Object.entries(REMOVED_SETTINGS)) {
-			if (Object.hasOwn(config, field)) {
+			if (Object.hasOwn(declared, field) && declared[field] !== undefined) {
 				return yield* Effect.fail(new ConfigError({ message: `\`${field}\` is not a pnpm 12 setting: ${why}` }));
+			}
+		}
+		// A pnpm 12 setting the plugin has no policy for would otherwise ship nowhere,
+		// silently: refuse it, the way a removed setting is refused.
+		for (const [field, value] of Object.entries(declared)) {
+			if (value === undefined || PLUGIN_KEYS.has(field) || Object.hasOwn(FIELD_REGISTRY, field)) continue;
+			if (Object.hasOwn(PnpmSettingsCatalog.entries, field)) {
+				return yield* Effect.fail(
+					new ConfigError({ message: `\`${field}\` is a pnpm 12 setting this plugin does not manage` }),
+				);
 			}
 		}
 		const directiveError = (error: unknown) => new ConfigError({ message: Fmt.describe(error) });

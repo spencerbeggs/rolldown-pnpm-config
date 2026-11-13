@@ -90,6 +90,12 @@ export interface PluginConfig {
 	readonly supportedArchitectures?: FieldInput<PnpmSettingType<"supportedArchitectures">>;
 	/** The GitHub advisory IDs `pnpm audit` ignores (`{ ignoreGhsas }`), the only key pnpm 12 reads. */
 	readonly auditConfig?: FieldInput<PnpmSettingType<"auditConfig">>;
+	/**
+	 * The `pnpm audit` section: the minimum `level` to report, the advisories to
+	 * `ignore`, and `ignorePrune`. Supersedes `auditLevel` and `auditConfig`; a
+	 * consumer's own keys win per key.
+	 */
+	readonly audit?: FieldInput<PnpmSettingType<"audit">>;
 	/** Security version overrides, keyed by package selector. */
 	readonly overrides?: FieldInput<Record<string, string>>;
 	/**
@@ -124,6 +130,12 @@ export interface PluginConfig {
 	readonly ignoredOptionalDependencies?: FieldInput<PnpmSettingType<"ignoredOptionalDependencies">>;
 	/** Per-dependency update behavior: which packages to ignore during updates. */
 	readonly updateConfig?: FieldInput<PnpmSettingType<"updateConfig">>;
+	/**
+	 * The `pnpm update` section: the dependency patterns it skips (`ignoreDeps`),
+	 * whether it writes a change intent, and whether it updates GitHub Actions.
+	 * Supersedes `updateConfig`; a consumer's own keys win per key.
+	 */
+	readonly update?: FieldInput<PnpmSettingType<"update">>;
 	/** Default version catalog entries merged as a single `default` catalog. */
 	readonly catalog?: FieldInput<PnpmSettingType<"catalog">>;
 	/** Whether any resolution fails when a package violates minimum-release-age. */

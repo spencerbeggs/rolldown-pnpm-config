@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { VERSION, runBin, workspaceCopy } from "./utils/bin.js";
@@ -36,6 +36,18 @@ describe("rolldown-pnpm-config bin", () => {
 		expect(r.exitCode).toBe(64);
 		expect(r.stdout).toBe("");
 		expect(r.stderr).toContain("Unrecognized flag: --json");
+	});
+
+	it("reports an unreadable npmrc once, on stderr, instead of blaming every package", async () => {
+		// `.npmrc` as a directory: the registry configuration cannot be read, so no
+		// registry request is ever made (the case stays offline).
+		const cwd = workspaceCopy();
+		mkdirSync(join(cwd, ".npmrc"));
+		const r = await runBin(["upgrade", "--check", "pnpm.config.ts"], { cwd });
+		expect(r.exitCode).not.toBe(0);
+		expect(r.stderr).toContain("Cannot read the registry configuration");
+		expect(r.stderr).toContain(".npmrc");
+		expect(r.stderr).not.toContain("check each name for a typo");
 	});
 
 	it("writes the file on a plain export and reports it on stdout", async () => {

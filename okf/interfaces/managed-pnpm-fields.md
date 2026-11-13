@@ -1,12 +1,12 @@
 ---
 type: Interface
 title: Managed pnpm fields
-description: The 108 pnpm settings fields this library manages, grouped by category, plus the keys deliberately excluded from coverage.
+description: The 110 pnpm settings fields this library manages, grouped by category, plus the keys deliberately excluded from coverage.
 resource: ../../package/src/registry.ts
 kind: config
 generated:
   by: okfit/claude-code
-  at: 2026-11-13T04:57:23Z
+  at: 2026-11-13T06:08:51Z
 sources:
   - id: descriptors
     resource: package/src/registry.ts
@@ -16,32 +16,33 @@ tags:
   - architecture
 integrity:
   generated:
-    body: acd629e3bbbf8c8a
+    body: 513ae51d56862b76
 ---
 
 # Managed pnpm fields
 
 ## What a consumer gets
 
-A plugin author declaring any of these 108 fields on `PnpmConfigPlugin({...})`
+A plugin author declaring any of these 110 fields on `PnpmConfigPlugin({...})`
 gets it validated, merged with the consuming repo's local config by a named
 strategy, and enforced at the level shown, at install time. This is the
 coverage promise; the enumeration below is the point of this document, and
-is grounded directly in the policy table `FIELD_REGISTRY` in `package/src/registry.ts`, one row per entry; each field's kind (and its schema) is the pnpm 12 settings catalog's, from `@effected/pnpm/settings`.[^settings-catalog] The per-heading counts sum to 22+17+12+18+4+10+14+11 = 108.[^descriptors]
+is grounded directly in the policy table `FIELD_REGISTRY` in `package/src/registry.ts`, one row per entry; each field's kind (and its schema) is the pnpm 12 settings catalog's, from `@effected/pnpm/settings`.[^settings-catalog] The per-heading counts sum to 24+17+12+18+4+10+14+11 = 110.[^descriptors]
 
 For what a pnpm setting means, see [pnpm settings](../references/pnpm-settings.md).
-Every field here is one pnpm 12 reads; settings no pnpm reads, pnpm 11's `confirmModulesPurge`, and the five build settings pnpm 12 accepts but never applies are not offered, and a config naming one fails the build.
+Every field here is one pnpm 12 reads; settings no pnpm reads, pnpm 11's `confirmModulesPurge`, and the five build settings pnpm 12 accepts but never applies are not offered, and a config naming one fails the build. A pnpm 12 setting not listed here fails the build too (`is a pnpm 12 setting this plugin does not manage`) rather than shipping nowhere.
 
-## Resolution — 22 fields
+## Resolution — 24 fields
 
 | key | kind | strategy | enforcement |
 | --- | --- | --- | --- |
-| `catalogs` | unknownRecord | `catalogs` | warn |
+| `catalogs` | stringRecordRecord | `catalogs` | warn |
 | `packageExtensions` | unknownRecord | `mapChildWins` | absent |
 | `allowedDeprecatedVersions` | stringRecord | `mapChildWins` | absent |
 | `publicHoistPattern` | stringArray | `arrayUnion` | absent |
 | `minimumReleaseAgeExclude` | stringArray | `arrayUnion` | absent |
 | `supportedArchitectures` | object | `arrayRecordUnion` | absent |
+| `audit` | object | `mapChildWins` | absent |
 | `auditConfig` | object | `arrayRecordUnion` | absent |
 | `overrides` | stringRecord | `overrides` | warn |
 | `peerDependencyRules` | object | `peerDependencyRules` | warn |
@@ -50,6 +51,7 @@ Every field here is one pnpm 12 reads; settings no pnpm reads, pnpm 11's `confir
 | `minimumReleaseAge` | number | `securityMin` | warn |
 | `allowBuilds` | booleanRecord | `allowBuilds` | warn |
 | `ignoredOptionalDependencies` | stringArray | `arrayUnion` | absent |
+| `update` | object | `mapChildWins` | absent |
 | `updateConfig` | object | `mapChildWins` | absent |
 | `catalog` | stringRecord | `mapChildWins` | warn |
 | `minimumReleaseAgeStrict` | boolean | `scalar` | warn |

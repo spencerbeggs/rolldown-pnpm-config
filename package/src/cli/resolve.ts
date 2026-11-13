@@ -1,9 +1,9 @@
-import type { NpmConfigError, RegistryReadError } from "@effected/npm";
-import { NpmConfig, NpmRegistry } from "@effected/npm";
+import type { NpmConfig, NpmConfigError, RegistryReadError } from "@effected/npm";
+import { NpmRegistry } from "@effected/npm";
 import type { NpmTransportError } from "@effected/npm/node";
 import { NpmHttpClient } from "@effected/npm/node";
-import type { PartialReleaseAgeGate } from "@effected/pnpm";
-import { PnpmSettings } from "@effected/pnpm";
+import type { PartialReleaseAgeGate, PnpmSettingsError } from "@effected/pnpm";
+import { PnpmNpmConfig, PnpmSettings } from "@effected/pnpm";
 import { Context, Data, DateTime, Effect, FileSystem, Layer, Option, Path } from "effect";
 
 /**
@@ -14,14 +14,22 @@ import { Context, Data, DateTime, Effect, FileSystem, Layer, Option, Path } from
 export class ResolveError extends Data.TaggedError("ResolveError")<{
 	readonly pkg: string;
 	readonly message: string;
+	/**
+	 * `"config"` when the failure is the run's registry configuration, not the
+	 * package (an unreadable npmrc, a workspace file pnpm refuses, a proxy or
+	 * CA that cannot be applied): every read fails the same way, so the caller
+	 * reports the cause once instead of blaming each package. Absent for a
+	 * failure of this package's own read.
+	 */
+	readonly scope?: "config";
 }> {}
 
 /**
  * Resolves the published versions of a package from the registry, and the
  * release-age gate pnpm itself would apply. The Live implementation reads the
- * registry through `@effected/npm`'s `NpmRegistry`, with the npmrc pnpm would
- * read at the workspace root (scoped registries, auth, proxy and TLS
- * settings), and reads pnpm's own settings through `@effected/pnpm`'s
+ * registry through `@effected/npm`'s `NpmRegistry`, with the registry, proxy,
+ * TLS and credential configuration pnpm 12 would connect with
+ * (`@effected/pnpm`'s `PnpmNpmConfig`), and reads pnpm's own settings through
  * `PnpmSettings`.
  *
  * @internal
@@ -53,15 +61,15 @@ export class RegistryResolver extends Context.Service<
 export interface RegistryResolverOptions {
 	/** Where the run was invoked: the directory pnpm reads its settings and npmrc from. */
 	readonly cwd: string;
-	/** The environment (`process.env`): `pnpm_config_*`, `npm_config_*`, proxies, `HOME`. */
+	/** The environment (`process.env`): `pnpm_config_*`, `npm_config_*` credentials, `HOME`. */
 	readonly env: Readonly<Record<string, string | undefined>>;
 	/** The platform (`process.platform`), for pnpm's global config directory. */
 	readonly platform: string;
 }
 
 /**
- * Builds the `NpmRegistry` the Live resolver reads through, from the npm
- * configuration it loaded.
+ * Builds the `NpmRegistry` the Live resolver reads through, from the
+ * configuration pnpm 12 would connect with.
  *
  * @internal
  */
@@ -95,24 +103,31 @@ export function pnpmGateOf(settings: PnpmSettings): PartialReleaseAgeGate | null
 	return out.ageMinutes === undefined && out.exclude === undefined ? null : out;
 }
 
-/** The message a failed registry read reports against `pkg`. */
+/** The `ResolveError` a failed read reports against `pkg`, scoped `"config"` when the configuration failed. */
 const failedRead =
 	(pkg: string) =>
-	(error: RegistryReadError | NpmConfigError | NpmTransportError): ResolveError =>
-		new ResolveError({ pkg, message: error.message });
+	(error: RegistryReadError | NpmConfigError | PnpmSettingsError | NpmTransportError): ResolveError =>
+		error._tag === "RegistryReadError"
+			? new ResolveError({ pkg, message: error.message })
+			: new ResolveError({ pkg, message: error.message, scope: "config" });
 
 /**
  * Live RegistryResolver: registry reads through `NpmRegistry`, the release-age
  * gate through `PnpmSettings`.
  *
  * @remarks
- * The npm configuration is the one pnpm reads: `NpmConfig.load` with
- * `workspaceRoot: true`, so a run from a workspace member still honours the
- * root `.npmrc`, and every read is routed through `NpmConfig.targetFor`, so a
- * scoped registry and its credential apply per package. The configuration,
+ * The configuration is the one pnpm 12 connects with: `PnpmNpmConfig.load`
+ * merges `PNPM_CONFIG_*` variables, `pnpm-workspace.yaml`, the global
+ * `config.yaml` and the npmrc files (the workspace root's `.npmrc`, not a
+ * member's) in pnpm's precedence, so a `registry:` or `httpsProxy:` in
+ * `pnpm-workspace.yaml` applies as it does under `pnpm view`. Every read is
+ * routed through `targetFor`, so a scoped registry and its credential apply
+ * per package. The configuration,
  * the HTTP client and `PnpmSettings` each load lazily and once
  * (`Effect.cached`): an unreadable npmrc or a malformed `pnpm-workspace.yaml`
- * fails the reads that need it, typed as `ResolveError`, never layer
+ * (or a workspace file pnpm would refuse, such as a registry URL with an
+ * environment placeholder) fails the reads that need it, typed as
+ * `ResolveError` carrying the cause's message, never layer
  * construction. A package the registry does not know fails `versions` and
  * `times` (an unresolvable name is reported, not read as "no versions").
  *
@@ -141,7 +156,9 @@ export function RegistryResolverLive(
 			// own scope so the HTTP dispatcher lives as long as the resolver.
 			const registry = yield* Effect.cached(
 				Effect.gen(function* () {
-					const config = yield* platform(NpmConfig.load({ cwd: options.cwd, env: options.env, workspaceRoot: true }));
+					const config = yield* platform(
+						PnpmNpmConfig.load({ cwd: options.cwd, env: options.env, platform: options.platform }),
+					);
 					const context = yield* Layer.buildWithScope(client(config), scope).pipe(
 						Effect.provideService(FileSystem.FileSystem, fs),
 					);

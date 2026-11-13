@@ -15,4 +15,16 @@ describe("readConfigReleaseAge", () => {
 		expect(readConfigReleaseAge({ other: 1 })).toBeNull();
 		expect(readConfigReleaseAge(null)).toBeNull();
 	});
+
+	it("reads a string age as the number freeze ships, so the gate never fails open", () => {
+		expect(readConfigReleaseAge({ minimumReleaseAge: "1440" })).toEqual({ ageMinutes: 1440 });
+		expect(readConfigReleaseAge({ minimumReleaseAge: { value: "720", enforcement: "warn" } })).toEqual({
+			ageMinutes: 720,
+		});
+	});
+
+	it("contributes nothing for a value freeze refuses", () => {
+		expect(readConfigReleaseAge({ minimumReleaseAge: "soon" })).toBeNull();
+		expect(readConfigReleaseAge({ minimumReleaseAge: -5 })).toBeNull();
+	});
 });
