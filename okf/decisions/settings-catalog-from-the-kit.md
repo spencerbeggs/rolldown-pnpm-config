@@ -6,7 +6,7 @@ status: draft
 supersedes: descriptor-table-as-source-of-truth.md
 generated:
   by: claude-code/opus
-  at: 2026-11-13T06:08:51Z
+  at: 2026-11-13T06:15:14Z
 sources:
   - id: registry
     resource: package/src/registry.ts
@@ -18,7 +18,7 @@ sources:
     last_modified: 2026-11-12T00:00:00Z
 integrity:
   generated:
-    body: 5c53e64567939803
+    body: 9d420f7d6c9409a1
 ---
 
 # pnpm setting facts come from the kit's settings catalog
@@ -52,7 +52,9 @@ major release where correct behaviour outranks byte-identical output.[^owner]
 - A catalog setting without a policy entry is refused at build (`is a pnpm 12
   setting this plugin does not manage`) rather than shipped nowhere; managing
   it is one policy row. `audit` and `update`, the sections that supersede
-  `auditConfig` and `updateConfig`, are managed with `mapChildWins`.
+  `auditConfig` and `updateConfig`, are managed with `sectionMerge`: list keys
+  (`audit.ignore`, `update.ignoreDeps`) union with the managed lists, scalar
+  keys are the consumer's when set.
 - The CLI's registry reads take the configuration pnpm 12 connects with
   (`PnpmNpmConfig`), so a `registry:` in `pnpm-workspace.yaml` routes them.
 

@@ -1,4 +1,6 @@
+import { Effect } from "effect";
 import { describe, expect, it } from "vitest";
+import { freeze } from "../../src/plugin/freeze.js";
 import { createHooks } from "../../src/runtime/index.js";
 
 describe("createHooks engine", () => {
@@ -36,5 +38,17 @@ describe("createHooks engine", () => {
 		};
 		const out = createHooks(base, manifest, "@acme/cfg").updateConfig({ rootProjectManifest: { name: "x-repo" } });
 		expect(out.publicHoistPattern).toEqual(["@types/*"]);
+	});
+});
+
+describe("createHooks audit section (the pnpmfile freeze ships)", () => {
+	it("keeps the managed and the consumer's audit.ignore, and the consumer's audit.level", async () => {
+		const { base, manifest } = await Effect.runPromise(
+			freeze({ name: "@acme/cfg", catalogs: {}, audit: { level: "high", ignore: ["GHSA-managed"] } }),
+		);
+		const out = createHooks(base, manifest, "@acme/cfg").updateConfig({
+			audit: { level: "low", ignore: ["GHSA-local"] },
+		});
+		expect(out.audit).toEqual({ ignore: ["GHSA-local", "GHSA-managed"], level: "low" });
 	});
 });

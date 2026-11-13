@@ -6,7 +6,7 @@ resource: ../../package/src/registry.ts
 kind: config
 generated:
   by: okfit/claude-code
-  at: 2026-11-13T06:08:51Z
+  at: 2026-11-13T06:15:14Z
 sources:
   - id: descriptors
     resource: package/src/registry.ts
@@ -16,7 +16,7 @@ tags:
   - architecture
 integrity:
   generated:
-    body: 513ae51d56862b76
+    body: c08a86d6b3fae702
 ---
 
 # Managed pnpm fields
@@ -42,7 +42,7 @@ Every field here is one pnpm 12 reads; settings no pnpm reads, pnpm 11's `confir
 | `publicHoistPattern` | stringArray | `arrayUnion` | absent |
 | `minimumReleaseAgeExclude` | stringArray | `arrayUnion` | absent |
 | `supportedArchitectures` | object | `arrayRecordUnion` | absent |
-| `audit` | object | `mapChildWins` | absent |
+| `audit` | object | `sectionMerge` | absent |
 | `auditConfig` | object | `arrayRecordUnion` | absent |
 | `overrides` | stringRecord | `overrides` | warn |
 | `peerDependencyRules` | object | `peerDependencyRules` | warn |
@@ -51,7 +51,7 @@ Every field here is one pnpm 12 reads; settings no pnpm reads, pnpm 11's `confir
 | `minimumReleaseAge` | number | `securityMin` | warn |
 | `allowBuilds` | booleanRecord | `allowBuilds` | warn |
 | `ignoredOptionalDependencies` | stringArray | `arrayUnion` | absent |
-| `update` | object | `mapChildWins` | absent |
+| `update` | object | `sectionMerge` | absent |
 | `updateConfig` | object | `mapChildWins` | absent |
 | `catalog` | stringRecord | `mapChildWins` | warn |
 | `minimumReleaseAgeStrict` | boolean | `scalar` | warn |

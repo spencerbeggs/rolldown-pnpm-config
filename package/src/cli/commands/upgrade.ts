@@ -629,17 +629,26 @@ export function unresolvedMessage(
 	unresolved: readonly string[],
 	causes: ReadonlyMap<string, string> = new Map(),
 ): string {
+	const head = `Could not resolve ${Fmt.plural(unresolved.length, "package")} from the registry`;
+	const advice = "check each name for a typo, or your registry auth";
 	const distinct = new Set(unresolved.map((p) => causes.get(p)).filter((c): c is string => c !== undefined));
+	const allCaused = unresolved.every((p) => causes.has(p));
 	// One shared cause is stated once; distinct causes go beside their packages.
-	const shared = distinct.size === 1 && unresolved.every((p) => causes.has(p)) ? [...distinct][0] : undefined;
+	// The typo advice is only for packages that came back with no versions and
+	// no cause of their own.
+	if (allCaused && distinct.size === 1) {
+		return `${head} (${[...distinct][0]}):\n${unresolved.map((p) => `  ${p}`).join("\n")}`;
+	}
 	const list = unresolved
 		.map((p) => {
 			const cause = causes.get(p);
-			return shared === undefined && cause !== undefined ? `  ${p}: ${cause}` : `  ${p}`;
+			return cause === undefined ? `  ${p}` : `  ${p}: ${cause}`;
 		})
 		.join("\n");
-	const why = shared === undefined ? "" : ` (${shared})`;
-	return `Could not resolve ${Fmt.plural(unresolved.length, "package")} from the registry${why} — check each name for a typo, or your registry auth:\n${list}`;
+	if (allCaused) return `${head}:\n${list}`;
+	return distinct.size === 0
+		? `${head} — ${advice}:\n${list}`
+		: `${head}:\n${list}\nA package listed without a cause returned no versions — ${advice}.`;
 }
 
 /** Project walk items to the non-interactive default decisions (latest-in-range, plus peer-only keeps). @internal */

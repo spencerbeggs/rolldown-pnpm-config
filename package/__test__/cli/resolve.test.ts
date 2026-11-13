@@ -134,6 +134,16 @@ describe("RegistryResolverLive registry reads (NpmRegistry)", () => {
 		}),
 	);
 
+	it.effect("fails times with its own cause when the packument lists no publish times", () =>
+		Effect.gen(function* () {
+			const seed = { registries: { "https://registry.npmjs.org": { typescript: { "5.9.0": {} } } } };
+			const world = liveResolverWorld(WORKSPACE_FILES, {}, seed);
+			expect(yield* withResolver((r) => r.versions("typescript"), world)).toEqual(["5.9.0"]);
+			const err = yield* withResolver((r) => Effect.flip(r.times("typescript")), world);
+			expect(err.message).toBe("publish times unavailable for typescript: the registry lists none");
+		}),
+	);
+
 	it.effect("reads a version's peers, {} for one that declares none or is unpublished", () =>
 		Effect.gen(function* () {
 			expect(yield* withResolver((r) => r.peerDependencies("typescript", "5.9.3"))).toEqual({ "@types/node": "*" });

@@ -36,3 +36,28 @@ export const arrayRecordUnion: Strategy = (base, local) => {
 	}
 	return { merged: result, divergences: [] };
 };
+
+/**
+ * A settings section with list and scalar keys (`audit`, `update`): a key whose
+ * managed or local value is a string list is unioned like `arrayUnion`, so a
+ * consumer's `audit.ignore` adds to the managed advisories instead of replacing
+ * them; any other key is `child ?? managed`. Quiet.
+ *
+ * @internal
+ */
+export const sectionMerge: Strategy = (base, local) => {
+	const managed = (base ?? {}) as Record<string, unknown>;
+	const child = (local ?? {}) as Record<string, unknown>;
+	const result: Record<string, unknown> = {};
+	for (const key of [...new Set([...Object.keys(managed), ...Object.keys(child)])].sort(byCodeUnit)) {
+		const m = managed[key];
+		const c = child[key];
+		if (Array.isArray(m) || Array.isArray(c)) {
+			result[key] = unionSort(Array.isArray(m) ? (m as string[]) : [], Array.isArray(c) ? (c as string[]) : undefined);
+		} else {
+			const value = c ?? m;
+			if (value !== undefined) result[key] = value;
+		}
+	}
+	return { merged: result, divergences: [] };
+};

@@ -453,7 +453,7 @@ describe("freeze on the pnpm 12 settings catalog", () => {
 				update: { ignoreDeps: ["typescript"] },
 			});
 			expect(out.base.audit).toEqual({ level: "high", ignore: ["GHSA-x"] });
-			expect(out.manifest.audit).toEqual({ strategy: "mapChildWins", enforcement: "absent" });
+			expect(out.manifest.audit).toEqual({ strategy: "sectionMerge", enforcement: "absent" });
 			expect(out.base.update).toEqual({ ignoreDeps: ["typescript"] });
 		}),
 	);

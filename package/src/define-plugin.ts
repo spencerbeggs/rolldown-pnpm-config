@@ -92,8 +92,10 @@ export interface PluginConfig {
 	readonly auditConfig?: FieldInput<PnpmSettingType<"auditConfig">>;
 	/**
 	 * The `pnpm audit` section: the minimum `level` to report, the advisories to
-	 * `ignore`, and `ignorePrune`. Supersedes `auditLevel` and `auditConfig`; a
-	 * consumer's own keys win per key.
+	 * `ignore`, and `ignorePrune`. Supersedes `auditLevel` and `auditConfig`. A
+	 * consumer's `ignore` list is unioned with the managed one (deduped, sorted),
+	 * so a local advisory never drops a managed one; `level` and `ignorePrune`
+	 * are the consumer's when set.
 	 */
 	readonly audit?: FieldInput<PnpmSettingType<"audit">>;
 	/** Security version overrides, keyed by package selector. */
@@ -133,7 +135,8 @@ export interface PluginConfig {
 	/**
 	 * The `pnpm update` section: the dependency patterns it skips (`ignoreDeps`),
 	 * whether it writes a change intent, and whether it updates GitHub Actions.
-	 * Supersedes `updateConfig`; a consumer's own keys win per key.
+	 * Supersedes `updateConfig`. A consumer's `ignoreDeps` list is unioned with
+	 * the managed one; the other keys are the consumer's when set.
 	 */
 	readonly update?: FieldInput<PnpmSettingType<"update">>;
 	/** Default version catalog entries merged as a single `default` catalog. */

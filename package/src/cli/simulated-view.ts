@@ -20,6 +20,7 @@ const STRATEGY_VERB: Record<string, "merge" | "overwrite"> = {
 	mapChildWins: "merge",
 	arrayUnion: "merge",
 	arrayRecordUnion: "merge",
+	sectionMerge: "merge",
 	overrides: "merge",
 	peerDependencyRules: "merge",
 	allowBuilds: "merge",

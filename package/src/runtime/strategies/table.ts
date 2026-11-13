@@ -1,5 +1,5 @@
 import type { Strategy } from "../types.js";
-import { arrayRecordUnion, arrayUnion } from "./arrays.js";
+import { arrayRecordUnion, arrayUnion, sectionMerge } from "./arrays.js";
 import { catalogs } from "./catalogs.js";
 import { allowBuilds, mapChildWins } from "./maps.js";
 import { overrides, peerDependencyRules } from "./overrides.js";
@@ -16,6 +16,7 @@ export const STRATEGY_TABLE: Record<string, Strategy> = {
 	mapChildWins,
 	arrayUnion,
 	arrayRecordUnion,
+	sectionMerge,
 	overrides,
 	peerDependencyRules,
 	securityFlag,

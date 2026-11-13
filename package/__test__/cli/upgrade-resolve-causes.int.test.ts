@@ -71,6 +71,26 @@ describe("upgrade reports why a package did not resolve", () => {
 	);
 });
 
+describe("upgrade --yes on a package whose packument lists no publish times", () => {
+	it.effect("fails naming the missing publish times, not a missing package or a typo", () =>
+		Effect.gen(function* () {
+			// The workspace sets minimumReleaseAge, so the gate needs publish times.
+			const seed = { registries: { "https://registry.npmjs.org": { typescript: { "5.9.0": {}, "5.9.3": {} } } } };
+			const world = liveResolverWorld(WORKSPACE_FILES, {}, seed);
+			const config = `import { PnpmConfigPlugin } from "rolldown-pnpm-config";
+export const plugin = PnpmConfigPlugin({ name: "@test/cfg", catalogs: { alpha: { packages: { typescript: "^5.9.0" } } } });
+`;
+			const s = yield* session;
+			const exit = yield* runUpgradeCommand(s, world, ["--yes", "--dry-run", writeTmpConfig(config)]);
+			const failure = failureOf(exit);
+			expect(failure).toBeInstanceOf(UpgradeError);
+			expect((failure as UpgradeError).message).toBe(
+				"Could not resolve 1 package from the registry (publish times unavailable for typescript: the registry lists none):\n  typescript",
+			);
+		}),
+	);
+});
+
 describe("unresolvedMessage", () => {
 	it("states one shared cause once", () => {
 		const causes = new Map([
@@ -78,7 +98,7 @@ describe("unresolvedMessage", () => {
 			["b", "boom"],
 		]);
 		expect(unresolvedMessage(["a", "b"], causes)).toBe(
-			"Could not resolve 2 packages from the registry (boom) — check each name for a typo, or your registry auth:\n  a\n  b",
+			"Could not resolve 2 packages from the registry (boom):\n  a\n  b",
 		);
 	});
 
@@ -87,6 +107,18 @@ describe("unresolvedMessage", () => {
 			["a", "x"],
 			["b", "y"],
 		]);
-		expect(unresolvedMessage(["a", "b"], causes)).toContain("  a: x\n  b: y");
+		const message = unresolvedMessage(["a", "b"], causes);
+		expect(message).toContain("  a: x\n  b: y");
+		expect(message).not.toContain("typo");
+	});
+
+	it("keeps the typo advice for packages that returned no versions and no cause", () => {
+		expect(unresolvedMessage(["@fix/typo"])).toBe(
+			"Could not resolve 1 package from the registry — check each name for a typo, or your registry auth:\n  @fix/typo",
+		);
+		const mixed = unresolvedMessage(["a", "b"], new Map([["a", "x"]]));
+		expect(mixed).toBe(
+			"Could not resolve 2 packages from the registry:\n  a: x\n  b\nA package listed without a cause returned no versions — check each name for a typo, or your registry auth.",
+		);
 	});
 });

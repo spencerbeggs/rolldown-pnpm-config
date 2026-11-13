@@ -38,7 +38,10 @@ export class RegistryResolver extends Context.Service<
 	RegistryResolver,
 	{
 		readonly versions: (pkg: string) => Effect.Effect<string[], ResolveError>;
-		/** Version to ISO-8601 publish time; the packument's `created` and `modified` keys are not included. */
+		/**
+		 * Version to ISO-8601 publish time; the packument's `created` and `modified`
+		 * keys are not included. Fails when the registry lists no publish times.
+		 */
 		readonly times: (pkg: string) => Effect.Effect<Record<string, string>, ResolveError>;
 		/** The version's `peerDependencies`; `{}` when it declares none or the version is not published. */
 		readonly peerDependencies: (pkg: string, version: string) => Effect.Effect<Record<string, string>, ResolveError>;
@@ -128,8 +131,9 @@ const failedRead =
  * (or a workspace file pnpm would refuse, such as a registry URL with an
  * environment placeholder) fails the reads that need it, typed as
  * `ResolveError` carrying the cause's message, never layer
- * construction. A package the registry does not know fails `versions` and
- * `times` (an unresolvable name is reported, not read as "no versions").
+ * construction. A package the registry does not know fails `versions` (an
+ * unresolvable name is reported, not read as "no versions"); a package whose
+ * packument lists no publish times fails `times` with that cause.
  *
  * `client` is the seam for tests: `() => NpmRegistry.layerSeeded(seed)`
  * replaces the network while the npmrc loading and routing stay real. Each
@@ -165,7 +169,15 @@ export function RegistryResolverLive(
 					return { config, service: Context.get(context, NpmRegistry) };
 				}),
 			);
-			const notFound = (pkg: string) => new ResolveError({ pkg, message: `${pkg} is not on the registry` });
+			const notFound = (pkg: string) =>
+				new ResolveError({
+					pkg,
+					message: `${pkg} is not on the registry (check the name for a typo, or your registry auth)`,
+				});
+			// The package exists (its versions resolved); its publish times do not, so no
+			// version's age can be established. Not "not on the registry".
+			const noTimes = (pkg: string) =>
+				new ResolveError({ pkg, message: `publish times unavailable for ${pkg}: the registry lists none` });
 			return {
 				versions: (pkg: string) =>
 					registry.pipe(
@@ -181,11 +193,13 @@ export function RegistryResolverLive(
 						Effect.mapError(failedRead(pkg)),
 						Effect.flatMap(
 							Option.match({
-								onNone: () => Effect.fail(notFound(pkg)),
+								onNone: () => Effect.fail(noTimes(pkg)),
 								onSome: (entries) =>
-									Effect.succeed(
-										Object.fromEntries(entries.map((e) => [e.version, DateTime.formatIso(e.publishedAt)])),
-									),
+									entries.length === 0
+										? Effect.fail(noTimes(pkg))
+										: Effect.succeed(
+												Object.fromEntries(entries.map((e) => [e.version, DateTime.formatIso(e.publishedAt)])),
+											),
 							}),
 						),
 					),

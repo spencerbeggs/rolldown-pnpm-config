@@ -22,6 +22,7 @@
 * Updated pnpm settings
 * Updated rolldown-pnpm-config
 * Updated { base, manifest, name } contract
+* Updated Runtime
 
 ## 2026-11-12
 
