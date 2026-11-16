@@ -1,6 +1,6 @@
 {
 	"name": "rolldown-pnpm-config",
-	"version": "3.0.0",
+	"version": "3.0.1",
 	"private": true,
 	"description": "A dogfooding example of our plugin",
 	"repository": {
@@ -45,7 +45,7 @@
 		"@effected/yaml": "catalog:effected:exact",
 		"effect": "catalog:effected:exact",
 		"ink": "catalog:effected:build",
-		"oxc-parser": "^0.158.0",
+		"oxc-parser": "^0.159.0",
 		"react": "catalog:effected:build"
 	},
 	"devDependencies": {
