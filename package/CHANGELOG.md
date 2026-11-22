@@ -1,5 +1,13 @@
 # rolldown-pnpm-config
 
+## 3.0.4
+
+### Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @effected/workspaces | dependency | updated | 0.49.0 | 0.49.1 |
+
 ## 3.0.3
 
 ### Dependencies
