@@ -48,8 +48,8 @@
 	"devDependencies": {
 		"@effected/plugin": "catalog:effected",
 		"@okfit/plugin": "^0.5.40",
-		"@savvy-web/silk": "^5.1.9",
-		"@vitest-agent/plugin": "^6.1.1",
+		"@savvy-web/silk": "^5.1.10",
+		"@vitest-agent/plugin": "^6.2.0",
 		"tsx": "catalog:effected:build"
 	},
 	"engines": {
