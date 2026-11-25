@@ -2,27 +2,28 @@
 type: Decision
 title: Descriptor table as the single source of truth
 description: One declarative entry per managed pnpm field; deriveSchemas and deriveRegistry produce what code consumes, kept honest by a satisfies-based drift guard.
-status: stable
+status: deprecated
+superseded_by: settings-catalog-from-the-kit.md
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
+  at: 2026-11-25T19:25:41Z
 sources:
   - id: descriptors-index
-    resource: package/src/descriptors/index.ts
+    resource: https://github.com/spencerbeggs/rolldown-pnpm-config/blob/f53921797b508f0e95ace46fccd57f178a50b336/package/src/descriptors/index.ts
   - id: descriptors-types
-    resource: package/src/descriptors/types.ts
+    resource: https://github.com/spencerbeggs/rolldown-pnpm-config/blob/f53921797b508f0e95ace46fccd57f178a50b336/package/src/descriptors/types.ts
   - id: registry
-    resource: package/src/registry.ts
+    resource: ../../package/src/registry.ts
   - id: drift-guard
-    resource: package/__test__/types/plugin-config.test-d.ts
+    resource: ../../package/__test__/types/plugin-config.test-d.ts
   - id: table-test
-    resource: package/__test__/descriptors/table.test.ts
+    resource: https://github.com/spencerbeggs/rolldown-pnpm-config/blob/f53921797b508f0e95ace46fccd57f178a50b336/package/__test__/descriptors/table.test.ts
 verified:
   - by: human:spencer
     at: 2026-10-27T16:21:39Z
-integrity:
+x-okfit-integrity:
   generated:
-    body: 2825c7cb51788f64
+    body: 7587dc632f6114b7
   verified:
     by: human:spencer
     at: 2026-10-27T16:21:39Z
@@ -30,6 +31,11 @@ integrity:
 ---
 
 # Descriptor table as the single source of truth
+
+> Superseded by [pnpm setting facts come from the kit's settings catalog](settings-catalog-from-the-kit.md):
+> the descriptor table was split, and the plugin now keeps only its policy
+> while every setting's schema, kind and locations come from
+> `@effected/pnpm/settings`.
 
 ## Context
 

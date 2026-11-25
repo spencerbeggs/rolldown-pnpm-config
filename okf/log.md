@@ -1,5 +1,70 @@
 # Log
 
+## 2026-11-25
+
+* Updated "lock" pins to the version verbatim
+* Updated --dry-run replaces --preview on export
+* Updated --yes is strict, interactive is lenient
+* Updated A non-public localPatchesDir can dangle
+* Updated A prerelease workspace next version cannot be planned
+* Updated Add a managed field through the policy table only
+* Updated An opt-in `<name>:exact` catalog derived from each range
+* Updated Build the package
+* Updated Builds never write
+* Updated CLI
+* Updated CLI output, audience and exit codes
+* Updated CLI presentation through the @effected/cli-kit kit
+* Updated Catalog entry, peer strategy, and version source
+* Updated Commit message format
+* Updated Data-driven refines, not injected code
+* Updated Default override preservation
+* Updated Descriptor table as the single source of truth
+* Updated Detection separated from response
+* Updated Effect at build time only
+* Updated Effect v4 collapses the declared peer closure
+* Updated Export writes pnpm-workspace.yaml as edits, not a re-render
+* Updated Field policy entry
+* Updated Import and module style
+* Updated Interop strategy reconciles the group, not one package
+* Updated Keep the managed-fields interface in step with the policy table
+* Updated Keep virtual.d.ts self-contained
+* Updated LocalDirective
+* Updated Major bumps are interactive-only
+* Updated Managed pnpm fields
+* Updated Never set private to false in the source package.json
+* Updated No execution of the config
+* Updated Patches
+* Updated Plugin engine
+* Updated PnpmConfigPlugin authoring surface
+* Updated Recover from a stale config-dependency lockfile
+* Updated Release and publish
+* Updated Runtime
+* Updated Settings policy table
+* Updated Shared StyledLine render layer, not per-command ad hoc color
+* Updated Standard plugin, no bundler coupling
+* Updated Surgical span rewrite, operator preserved
+* Updated Test file layout
+* Updated The package pins its kit dependencies exactly through `catalog:effected:exact`
+* Updated Vendored v4 source as the API authority
+* Updated Virtual module specifiers
+* Updated Workspace consumers link the package's TypeScript source through tsx
+* Updated base
+* Updated divergence
+* Updated enforcement
+* Updated export and preview commands
+* Updated freeze
+* Updated interop group
+* Updated local is post-freeze, export-time only
+* Updated manifest
+* Updated materialize
+* Updated patch distribution
+* Updated pnpm setting facts come from the kit's settings catalog
+* Updated pnpm settings
+* Updated rolldown-pnpm-config
+* Updated strategy
+* Updated upgrade command
+* Updated { base, manifest, name } contract
+
 ## 2026-11-13
 
 * Updated Add a managed field through the policy table only

@@ -2,17 +2,18 @@
 type: Glossary
 title: manifest
 description: The field→{ strategy, enforcement, options? } map freeze produces — not a package manifest or package.json.
+status: stable
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
+  at: 2026-11-25T19:25:41Z
 sources:
   - id: runtime-index
     resource: ../../package/src/runtime/index.ts
   - id: freeze-impl
     resource: ../../package/src/plugin/freeze.ts
-integrity:
+x-okfit-integrity:
   generated:
-    body: 5a93c920d2930290
+    body: e8ccd87ca24d3f83
 ---
 
 # manifest
@@ -29,3 +30,6 @@ The trap this term sets: it has nothing to do with a package manifest —
 it is not `package.json`, and it does not describe published package
 metadata. In this repository "manifest" always means this
 strategy/enforcement map.
+
+[^freeze-impl]: freeze-impl
+[^runtime-index]: runtime-index

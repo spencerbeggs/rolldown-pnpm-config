@@ -2,17 +2,18 @@
 type: Glossary
 title: strategy
 description: A pure (base, local, ctx) => { merged, divergences } function that only detects divergence — and the unrelated PeerStrategy CLI concept that shares the word.
+status: stable
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
+  at: 2026-11-25T19:25:41Z
 sources:
   - id: strategy-table
     resource: ../../package/src/runtime/strategies/table.ts
   - id: catalogs-peer-strategy
     resource: ../../package/src/catalogs.ts
-integrity:
+x-okfit-integrity:
   generated:
-    body: f4da2b5802bb40bd
+    body: 9ab1f1b9cc53a1b7
 ---
 
 # strategy
@@ -33,3 +34,6 @@ which is CLI-only metadata governing how the `upgrade` CLI recomputes a
 materialized `peer` range when a catalog `range` is bumped — the runtime
 ignores it entirely. The two "strategy" concepts share only the word;
 this collision is exactly why the term needs its own entry.
+
+[^strategy-table]: strategy-table
+[^catalogs-peer-strategy]: catalogs-peer-strategy

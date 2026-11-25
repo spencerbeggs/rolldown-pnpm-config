@@ -3,18 +3,19 @@ type: Interface
 title: Virtual module specifiers
 description: The two virtual module specifiers PnpmConfigPlugin serves and the ambient types a consumer opts into to type-check imports from them.
 resource: ../../package/src/virtual.d.ts
-kind: api
+x-okfit-kind: api
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
 sources:
   - id: virtual-dts
-    resource: package/src/virtual.d.ts
+    resource: ../../package/src/virtual.d.ts
   - id: plugin-index
-    resource: package/src/plugin/index.ts
+    resource: ../../package/src/plugin/index.ts
 tags:
   - architecture
-integrity:
+x-okfit-integrity:
   generated:
     body: dbaddb2c960b6c80
 ---

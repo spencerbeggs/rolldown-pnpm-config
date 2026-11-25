@@ -2,6 +2,7 @@
 type: Limitation
 title: A prerelease workspace next version cannot be planned
 description: plan's stable-only candidate filter drops a workspace-sourced entry whose next workspace version is a prerelease, unless the entry's current range is itself a prerelease on the same track.
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
@@ -10,7 +11,7 @@ sources:
     resource: ../../package/src/cli/plan.ts
   - id: upgrade-command-ts
     resource: ../../package/src/cli/commands/upgrade.ts
-integrity:
+x-okfit-integrity:
   generated:
     body: 1c5d1965ad2903ad
 ---

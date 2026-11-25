@@ -7,12 +7,13 @@ sources:
     resource: "https://pnpm.io/settings"
   - id: schemastore
     resource: "https://json.schemastore.org/pnpm-workspace.json"
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-11-13T04:57:23Z
 tags:
   - architecture
-integrity:
+x-okfit-integrity:
   generated:
     body: 358aa75db3694309
 ---

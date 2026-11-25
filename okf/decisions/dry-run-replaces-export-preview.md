@@ -8,11 +8,11 @@ generated:
   at: 2026-11-02T19:10:49Z
 sources:
   - id: export-command
-    resource: package/src/cli/commands/export.ts
+    resource: ../../package/src/cli/commands/export.ts
   - id: preview-command
-    resource: package/src/cli/commands/preview.ts
+    resource: ../../package/src/cli/commands/preview.ts
   - id: upgrade-command
-    resource: package/src/cli/commands/upgrade.ts
+    resource: ../../package/src/cli/commands/upgrade.ts
 tags:
   - architecture
 verified:
@@ -20,13 +20,17 @@ verified:
     at: 2026-10-27T16:21:39Z
   - by: human:spencer
     at: 2026-11-02T19:10:04Z
-integrity:
+  - by: human:spencer
+    at: 2026-11-25T19:03:48Z
+  - by: human:spencer
+    at: 2026-11-25T19:21:37Z
+x-okfit-integrity:
   generated:
     body: 8e3095ea39b7e099
   verified:
     by: human:spencer
-    at: 2026-11-02T19:10:04Z
-    content: 65b7f64e3d5fcfbd
+    at: 2026-11-25T19:21:37Z
+    content: f7414c77932703dd
 ---
 
 # `--dry-run` replaces `--preview` on `export`

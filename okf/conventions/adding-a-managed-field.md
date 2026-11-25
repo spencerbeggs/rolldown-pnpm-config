@@ -2,19 +2,19 @@
 type: Convention
 title: Add a managed field through the policy table only
 description: A new managed pnpm field is one FIELD_REGISTRY entry naming a pnpm 12 catalog setting plus its matching PluginConfig line; its schema comes from @effected/pnpm/settings, never from here.
-status: draft
+status: stable
 stale_after: 2027-02-10T00:00:00Z
 generated:
   by: claude-code/opus
   at: 2026-11-13T04:57:23Z
 sources:
   - id: registry
-    resource: package/src/registry.ts
+    resource: ../../package/src/registry.ts
   - id: drift-guard
-    resource: package/__test__/types/plugin-config.test-d.ts
+    resource: ../../package/__test__/types/plugin-config.test-d.ts
   - id: registry-test
-    resource: package/__test__/plugin/registry.test.ts
-integrity:
+    resource: ../../package/__test__/plugin/registry.test.ts
+x-okfit-integrity:
   generated:
     body: 23a3be6e1952318f
 ---

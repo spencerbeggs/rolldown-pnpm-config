@@ -1,7 +1,7 @@
 # Convention
 
 * [Add a managed field through the policy table only](adding-a-managed-field.md) - A new managed pnpm field is one FIELD_REGISTRY entry naming a pnpm 12 catalog setting plus its matching PluginConfig line; its schema comes from @effected/pnpm/settings, never from here.
-* [Commit message format](commit-format.md) - Every commit needs a conventional-commit type and a DCO Signed-off-by trailer, enforced by the commit-msg hook via @savvy-web/commitlint.
+* [Commit message format](commit-format.md) - Every commit needs a conventional-commit type and a DCO Signed-off-by trailer, enforced by the commit-msg hook via @savvy-web/silk/commitlint.
 * [Import and module style](import-and-module-style.md) - The enforced relative-import extension, node: protocol, import-type, and no-unused/no-cycle rules, plus the strict TypeScript flags that turn violations into compile errors, and the counter-rule against hand-formatting.
 * [Keep the managed-fields interface in step with the policy table](keep-the-coverage-matrix-in-step.md) - Update okf/interfaces/managed-pnpm-fields.md whenever the policy table changes; a setting's facts are the @effected/pnpm/settings catalog's.
 * [Keep virtual.d.ts self-contained](virtual-dts-stays-self-contained.md) - Never write a cross-module import inside package/src/virtual.d.ts; inline the types it needs and hand-sync them with the runtime source.

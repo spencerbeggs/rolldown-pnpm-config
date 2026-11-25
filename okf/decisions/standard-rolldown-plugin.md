@@ -8,17 +8,19 @@ generated:
   at: 2026-09-09T06:03:08Z
 sources:
   - id: plugin-index
-    resource: package/src/plugin/index.ts
+    resource: ../../package/src/plugin/index.ts
 verified:
   - by: human:spencer
     at: 2026-11-01T21:52:55Z
-integrity:
+  - by: human:spencer
+    at: 2026-11-25T19:21:37Z
+x-okfit-integrity:
   generated:
     body: b803bb04793891f9
   verified:
     by: human:spencer
-    at: 2026-11-01T21:52:55Z
-    content: a6460675f90ed0e2
+    at: 2026-11-25T19:21:37Z
+    content: a23079d66c655024
 ---
 
 # Standard plugin, no bundler coupling

@@ -3,20 +3,21 @@ type: Interface
 title: Catalog entry, peer strategy, and version source
 description: The catalog package spec shape an author writes, the PeerStrategy/VersionSource authoring fields, and the colon-only <name>:peers materialized catalog naming.
 resource: ../../package/src/catalogs.ts
-kind: api
+x-okfit-kind: api
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-11-13T04:57:23Z
 sources:
   - id: discover-ts
-    resource: package/src/cli/discover.ts
+    resource: ../../package/src/cli/discover.ts
   - id: catalogs-ts
-    resource: package/src/catalogs.ts
+    resource: ../../package/src/catalogs.ts
   - id: changelog
-    resource: package/CHANGELOG.md
+    resource: ../../package/CHANGELOG.md
 tags:
   - architecture
-integrity:
+x-okfit-integrity:
   generated:
     body: d36b69e514a5cad7
 ---

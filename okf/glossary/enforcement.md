@@ -2,15 +2,16 @@
 type: Glossary
 title: enforcement
 description: What is done about a divergence — warn routes to a console box by kind, error throws EnforcementError, absent is silent.
+status: stable
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
+  at: 2026-11-25T19:25:41Z
 sources:
   - id: enforcement-impl
     resource: ../../package/src/runtime/enforcement.ts
-integrity:
+x-okfit-integrity:
   generated:
-    body: 29defc6cc566f77e
+    body: 77de7c874a982ba7
 ---
 
 # enforcement
@@ -32,3 +33,5 @@ strategy runs[^enforcement-impl]. Three values:
 See [detection-separated-from-response](../decisions/detection-separated-from-response.md)
 for why detection ([strategy](strategy.md)) and response (enforcement)
 are two separate steps.
+
+[^enforcement-impl]: enforcement-impl

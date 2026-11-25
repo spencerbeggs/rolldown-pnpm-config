@@ -3,22 +3,23 @@ type: Interface
 title: PnpmConfigPlugin authoring surface
 description: The single canonical, statically analyzable PnpmConfigPlugin({...}) call a plugin author writes against.
 resource: ../../package/src/define-plugin.ts
-kind: api
+x-okfit-kind: api
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-11-13T04:57:23Z
 sources:
   - id: define-plugin
-    resource: package/src/define-plugin.ts
+    resource: ../../package/src/define-plugin.ts
   - id: plugin-index
-    resource: package/src/plugin/index.ts
+    resource: ../../package/src/plugin/index.ts
   - id: catalogs-ts
-    resource: package/src/catalogs.ts
+    resource: ../../package/src/catalogs.ts
   - id: drift-guard-test
-    resource: package/__test__/types/plugin-config.test-d.ts
+    resource: ../../package/__test__/types/plugin-config.test-d.ts
 tags:
   - architecture
-integrity:
+x-okfit-integrity:
   generated:
     body: a1c3a4beb572a6d5
 ---

@@ -8,22 +8,24 @@ generated:
   at: 2026-09-09T06:03:08Z
 sources:
   - id: interop
-    resource: package/src/cli/interop.ts
+    resource: ../../package/src/cli/interop.ts
   - id: interop-live
-    resource: package/src/cli/interop-live.ts
+    resource: ../../package/src/cli/interop-live.ts
 tags:
   - architecture
   - performance
 verified:
   - by: human:spencer
     at: 2026-11-01T21:52:55Z
-integrity:
+  - by: human:spencer
+    at: 2026-11-25T19:21:37Z
+x-okfit-integrity:
   generated:
     body: 575d24fd790208a2
   verified:
     by: human:spencer
-    at: 2026-11-01T21:52:55Z
-    content: e32fc8a133ea9553
+    at: 2026-11-25T19:21:37Z
+    content: e6d94ee477a7f877
 ---
 
 # Interop strategy reconciles the group, not one package

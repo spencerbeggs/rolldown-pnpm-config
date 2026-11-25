@@ -3,22 +3,23 @@ type: Module
 title: Runtime
 description: The zero-dependency pnpmfile runtime — createHooks, the strategy table, and enforcement.
 resource: ../../package/src/runtime
-kind: package
+x-okfit-kind: package
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-11-13T06:15:14Z
 sources:
   - id: runtime-index
-    resource: package/src/runtime/index.ts
+    resource: ../../package/src/runtime/index.ts
   - id: runtime-types
-    resource: package/src/runtime/types.ts
+    resource: ../../package/src/runtime/types.ts
   - id: runtime-enforcement
-    resource: package/src/runtime/enforcement.ts
+    resource: ../../package/src/runtime/enforcement.ts
   - id: runtime-ctx
-    resource: package/src/runtime/ctx.ts
+    resource: ../../package/src/runtime/ctx.ts
   - id: strategies-table
-    resource: package/src/runtime/strategies/table.ts
-integrity:
+    resource: ../../package/src/runtime/strategies/table.ts
+x-okfit-integrity:
   generated:
     body: 616e124c203c6efc
 ---

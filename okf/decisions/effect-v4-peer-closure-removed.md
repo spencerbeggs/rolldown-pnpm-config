@@ -8,9 +8,9 @@ generated:
   at: 2026-11-12T02:30:03Z
 sources:
   - id: package-json
-    resource: package/package.json
+    resource: ../../package/package.json
   - id: bin
-    resource: package/src/cli/bin.ts
+    resource: ../../package/src/cli/bin.ts
 tags:
   - architecture
 verified:
@@ -18,13 +18,17 @@ verified:
     at: 2026-10-27T16:21:39Z
   - by: human:spencer
     at: 2026-11-01T21:52:55Z
-integrity:
+  - by: human:spencer
+    at: 2026-11-25T19:03:48Z
+  - by: human:spencer
+    at: 2026-11-25T19:21:37Z
+x-okfit-integrity:
   generated:
     body: 1fdf8648d96c4fad
   verified:
     by: human:spencer
-    at: 2026-11-01T21:52:55Z
-    content: ab9ed91e9d6b0d65
+    at: 2026-11-25T19:21:37Z
+    content: 37f096ea1f3624ce
 ---
 
 # Effect v4 collapses the declared peer closure

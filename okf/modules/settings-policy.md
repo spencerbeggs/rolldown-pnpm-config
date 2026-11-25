@@ -3,19 +3,19 @@ type: Module
 title: Settings policy table
 description: The plugin's merge strategy and enforcement for each of the 110 pnpm settings it manages, laid over the pnpm 12 settings catalog from @effected/pnpm/settings.
 resource: ../../package/src/registry.ts
-kind: package
-status: draft
+x-okfit-kind: package
+status: stable
 generated:
   by: claude-code/opus
   at: 2026-11-13T06:08:51Z
 sources:
   - id: registry
-    resource: package/src/registry.ts
+    resource: ../../package/src/registry.ts
   - id: freeze
-    resource: package/src/plugin/freeze.ts
+    resource: ../../package/src/plugin/freeze.ts
   - id: settings-catalog
     resource: "npm:@effected/pnpm/settings"
-integrity:
+x-okfit-integrity:
   generated:
     body: 6b21621a91bde3e4
 ---

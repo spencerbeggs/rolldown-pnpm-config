@@ -8,23 +8,25 @@ generated:
   at: 2026-09-09T06:03:08Z
 sources:
   - id: freeze
-    resource: package/src/plugin/freeze.ts
+    resource: ../../package/src/plugin/freeze.ts
   - id: runtime-index
-    resource: package/src/runtime/index.ts
+    resource: ../../package/src/runtime/index.ts
   - id: enforcement
-    resource: package/src/runtime/enforcement.ts
+    resource: ../../package/src/runtime/enforcement.ts
 tags:
   - architecture
 verified:
   - by: human:spencer
     at: 2026-10-27T16:21:39Z
-integrity:
+  - by: human:spencer
+    at: 2026-11-25T19:21:37Z
+x-okfit-integrity:
   generated:
     body: 648f2acf59bbc3a7
   verified:
     by: human:spencer
-    at: 2026-10-27T16:21:39Z
-    content: 19ab23224e3c9c94
+    at: 2026-11-25T19:21:37Z
+    content: 96d9ea354827e882
 ---
 
 # Effect at build time only

@@ -8,21 +8,25 @@ generated:
   at: 2026-11-13T04:57:23Z
 sources:
   - id: ctx
-    resource: package/src/runtime/ctx.ts
+    resource: ../../package/src/runtime/ctx.ts
   - id: descriptors-types
-    resource: package/src/plugin/freeze.ts
+    resource: ../../package/src/plugin/freeze.ts
   - id: runtime-index
-    resource: package/src/runtime/index.ts
+    resource: ../../package/src/runtime/index.ts
 verified:
   - by: human:spencer
     at: 2026-10-27T16:21:39Z
-integrity:
+  - by: human:spencer
+    at: 2026-11-25T19:03:48Z
+  - by: human:spencer
+    at: 2026-11-25T19:21:37Z
+x-okfit-integrity:
   generated:
     body: e099465caedd98d5
   verified:
     by: human:spencer
-    at: 2026-10-27T16:21:39Z
-    content: 93f8b171563d0ef4
+    at: 2026-11-25T19:21:37Z
+    content: caf5310b927e9dcf
 ---
 
 # Data-driven refines, not injected code

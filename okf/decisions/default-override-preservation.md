@@ -8,21 +8,23 @@ generated:
   at: 2026-09-09T06:03:08Z
 sources:
   - id: effective-ts
-    resource: package/src/cli/effective.ts
+    resource: ../../package/src/cli/effective.ts
   - id: local-merge-ts
-    resource: package/src/cli/local-merge.ts
+    resource: ../../package/src/cli/local-merge.ts
 tags:
   - architecture
 verified:
   - by: human:spencer
     at: 2026-10-27T16:21:39Z
-integrity:
+  - by: human:spencer
+    at: 2026-11-25T19:21:37Z
+x-okfit-integrity:
   generated:
     body: 34bcfba41cb4017a
   verified:
     by: human:spencer
-    at: 2026-10-27T16:21:39Z
-    content: a93a705ee1295a1c
+    at: 2026-11-25T19:21:37Z
+    content: fd30398adc1f110f
 ---
 
 # Default override preservation

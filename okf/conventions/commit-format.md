@@ -1,17 +1,18 @@
 ---
 type: Convention
 title: Commit message format
-description: Every commit needs a conventional-commit type and a DCO Signed-off-by trailer, enforced by the commit-msg hook via @savvy-web/commitlint.
+description: Every commit needs a conventional-commit type and a DCO Signed-off-by trailer, enforced by the commit-msg hook via @savvy-web/silk/commitlint.
 stale_after: 2026-12-08T00:00:00Z
+status: stable
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
+  at: 2026-11-25T19:25:41Z
 sources:
   - id: root-claude-md
-    resource: CLAUDE.md
-integrity:
+    resource: ../../CLAUDE.md
+x-okfit-integrity:
   generated:
-    body: a4a8f3f5ffc520ca
+    body: c2f2c163cc533b9c
 ---
 
 # Commit message format
@@ -20,7 +21,7 @@ Write every commit message in conventional-commit format (`feat`, `fix`,
 `chore`, and the rest of the type enum) and include a DCO signoff trailer —
 `Signed-off-by: Name <email>`.[^root-claude-md]
 
-The `commit-msg` Husky hook enforces this via `@savvy-web/commitlint`
+The `commit-msg` Husky hook enforces this via `@savvy-web/silk/commitlint`
 (`lib/configs/commitlint.config.ts`, `CommitlintConfig.silk()`); a commit
 missing either the conventional type or the DCO trailer fails the
 hook.[^root-claude-md]
@@ -28,3 +29,5 @@ hook.[^root-claude-md]
 See [test-layout](test-layout.md) and
 [import-and-module-style](import-and-module-style.md) for the other
 pre-commit-enforced conventions in this repository.
+
+[^root-claude-md]: root-claude-md

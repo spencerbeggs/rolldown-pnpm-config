@@ -3,20 +3,21 @@ type: Interface
 title: "{ base, manifest, name } contract"
 description: The plain-data payload that crosses from build time into the bundled zero-dependency runtime.
 resource: ../../package/src/runtime/index.ts
-kind: api
+x-okfit-kind: api
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-11-13T04:57:23Z
 sources:
   - id: runtime-index
-    resource: package/src/runtime/index.ts
+    resource: ../../package/src/runtime/index.ts
   - id: runtime-types
-    resource: package/src/runtime/types.ts
+    resource: ../../package/src/runtime/types.ts
   - id: warnings-ts
-    resource: package/src/runtime/warnings.ts
+    resource: ../../package/src/runtime/warnings.ts
 tags:
   - architecture
-integrity:
+x-okfit-integrity:
   generated:
     body: b90d8d1a37fefa06
 ---

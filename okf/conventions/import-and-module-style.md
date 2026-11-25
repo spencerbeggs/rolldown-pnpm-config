@@ -3,17 +3,18 @@ type: Convention
 title: Import and module style
 description: "The enforced relative-import extension, node: protocol, import-type, and no-unused/no-cycle rules, plus the strict TypeScript flags that turn violations into compile errors, and the counter-rule against hand-formatting."
 stale_after: 2026-12-08T00:00:00Z
+status: stable
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
+  at: 2026-11-25T19:25:41Z
 sources:
   - id: biome-config
-    resource: biome.json
+    resource: ../../biome.json
   - id: lint-staged-config
-    resource: lib/configs/lint-staged.config.ts
-integrity:
+    resource: ../../lib/configs/lint-staged.config.ts
+x-okfit-integrity:
   generated:
-    body: e2e84a3cbb902abb
+    body: 95e36266b661b17a
 ---
 
 # Import and module style
@@ -53,3 +54,6 @@ applies safe fixes, and organizes imports — on staged JS/TS/JSON
 files.[^lint-staged-config] Write correct code and let the pre-commit hook
 apply the formatting; a hand-formatting pass only produces a diff the hook
 immediately reformats again.
+
+[^biome-config]: biome-config
+[^lint-staged-config]: lint-staged-config

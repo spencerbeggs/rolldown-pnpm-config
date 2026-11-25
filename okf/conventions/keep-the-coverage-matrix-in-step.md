@@ -3,13 +3,14 @@ type: Convention
 title: Keep the managed-fields interface in step with the policy table
 description: Update okf/interfaces/managed-pnpm-fields.md whenever the policy table changes; a setting's facts are the @effected/pnpm/settings catalog's.
 stale_after: 2026-12-08T00:00:00Z
+status: stable
 generated:
   by: claude-code/opus
   at: 2026-11-13T04:57:23Z
 sources:
   - id: descriptors-index
-    resource: package/src/registry.ts
-integrity:
+    resource: ../../package/src/registry.ts
+x-okfit-integrity:
   generated:
     body: b0194a9feb1b5069
 ---

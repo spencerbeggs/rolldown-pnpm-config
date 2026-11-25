@@ -8,23 +8,25 @@ generated:
   at: 2026-09-09T06:03:08Z
 sources:
   - id: discover
-    resource: package/src/cli/discover.ts
+    resource: ../../package/src/cli/discover.ts
   - id: select-file
-    resource: package/src/cli/select-file.ts
+    resource: ../../package/src/cli/select-file.ts
   - id: catalogs
-    resource: package/src/catalogs.ts
+    resource: ../../package/src/catalogs.ts
 tags:
   - architecture
 verified:
   - by: human:spencer
     at: 2026-11-01T21:52:55Z
-integrity:
+  - by: human:spencer
+    at: 2026-11-25T19:21:37Z
+x-okfit-integrity:
   generated:
     body: 70ff30c3b86b105e
   verified:
     by: human:spencer
-    at: 2026-11-01T21:52:55Z
-    content: eeacd40708b51409
+    at: 2026-11-25T19:21:37Z
+    content: 5ef764aba0163d57
 ---
 
 # No execution of the config

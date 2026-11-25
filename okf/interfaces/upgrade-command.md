@@ -2,8 +2,9 @@
 type: Interface
 title: upgrade command
 description: The consumer-facing contract of `rolldown-pnpm-config upgrade [file]`.
-kind: cli
+x-okfit-kind: cli
 resource: ../../package/src/cli/commands/upgrade.ts
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-11-09T22:52:22Z
@@ -12,7 +13,7 @@ sources:
     resource: ../../package/src/cli/commands/upgrade.ts
   - id: bin-ts
     resource: ../../package/src/cli/bin.ts
-integrity:
+x-okfit-integrity:
   generated:
     body: 4344e6a61a6897ce
 ---

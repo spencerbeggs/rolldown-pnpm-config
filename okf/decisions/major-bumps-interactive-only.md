@@ -8,25 +8,27 @@ generated:
   at: 2026-09-09T06:03:08Z
 sources:
   - id: plan
-    resource: package/src/cli/plan.ts
+    resource: ../../package/src/cli/plan.ts
   - id: walk-reducer
-    resource: package/src/cli/walk-reducer.ts
+    resource: ../../package/src/cli/walk-reducer.ts
   - id: upgrade-command
-    resource: package/src/cli/commands/upgrade.ts
+    resource: ../../package/src/cli/commands/upgrade.ts
   - id: catalogs
-    resource: package/src/catalogs.ts
+    resource: ../../package/src/catalogs.ts
 tags:
   - architecture
 verified:
   - by: human:spencer
     at: 2026-11-01T21:52:55Z
-integrity:
+  - by: human:spencer
+    at: 2026-11-25T19:21:37Z
+x-okfit-integrity:
   generated:
     body: fc338343e575e8e4
   verified:
     by: human:spencer
-    at: 2026-11-01T21:52:55Z
-    content: 9fcf93838dae6c66
+    at: 2026-11-25T19:21:37Z
+    content: 17be010b1eb68374
 ---
 
 # Major bumps are interactive-only

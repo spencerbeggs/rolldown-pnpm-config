@@ -2,8 +2,9 @@
 type: Interface
 title: patch distribution
 description: The authoring convention a plugin uses to distribute pnpm dependency patches through its config-dependency package.
-kind: config
+x-okfit-kind: config
 resource: ../../package/src/patches
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-11-13T04:57:23Z
@@ -16,7 +17,7 @@ sources:
     resource: ../../package/src/define-plugin.ts
   - id: maps-ts
     resource: ../../package/src/runtime/strategies/maps.ts
-integrity:
+x-okfit-integrity:
   generated:
     body: b933e6542690b365
 ---

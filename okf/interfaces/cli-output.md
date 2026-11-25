@@ -2,9 +2,9 @@
 type: Interface
 title: CLI output, audience and exit codes
 description: What every rolldown-pnpm-config subcommand promises a script, an agent or a person about who its output is for, which stream each line lands on, colour, and its exit code.
-kind: cli
+x-okfit-kind: cli
 resource: ../../package/src/cli/main.ts
-status: draft
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-11-09T18:10:01Z
@@ -25,7 +25,7 @@ sources:
     resource: ../../package/__test__/cli/upgrade-session.int.test.ts
 tags:
   - dx
-integrity:
+x-okfit-integrity:
   generated:
     body: 35c08b536ef673df
 ---

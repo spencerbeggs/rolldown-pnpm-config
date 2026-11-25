@@ -2,17 +2,18 @@
 type: Project
 title: rolldown-pnpm-config
 description: What this project is, its boundaries, and its non-goals.
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-11-13T04:57:23Z
 sources:
   - id: package-json
-    resource: package/package.json
+    resource: ../package/package.json
   - id: plugin-index
-    resource: package/src/plugin/index.ts
+    resource: ../package/src/plugin/index.ts
   - id: runtime-enforcement
-    resource: package/src/runtime/enforcement.ts
-integrity:
+    resource: ../package/src/runtime/enforcement.ts
+x-okfit-integrity:
   generated:
     body: 0f69252427716e72
 ---

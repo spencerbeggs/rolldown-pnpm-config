@@ -2,19 +2,20 @@
 type: Interface
 title: LocalDirective
 description: The per-field export-time override contract authors write under `local` in a `PnpmConfigPlugin({...})` call.
-kind: api
+x-okfit-kind: api
 resource: ../../package/src/define-plugin.ts
+status: stable
 generated:
   by: okfit/claude-code
-  at: 2026-10-28T23:43:44Z
+  at: 2026-11-25T19:25:41Z
 sources:
   - id: define-plugin-ts
     resource: ../../package/src/define-plugin.ts
   - id: local-merge-ts
     resource: ../../package/src/cli/local-merge.ts
-integrity:
+x-okfit-integrity:
   generated:
-    body: 83a92777ee2a2e62
+    body: b7aed6c7e661de5a
 ---
 
 # LocalDirective
@@ -63,3 +64,6 @@ use foreign keys — for example a hand-written `overrides` map with a
 package named `preserve` or `value` mixed with other keys — is not
 mistaken for a directive as long as it carries at least one key outside
 that set; it is instead treated as a bare value.[^local-merge-ts]
+
+[^define-plugin-ts]: define-plugin-ts
+[^local-merge-ts]: local-merge-ts

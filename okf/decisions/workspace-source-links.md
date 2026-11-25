@@ -22,16 +22,18 @@ sources:
 tags:
   - architecture
   - dx
-integrity:
+x-okfit-integrity:
   generated:
     body: 0fb851068de6c65d
   verified:
     by: human:spencer
-    at: 2026-11-08T21:37:34Z
-    content: 29ba262018a05804
+    at: 2026-11-25T19:03:48Z
+    content: 5118e8bb51f31a81
 verified:
   - by: human:spencer
     at: 2026-11-08T21:37:34Z
+  - by: human:spencer
+    at: 2026-11-25T19:03:48Z
 ---
 
 # Workspace consumers link the package's TypeScript source through tsx

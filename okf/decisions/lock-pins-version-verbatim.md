@@ -8,24 +8,26 @@ generated:
   at: 2026-11-05T23:10:28Z
 sources:
   - id: peer-range
-    resource: package/src/cli/peer-range.ts
+    resource: ../../package/src/cli/peer-range.ts
   - id: drift
-    resource: package/src/cli/drift.ts
+    resource: ../../package/src/cli/drift.ts
   - id: edits
-    resource: package/src/cli/edits.ts
+    resource: ../../package/src/cli/edits.ts
 tags: []
 verified:
   - by: human:spencer
     at: 2026-11-01T21:52:55Z
   - by: human:spencer
     at: 2026-11-05T23:11:41Z
-integrity:
+  - by: human:spencer
+    at: 2026-11-25T19:21:37Z
+x-okfit-integrity:
   generated:
     body: 9ff8779cca406bdf
   verified:
     by: human:spencer
-    at: 2026-11-05T23:11:41Z
-    content: 8407d9d4837b0cd6
+    at: 2026-11-25T19:21:37Z
+    content: 8d5b1907dd6252e3
 ---
 
 # "lock" pins to the version verbatim

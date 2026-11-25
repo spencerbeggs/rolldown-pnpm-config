@@ -3,20 +3,21 @@ type: Module
 title: Patches
 description: Build/CLI-side patch discovery and path rewrite so a plugin author can distribute pnpm dependency patches.
 resource: ../../package/src/patches
-kind: package
+x-okfit-kind: package
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-11-13T04:57:23Z
 sources:
   - id: discover
-    resource: package/src/patches/discover.ts
+    resource: ../../package/src/patches/discover.ts
   - id: build
-    resource: package/src/patches/build.ts
+    resource: ../../package/src/patches/build.ts
   - id: paths
-    resource: package/src/patches/paths.ts
+    resource: ../../package/src/patches/paths.ts
   - id: reconcile
-    resource: package/src/patches/reconcile.ts
-integrity:
+    resource: ../../package/src/patches/reconcile.ts
+x-okfit-integrity:
   generated:
     body: 2c808ce048c17be9
 ---

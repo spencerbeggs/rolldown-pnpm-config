@@ -3,18 +3,19 @@ type: Interface
 title: Managed pnpm fields
 description: The 110 pnpm settings fields this library manages, grouped by category, plus the keys deliberately excluded from coverage.
 resource: ../../package/src/registry.ts
-kind: config
+x-okfit-kind: config
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-11-13T06:15:14Z
 sources:
   - id: descriptors
-    resource: package/src/registry.ts
+    resource: ../../package/src/registry.ts
   - id: settings-catalog
     resource: "npm:@effected/pnpm/settings"
 tags:
   - architecture
-integrity:
+x-okfit-integrity:
   generated:
     body: c08a86d6b3fae702
 ---

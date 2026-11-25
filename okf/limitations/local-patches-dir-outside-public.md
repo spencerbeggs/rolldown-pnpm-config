@@ -2,6 +2,7 @@
 type: Limitation
 title: A non-public localPatchesDir can dangle
 description: When local.localPatchesDir points outside public/, the distributed patch path the export pipeline writes will not actually exist in a consumer's install.
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-09-09T06:03:08Z
@@ -12,7 +13,7 @@ sources:
     resource: ../../package/src/patches/paths.ts
   - id: build-ts
     resource: ../../package/src/patches/build.ts
-integrity:
+x-okfit-integrity:
   generated:
     body: 100ca54375614fb9
 ---

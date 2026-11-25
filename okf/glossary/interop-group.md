@@ -2,15 +2,16 @@
 type: Glossary
 title: interop group
 description: The set of interop-marked packages within one catalog, reconciled against each other's peerDependencies — with the ceiling/floor vocabulary that describes the reconciliation.
+status: stable
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
+  at: 2026-11-25T19:25:41Z
 sources:
   - id: interop-impl
     resource: ../../package/src/cli/interop.ts
-integrity:
+x-okfit-integrity:
   generated:
-    body: 7dffec74cd1a9747
+    body: ddb4b30a6588a5f5
 ---
 
 # interop group
@@ -35,3 +36,5 @@ reconciliation:
 ceiling is the highest version a member can resolve to before it starts
 breaking a peer in its group, and the floor is the lowest version the
 group can commit to supporting as a peer range.
+
+[^interop-impl]: interop-impl

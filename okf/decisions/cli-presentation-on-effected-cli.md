@@ -3,7 +3,7 @@ type: Decision
 title: CLI presentation through the @effected/cli-kit kit
 description: The CLI's audience detection, colour, document rendering, failure reporting, exit codes, prompts and Ink screens all come from @effected/cli-kit; the producers emit the kit's Doc IR directly and no module reads process outside the entry files.
 status: stable
-supersedes: shared-styled-line-render-layer.md
+x-okfit-supersedes: shared-styled-line-render-layer.md
 generated:
   by: okfit/claude-code
   at: 2026-11-02T19:10:49Z
@@ -32,13 +32,15 @@ verified:
     at: 2026-11-01T21:52:55Z
   - by: human:spencer
     at: 2026-11-02T19:10:04Z
-integrity:
+  - by: human:spencer
+    at: 2026-11-25T19:03:48Z
+x-okfit-integrity:
   generated:
     body: 004fd4b97bb25869
   verified:
     by: human:spencer
-    at: 2026-11-02T19:10:04Z
-    content: c03cb2f1cec7fea1
+    at: 2026-11-25T19:03:48Z
+    content: ff9767c278eaf665
 ---
 
 # CLI presentation through the @effected/cli-kit kit

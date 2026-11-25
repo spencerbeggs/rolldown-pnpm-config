@@ -3,7 +3,7 @@ type: DataModel
 title: Field policy entry
 description: The maintainer-side shape of one FIELD_REGISTRY entry (strategy and enforcement over a pnpm 12 catalog setting), what freeze and export derive from it, and the compile-time guard that keeps the hand-authored PluginConfig interface honest against the catalog.
 resource: ../../package/src/registry.ts
-status: draft
+status: stable
 generated:
   by: claude-code/opus
   at: 2026-11-13T04:57:23Z
@@ -16,7 +16,7 @@ sources:
     resource: ../../package/__test__/types/plugin-config.test-d.ts
   - id: registry-test
     resource: ../../package/__test__/plugin/registry.test.ts
-integrity:
+x-okfit-integrity:
   generated:
     body: 373224a6b7322212
 ---

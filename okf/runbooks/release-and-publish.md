@@ -3,9 +3,10 @@ type: Runbook
 title: Release and publish
 description: The changeset-driven flow that versions `package/` and publishes it to the npm registry.
 resource: ../../.github/workflows/release.yml
+status: stable
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
+  at: 2026-11-25T19:25:41Z
 sources:
   - id: release-workflow
     resource: ../../.github/workflows/release.yml
@@ -13,15 +14,13 @@ sources:
     resource: ../../.changeset/config.json
   - id: package-package-json
     resource: ../../package/package.json
-  - id: targets-json
-    resource: ../../package/dist/prod/targets.json
   - id: root-claude-md
     resource: ../../CLAUDE.md
 tags:
   - release
-integrity:
+x-okfit-integrity:
   generated:
-    body: be62b5966f71d6a8
+    body: 32babf81a3dd8551
 ---
 
 # Release and publish
@@ -68,7 +67,7 @@ ships.[^package-package-json]
 `package/package.json`'s `publishConfig.targets` declares only `{ npm:
 true }`, and the resolved `package/dist/prod/targets.json` shows a single
 target, `registry: "https://registry.npmjs.org"` — there is no
-GitHub-Packages target declared or resolved.[^package-package-json][^targets-json]
+GitHub-Packages target declared or resolved.[^package-package-json]
 The root `CLAUDE.md`'s "Publish Targets" section names only the npm
 registry as the publish destination, matching this
 state.[^root-claude-md]
@@ -83,5 +82,4 @@ A new version of `rolldown-pnpm-config` is published to
 [^release-workflow]: release-workflow
 [^changeset-config]: changeset-config
 [^package-package-json]: package-package-json
-[^targets-json]: targets-json
 [^root-claude-md]: root-claude-md

@@ -3,15 +3,16 @@ type: Convention
 title: Keep virtual.d.ts self-contained
 description: Never write a cross-module import inside package/src/virtual.d.ts; inline the types it needs and hand-sync them with the runtime source.
 stale_after: 2026-12-08T00:00:00Z
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-11-13T04:57:23Z
 sources:
   - id: virtual-dts
-    resource: package/src/virtual.d.ts
+    resource: ../../package/src/virtual.d.ts
   - id: runtime-types
-    resource: package/src/runtime/types.ts
-integrity:
+    resource: ../../package/src/runtime/types.ts
+x-okfit-integrity:
   generated:
     body: c089c09ab49cf53b
 ---

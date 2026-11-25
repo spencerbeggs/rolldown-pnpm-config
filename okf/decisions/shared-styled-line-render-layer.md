@@ -8,16 +8,23 @@ generated:
   at: 2026-11-02T19:10:49Z
 sources:
   - id: styled-ts
-    resource: package/src/cli/ui/styled.ts
+    resource: https://github.com/spencerbeggs/rolldown-pnpm-config/blob/cf2ef01bad9a9b86ed324ae46cb3d4d52c9bb35f/package/src/cli/ui/styled.ts
   - id: env-ts
-    resource: package/src/cli/ui/env.ts
+    resource: https://github.com/spencerbeggs/rolldown-pnpm-config/blob/cf2ef01bad9a9b86ed324ae46cb3d4d52c9bb35f/package/src/cli/ui/env.ts
   - id: ansi-ts
-    resource: package/src/cli/ui/ansi.ts
+    resource: https://github.com/spencerbeggs/rolldown-pnpm-config/blob/cf2ef01bad9a9b86ed324ae46cb3d4d52c9bb35f/package/src/cli/ui/ansi.ts
 tags:
   - architecture
-integrity:
+x-okfit-integrity:
   generated:
     body: aa0d95540ccfc67b
+  verified:
+    by: human:spencer
+    at: 2026-11-25T19:22:10Z
+    content: dd12fdcf65ea6ef4
+verified:
+  - by: human:spencer
+    at: 2026-11-25T19:22:10Z
 ---
 
 # Shared StyledLine render layer, not per-command ad hoc color

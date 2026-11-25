@@ -3,18 +3,19 @@ type: Module
 title: Plugin engine
 description: The build-time engine — PnpmConfigPlugin, the memoized freeze step, and virtual-module serialization.
 resource: ../../package/src/plugin
-kind: package
+x-okfit-kind: package
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-11-13T04:57:23Z
 sources:
   - id: plugin-index
-    resource: package/src/plugin/index.ts
+    resource: ../../package/src/plugin/index.ts
   - id: freeze
-    resource: package/src/plugin/freeze.ts
+    resource: ../../package/src/plugin/freeze.ts
   - id: serialize
-    resource: package/src/plugin/serialize.ts
-integrity:
+    resource: ../../package/src/plugin/serialize.ts
+x-okfit-integrity:
   generated:
     body: 7bf77e14a28c6ca1
 ---

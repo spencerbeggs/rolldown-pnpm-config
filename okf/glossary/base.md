@@ -2,17 +2,18 @@
 type: Glossary
 title: base
 description: The frozen field→value map a plugin author declared, one of the three values freeze produces for the bundled runtime.
+status: stable
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
+  at: 2026-11-25T19:25:41Z
 sources:
   - id: runtime-index
     resource: ../../package/src/runtime/index.ts
   - id: freeze-impl
     resource: ../../package/src/plugin/freeze.ts
-integrity:
+x-okfit-integrity:
   generated:
-    body: 4b94353f3f6e4c37
+    body: a5067892be0b831c
 ---
 
 # base
@@ -28,3 +29,6 @@ At runtime each strategy in the [manifest](manifest.md) receives
 `base[field]` as its "managed" side of the merge — the value the plugin
 author declared, as opposed to the consumer's local
 `pnpm-workspace.yaml`[^runtime-index].
+
+[^freeze-impl]: freeze-impl
+[^runtime-index]: runtime-index

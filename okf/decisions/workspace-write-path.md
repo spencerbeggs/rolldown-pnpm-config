@@ -24,13 +24,15 @@ verified:
     at: 2026-11-02T19:10:04Z
   - by: human:spencer
     at: 2026-11-05T22:55:27Z
-integrity:
+  - by: human:spencer
+    at: 2026-11-25T19:03:48Z
+x-okfit-integrity:
   generated:
     body: fdc000dff7aa241f
   verified:
     by: human:spencer
-    at: 2026-11-05T22:55:27Z
-    content: 8d1be27ce51738f7
+    at: 2026-11-25T19:03:48Z
+    content: c85ae0d1b3dfcc2a
 ---
 
 # Export writes pnpm-workspace.yaml as edits, not a re-render

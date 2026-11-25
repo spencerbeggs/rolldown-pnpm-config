@@ -3,15 +3,16 @@ type: Convention
 title: Test file layout
 description: Tests live in package/__test__/, never co-located in src/; classification is by filename suffix, and utils/fixtures are per-category and excluded from discovery.
 stale_after: 2026-12-08T00:00:00Z
+status: stable
 generated:
   by: okfit/claude-code
-  at: 2026-11-13T04:57:23Z
+  at: 2026-11-25T19:25:41Z
 sources:
   - id: test-claude-md
-    resource: package/__test__/CLAUDE.md
-integrity:
+    resource: ../../package/__test__/CLAUDE.md
+x-okfit-integrity:
   generated:
-    body: d518932a3c77ef78
+    body: e9298201be72f4a8
 ---
 
 # Test file layout
@@ -53,3 +54,5 @@ discovery.[^test-claude-md]
 `package/__test__/CLAUDE.md` is the authoritative source for these rules;
 follow it over any other summary, including this one, where they
 differ.[^test-claude-md]
+
+[^test-claude-md]: test-claude-md

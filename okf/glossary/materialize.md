@@ -2,17 +2,18 @@
 type: Glossary
 title: materialize
 description: Two related senses — normalizeCatalogs materializing a `<name>:peers` catalog from declared peer values, and the upgrade CLI materializing a missing peer literal into the config source.
+status: stable
 generated:
   by: okfit/claude-code
-  at: 2026-11-11T19:21:18Z
+  at: 2026-11-25T19:25:41Z
 sources:
   - id: catalogs-impl
     resource: ../../package/src/catalogs.ts
   - id: edits-impl
     resource: ../../package/src/cli/edits.ts
-integrity:
+x-okfit-integrity:
   generated:
-    body: 0b4b77d167f63d57
+    body: c59c43a34da98e01
 ---
 
 # materialize
@@ -38,3 +39,6 @@ knowing:
 Both senses describe turning a value the runtime or CLI derives into a
 literal that actually appears — as a catalog entry in sense 1, as source
 text in sense 2.
+
+[^catalogs-impl]: catalogs-impl
+[^edits-impl]: edits-impl

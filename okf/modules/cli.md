@@ -3,26 +3,27 @@ type: Module
 title: CLI
 description: The developer-facing rolldown-pnpm-config binary — upgrade, export and preview commands plus the shared diff/render layer.
 resource: ../../package/src/cli
-kind: package
+x-okfit-kind: package
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-11-13T06:08:51Z
 sources:
   - id: bin
-    resource: package/src/cli/bin.ts
+    resource: ../../package/src/cli/bin.ts
   - id: main
-    resource: package/src/cli/main.ts
+    resource: ../../package/src/cli/main.ts
   - id: tone
-    resource: package/src/cli/render/tone.ts
+    resource: ../../package/src/cli/render/tone.ts
   - id: screens
-    resource: package/src/cli/ui/screens.ts
+    resource: ../../package/src/cli/ui/screens.ts
   - id: diff-build
-    resource: package/src/cli/diff/build.ts
+    resource: ../../package/src/cli/diff/build.ts
   - id: local-merge
-    resource: package/src/cli/local-merge.ts
+    resource: ../../package/src/cli/local-merge.ts
   - id: effective
-    resource: package/src/cli/effective.ts
-integrity:
+    resource: ../../package/src/cli/effective.ts
+x-okfit-integrity:
   generated:
     body: a30442ec264a851f
 ---

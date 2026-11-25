@@ -8,25 +8,27 @@ generated:
   at: 2026-09-09T06:03:08Z
 sources:
   - id: discover
-    resource: package/src/cli/discover.ts
+    resource: ../../package/src/cli/discover.ts
   - id: rewrite
-    resource: package/src/cli/rewrite.ts
+    resource: ../../package/src/cli/rewrite.ts
   - id: edits
-    resource: package/src/cli/edits.ts
+    resource: ../../package/src/cli/edits.ts
   - id: types
-    resource: package/src/cli/types.ts
+    resource: ../../package/src/cli/types.ts
 tags:
   - architecture
 verified:
   - by: human:spencer
     at: 2026-11-01T21:52:55Z
-integrity:
+  - by: human:spencer
+    at: 2026-11-25T19:21:37Z
+x-okfit-integrity:
   generated:
     body: 9661eb4756eda9a9
   verified:
     by: human:spencer
-    at: 2026-11-01T21:52:55Z
-    content: 819b1d4010a139ee
+    at: 2026-11-25T19:21:37Z
+    content: d7d1bffd3e317315
 ---
 
 # Surgical span rewrite, operator preserved

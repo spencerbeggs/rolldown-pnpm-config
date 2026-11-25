@@ -2,23 +2,30 @@
 type: Decision
 title: pnpm setting facts come from the kit's settings catalog
 description: The plugin keeps only its policy (strategy, enforcement, directives) and takes every setting's schema, kind and locations from @effected/pnpm/settings, dropping the settings pnpm 12 does not read.
-status: draft
-supersedes: descriptor-table-as-source-of-truth.md
+status: stable
+x-okfit-supersedes: descriptor-table-as-source-of-truth.md
 generated:
   by: claude-code/opus
   at: 2026-11-13T06:15:14Z
 sources:
   - id: registry
-    resource: package/src/registry.ts
+    resource: ../../package/src/registry.ts
   - id: freeze
-    resource: package/src/plugin/freeze.ts
+    resource: ../../package/src/plugin/freeze.ts
   - id: owner
     resource: conversation with the repository owner
     author: human:spencer
     last_modified: 2026-11-12T00:00:00Z
-integrity:
+x-okfit-integrity:
   generated:
     body: 9d420f7d6c9409a1
+  verified:
+    by: human:spencer
+    at: 2026-11-25T19:24:34Z
+    content: 576c7322fcc68cdf
+verified:
+  - by: human:spencer
+    at: 2026-11-25T19:24:34Z
 ---
 
 # pnpm setting facts come from the kit's settings catalog

@@ -8,23 +8,25 @@ generated:
   at: 2026-09-09T06:03:08Z
 sources:
   - id: define-plugin-ts
-    resource: package/src/define-plugin.ts
+    resource: ../../package/src/define-plugin.ts
   - id: effective-ts
-    resource: package/src/cli/effective.ts
+    resource: ../../package/src/cli/effective.ts
   - id: freeze-ts
-    resource: package/src/plugin/freeze.ts
+    resource: ../../package/src/plugin/freeze.ts
 tags:
   - architecture
 verified:
   - by: human:spencer
     at: 2026-11-01T21:52:55Z
-integrity:
+  - by: human:spencer
+    at: 2026-11-25T19:21:37Z
+x-okfit-integrity:
   generated:
     body: 248015fb109dcfc4
   verified:
     by: human:spencer
-    at: 2026-11-01T21:52:55Z
-    content: 0d5607a52f8f5282
+    at: 2026-11-25T19:21:37Z
+    content: fb266e8eabeecf6f
 ---
 
 # `local` is post-freeze, export-time only

@@ -8,23 +8,25 @@ generated:
   at: 2026-10-31T20:42:34Z
 sources:
   - id: repos-config
-    resource: .repos/config.json
+    resource: ../../.repos/config.json
   - id: gitmodules
-    resource: .gitmodules
+    resource: ../../.gitmodules
   - id: lockfile
-    resource: pnpm-lock.yaml
+    resource: ../../pnpm-lock.yaml
 tags:
   - architecture
-integrity:
+x-okfit-integrity:
   generated:
     body: 6b6d2eb0f6e38cae
   verified:
     by: human:spencer
-    at: 2026-11-01T21:52:55Z
-    content: 8f1eff4fe016ea9a
+    at: 2026-11-25T19:21:37Z
+    content: eb28cb07649a951a
 verified:
   - by: human:spencer
     at: 2026-11-01T21:52:55Z
+  - by: human:spencer
+    at: 2026-11-25T19:21:37Z
 ---
 
 # Vendored v4 source as the API authority

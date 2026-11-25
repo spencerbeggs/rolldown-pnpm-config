@@ -2,15 +2,16 @@
 type: Glossary
 title: freeze
 description: The single build-time step where Effect runs, validating a plugin author's declared config and emitting `{ base, manifest, name }`.
+status: stable
 generated:
   by: okfit/claude-code
-  at: 2026-11-13T04:57:23Z
+  at: 2026-11-25T19:25:41Z
 sources:
   - id: freeze-impl
     resource: ../../package/src/plugin/freeze.ts
-integrity:
+x-okfit-integrity:
   generated:
-    body: 509221a92cb2143e
+    body: c667927c13eea098
 ---
 
 # freeze
@@ -29,3 +30,5 @@ the runtime never needs to revalidate it.
 
 See also [base](base.md) and [manifest](manifest.md), the two halves of
 `freeze`'s output.
+
+[^freeze-impl]: freeze-impl

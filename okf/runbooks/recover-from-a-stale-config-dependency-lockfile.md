@@ -3,6 +3,7 @@ type: Runbook
 title: Recover from a stale config-dependency lockfile
 description: Force pnpm to pick up a `configDependencies` version bump when it keeps loading the old plugin.
 resource: ../../pnpm-lock.yaml
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-10-31T20:42:34Z
@@ -13,7 +14,7 @@ sources:
     resource: ../../pnpm-workspace.yaml
 tags:
   - release
-integrity:
+x-okfit-integrity:
   generated:
     body: 78b127ef4300b6d1
 ---

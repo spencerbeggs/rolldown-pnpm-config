@@ -8,21 +8,23 @@ generated:
   at: 2026-09-09T06:03:08Z
 sources:
   - id: types
-    resource: package/src/runtime/types.ts
+    resource: ../../package/src/runtime/types.ts
   - id: enforcement
-    resource: package/src/runtime/enforcement.ts
+    resource: ../../package/src/runtime/enforcement.ts
   - id: runtime-index
-    resource: package/src/runtime/index.ts
+    resource: ../../package/src/runtime/index.ts
 verified:
   - by: human:spencer
     at: 2026-10-27T16:21:39Z
-integrity:
+  - by: human:spencer
+    at: 2026-11-25T19:21:37Z
+x-okfit-integrity:
   generated:
     body: 66494e9e7a94f264
   verified:
     by: human:spencer
-    at: 2026-10-27T16:21:39Z
-    content: 1d253999b3587cd2
+    at: 2026-11-25T19:21:37Z
+    content: 1a32bae665814dec
 ---
 
 # Detection separated from response

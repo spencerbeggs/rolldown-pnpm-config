@@ -8,23 +8,25 @@ generated:
   at: 2026-10-11T16:23:32Z
 sources:
   - id: freeze
-    resource: package/src/plugin/freeze.ts
+    resource: ../../package/src/plugin/freeze.ts
   - id: plugin-index
-    resource: package/src/plugin/index.ts
+    resource: ../../package/src/plugin/index.ts
   - id: upgrade-cli
-    resource: package/src/cli/commands/upgrade.ts
+    resource: ../../package/src/cli/commands/upgrade.ts
 tags:
   - architecture
 verified:
   - by: human:spencer
     at: 2026-10-27T16:21:39Z
-integrity:
+  - by: human:spencer
+    at: 2026-11-25T19:21:37Z
+x-okfit-integrity:
   generated:
     body: 59bdffb07e027dc9
   verified:
     by: human:spencer
-    at: 2026-10-27T16:21:39Z
-    content: 4c850f3407d4230f
+    at: 2026-11-25T19:21:37Z
+    content: 34bf5268b949cb23
 ---
 
 # Builds never write

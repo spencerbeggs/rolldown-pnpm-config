@@ -8,20 +8,22 @@ generated:
   at: 2026-09-09T06:03:08Z
 sources:
   - id: validate
-    resource: package/src/cli/validate.ts
+    resource: ../../package/src/cli/validate.ts
   - id: upgrade-command
-    resource: package/src/cli/commands/upgrade.ts
+    resource: ../../package/src/cli/commands/upgrade.ts
 tags: []
 verified:
   - by: human:spencer
     at: 2026-11-01T21:52:55Z
-integrity:
+  - by: human:spencer
+    at: 2026-11-25T19:21:37Z
+x-okfit-integrity:
   generated:
     body: 6dfd0c0172e44d5e
   verified:
     by: human:spencer
-    at: 2026-11-01T21:52:55Z
-    content: 1d5ec77cd630fd60
+    at: 2026-11-25T19:21:37Z
+    content: 6dd1966adec5dc7d
 ---
 
 # "--yes is strict, interactive is lenient"

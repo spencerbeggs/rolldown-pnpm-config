@@ -3,10 +3,10 @@ type: Runbook
 title: Build the package
 description: "Produce the single prod build of `package/` into `dist/prod/` via Turbo and `effected package build`."
 resource: ../../package/effected.toml
-status: draft
+status: stable
 generated:
   by: okfit/claude-code
-  at: 2026-11-08T21:16:18Z
+  at: 2026-11-25T19:25:41Z
 sources:
   - id: effected-toml
     resource: ../../package/effected.toml
@@ -16,16 +16,14 @@ sources:
     resource: ../../package.json
   - id: package-package-json
     resource: ../../package/package.json
-  - id: prod-pkg-manifest
-    resource: ../../package/dist/prod/npm/pkg/package.json
   - id: manifest-transform
     resource: npm:@effected/bundler/manifest/transform.js
 tags:
   - release
   - architecture
-integrity:
+x-okfit-integrity:
   generated:
-    body: a5b5ebd716f31879
+    body: 9aa8288738735bae
 ---
 
 # Build the package
@@ -68,7 +66,7 @@ source `package/package.json`:
 - `exports` and `bin` are rewritten to point at the compiled `.js`/`.d.ts`
   files instead of `src/*.ts`.
 - `devDependencies`, `scripts`, `publishConfig`, `devEngines` and
-  `packageManager` are stripped.[^manifest-transform][^prod-pkg-manifest]
+  `packageManager` are stripped.[^manifest-transform]
 
 This is the default manifest transform of the bundler behind
 `effected package build`; this repository supplies no `transform()` of its
@@ -78,12 +76,11 @@ own.[^manifest-transform]
 
 `package/dist/prod/` holds `npm/pkg/` (the publishable package, whose
 `package.json` carries `"private": false` and a rewritten `exports` map),
-plus `targets.json` and `issues.json`.[^prod-pkg-manifest] No
+plus `targets.json` and `issues.json`. No
 `package/dist/dev/` is produced.
 
 [^turbo-json]: turbo-json
 [^package-package-json]: package-package-json
 [^root-package-json]: root-package-json
 [^effected-toml]: effected-toml
-[^prod-pkg-manifest]: prod-pkg-manifest
 [^manifest-transform]: manifest-transform

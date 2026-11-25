@@ -2,8 +2,9 @@
 type: Interface
 title: export and preview commands
 description: The consumer-facing contract of `rolldown-pnpm-config export [path]` and `rolldown-pnpm-config preview [path]`.
-kind: cli
+x-okfit-kind: cli
 resource: ../../package/src/cli/commands/export.ts
+status: stable
 generated:
   by: okfit/claude-code
   at: 2026-11-05T22:58:21Z
@@ -12,7 +13,7 @@ sources:
     resource: ../../package/src/cli/commands/export.ts
   - id: preview-ts
     resource: ../../package/src/cli/commands/preview.ts
-integrity:
+x-okfit-integrity:
   generated:
     body: c7d671aaf8699a82
 ---

@@ -16,7 +16,7 @@ sources:
     resource: ../../package/effected.toml
   - id: manifest-transform
     resource: npm:@effected/bundler/manifest/transform.js
-integrity:
+x-okfit-integrity:
   generated:
     body: f41c79a13aae7b4b
 ---

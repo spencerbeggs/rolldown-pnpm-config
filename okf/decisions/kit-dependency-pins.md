@@ -2,12 +2,12 @@
 type: Decision
 title: The package pins its kit dependencies exactly through `catalog:effected:exact`
 description: "Every `@effected/*`, `@effect/*` and `effect` dependency of package/ is written `catalog:effected:exact`, so the published manifest carries plain versions and a consumer's install resolves the same kit tree this package was tested against."
-status: draft
+status: stable
 sources:
   - id: package-json
-    resource: package/package.json
+    resource: ../../package/package.json
   - id: kit-pins-test
-    resource: package/__test__/manifest/kit-pins.test.ts
+    resource: ../../package/__test__/manifest/kit-pins.test.ts
   - id: ledger
     resource: "npm:@effected/pnpm-plugin-effected (effected-renovate upgrade ledger entry 0011, effected#1333)"
   - id: owner
@@ -20,9 +20,16 @@ tags:
 generated:
   by: okfit/claude-code
   at: 2026-11-12T02:30:03Z
-integrity:
+x-okfit-integrity:
   generated:
     body: 3211179f6ad18214
+  verified:
+    by: human:spencer
+    at: 2026-11-25T19:24:34Z
+    content: 993c9adef5439051
+verified:
+  - by: human:spencer
+    at: 2026-11-25T19:24:34Z
 ---
 
 # The package pins its kit dependencies exactly through `catalog:effected:exact`

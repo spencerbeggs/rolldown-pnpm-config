@@ -2,15 +2,16 @@
 type: Glossary
 title: divergence
 description: A classified disagreement between the managed value and the consumer's local value, carrying a kind.
+status: stable
 generated:
   by: okfit/claude-code
-  at: 2026-09-09T06:03:08Z
+  at: 2026-11-25T19:25:41Z
 sources:
   - id: enforcement-impl
     resource: ../../package/src/runtime/enforcement.ts
-integrity:
+x-okfit-integrity:
   generated:
-    body: 92476b5173efdeb9
+    body: c477d4ac5b7e28df
 ---
 
 # divergence
@@ -29,3 +30,5 @@ Silk-era `silkValue`/`childValue`; the current names describe the two
 sides directly (the managed/plugin-declared value vs. the consumer's
 local value) rather than referring to a predecessor project or a
 parent/child relationship.
+
+[^enforcement-impl]: enforcement-impl

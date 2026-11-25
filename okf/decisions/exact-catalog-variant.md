@@ -2,23 +2,30 @@
 type: Decision
 title: An opt-in `<name>:exact` catalog derived from each range
 description: Tools that must pin the kit exactly get a derived `<name>:exact` catalog (operator stripped from each range), opted into per declaration, failing loudly on a range with no single version and following overridesFromCatalogs' frozen pins.
-status: draft
+status: stable
 sources:
   - id: catalogs
-    resource: package/src/catalogs.ts
+    resource: ../../package/src/catalogs.ts
   - id: overrides
-    resource: package/src/plugin/overrides-from-catalogs.ts
+    resource: ../../package/src/plugin/overrides-from-catalogs.ts
   - id: freeze
-    resource: package/src/plugin/freeze.ts
+    resource: ../../package/src/plugin/freeze.ts
 tags:
   - deps
   - release
 generated:
   by: okfit/claude-code
   at: 2026-11-12T19:15:27Z
-integrity:
+x-okfit-integrity:
   generated:
     body: 68e906da5ace6358
+  verified:
+    by: human:spencer
+    at: 2026-11-25T19:24:34Z
+    content: b616d9b57e152a40
+verified:
+  - by: human:spencer
+    at: 2026-11-25T19:24:34Z
 ---
 
 # An opt-in `<name>:exact` catalog derived from each range

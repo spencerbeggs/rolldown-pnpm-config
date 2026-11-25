@@ -23,17 +23,20 @@ task touches the area it covers; do not load the bundle by default.
 - `okf/modules/` (5) — one file per owned unit of code: `plugin-engine.md`
   (the build-time engine, `PnpmConfigPlugin`, freeze), `runtime.md` (the
   zero-dependency pnpmfile runtime, `createHooks`, strategy table),
-  `descriptors.md` (the 121-field descriptor table), `cli.md` (`upgrade`,
-  `export`, `preview`), `patches.md` (patch discovery and path rewrite). Load
-  the matching module before editing `package/src/**` under that area.
-- `okf/decisions/` (22) — a choice made, the alternatives rejected, and why.
-  Load before changing something that looks arbitrary — e.g. why builds never
-  write (`builds-never-write.md`), why Effect is fenced to build time
-  (`effect-at-build-time-only.md`), why the descriptor table is the single
-  source of truth (`descriptor-table-as-source-of-truth.md`), why major
-  bumps are interactive-only (`major-bumps-interactive-only.md`), or why the
-  examples link the package's TypeScript source through tsx
-  (`workspace-source-links.md`) — before reversing it.
+  `settings-policy.md` (the `FIELD_REGISTRY` policy table over the 110
+  managed pnpm settings), `cli.md` (`upgrade`, `export`, `preview`),
+  `patches.md` (patch discovery and path rewrite). Load the matching module
+  before editing `package/src/**` under that area.
+- `okf/decisions/` (24, two deprecated) — a choice made, the alternatives
+  rejected, and why. Load before changing something that looks arbitrary —
+  e.g. why builds never write (`builds-never-write.md`), why Effect is fenced
+  to build time (`effect-at-build-time-only.md`), why every pnpm setting's
+  schema and locations come from the kit's catalog while the plugin keeps
+  only policy (`settings-catalog-from-the-kit.md`), why major bumps are
+  interactive-only (`major-bumps-interactive-only.md`), or why the examples
+  link the package's TypeScript source through tsx
+  (`workspace-source-links.md`) — before reversing it. A deprecated Decision
+  names its replacement in `superseded_by`; read the successor instead.
 - `okf/interfaces/` (10) — contracts consumers depend on: the authoring
   surface (`plugin-config.md`), the `{ base, manifest, name }` runtime payload
   (`base-manifest-name.md`), virtual module specifiers (`virtual-modules.md`),
@@ -43,9 +46,9 @@ task touches the area it covers; do not load the bundle by default.
   plugin author's config or a consumer's build depends on.
 - `okf/conventions/` (7) — rules to follow, not descriptions of current
   behavior: import/module style, commit format, test layout, adding a managed
-  field only through the descriptor table, never unsetting `private` in
-  source, keeping `virtual.d.ts` self-contained, keeping the managed-fields
-  interface in step with the descriptor table.
+  field only through the policy table, never unsetting `private` in source,
+  keeping `virtual.d.ts` self-contained, keeping the managed-fields interface
+  in step with the policy table.
 - `okf/runbooks/` (3) — ordered operational procedures: building the package
   (`build-the-package.md`), recovering from a stale config-dependency lockfile, and the
   release/publish flow. Load before running a build or a release, not after
@@ -57,10 +60,11 @@ task touches the area it covers; do not load the bundle by default.
 - `okf/limitations/` (2) and `okf/references/pnpm-settings.md` — known edges
   of a contract, and the mirrored citation point for what a pnpm setting
   means when the docs and the schemastore schema disagree.
-- `okf/models/descriptor-table.md` — the maintainer-side shape of one
-  descriptor-table entry: what it contains, what freeze and the registry
-  derive from it, and what breaks if an entry is wrong. Load before adding or
-  editing a descriptor.
+- `okf/models/field-policy.md` — the maintainer-side shape of one
+  `FIELD_REGISTRY` entry (strategy and enforcement over a pnpm 12 catalog
+  setting): what freeze and export derive from it, and the compile-time guard
+  that keeps `PluginConfig` honest against the catalog. Load before adding or
+  editing a managed field's policy.
 
 ## Keeping the Bundle Current
 
